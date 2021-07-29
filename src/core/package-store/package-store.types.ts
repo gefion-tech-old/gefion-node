@@ -1,5 +1,7 @@
 export const PACKAGE_STORE_SYMBOL = {
-    PackageStoreConfig: Symbol.for('PackageStoreConfig')
+    PackageStoreConfig: Symbol.for('PackageStoreConfig'),
+    PackageEntity: Symbol.for('PackageEntity'),
+    PackageTagEntity: Symbol.for('PackageTagEntity')
 }
 
 export type PackageStoreConfig = {

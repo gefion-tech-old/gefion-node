@@ -12,7 +12,9 @@ export const PackageStoreModule = new AsyncContainerModule(async (bind: interfac
 
     bind<EntityType>(TYPEORM_SYMBOL.TypeOrmEntity)
         .toConstructor(Package)
+        .whenTargetNamed(PACKAGE_STORE_SYMBOL.PackageEntity)
 
     bind<EntityType>(TYPEORM_SYMBOL.TypeOrmEntity)
         .toConstructor(PackageTag)
+        .whenTargetNamed(PACKAGE_STORE_SYMBOL.PackageTagEntity)
 })

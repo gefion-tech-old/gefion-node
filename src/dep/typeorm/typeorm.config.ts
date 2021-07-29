@@ -15,6 +15,7 @@ export async function getConfigAppTypeormConnection(context: interfaces.Context)
         database: '/home/valentin/Документы/not_work/gefion/src/storage/database/app.sqlite',
         logging: 'all',
         synchronize: true,
-        entities: entities
+        entities: entities,
+        dropSchema: true
     }
 }

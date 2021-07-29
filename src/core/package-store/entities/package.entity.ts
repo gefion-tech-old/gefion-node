@@ -29,13 +29,14 @@ export class Package {
     @Column({
         nullable: false
     })
-    type: string;
+    type: 'constant' | 'temporary';
 
     /**
      * Все доступные на данный момент теги пакета
      */
     @OneToMany(() => PackageTag, tag => tag.package, {
-        onDelete: 'CASCADE'
+        cascade: true,
+        eager: true
     })
     tags: PackageTag[];
 
