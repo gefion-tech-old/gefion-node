@@ -16,15 +16,9 @@ export class PackageTag {
     })
     package: Package;
 
-    /**
-     * Название тега
-     */
     @Column()
     name: string;
 
-    /**
-     * Установлен ли данный тег на данный момент времени или нет
-     */
     @Column({
         default: false
     })
