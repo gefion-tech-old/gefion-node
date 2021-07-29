@@ -19,3 +19,12 @@ export async function getAppLoggerConfig(_: interfaces.Context): Promise<LoggerC
         enabled: true
     }
 }
+
+export async function getDatabaseLoggerConfig(_: interfaces.Context): Promise<LoggerConfig> {
+    return {
+        name: 'database',
+        level: 'info',
+        base: { pid: process.pid, hostname: os.hostname },
+        enabled: true
+    }
+}

@@ -3,8 +3,10 @@ import { Logger } from "pino"
 export const LOGGER_SYMBOL = {
     LoggerHttpConfig: Symbol.for('LoggerHttpConfig'),
     LoggerAppConfig: Symbol.for('LoggerAppConfig'),
+    LoggerDatabaseConfig: Symbol.for('LoggerDatabaseConfig'),
     LoggerHttp: Symbol.for('LoggerHttp'),
-    LoggerApp: Symbol.for('LoggerApp')
+    LoggerApp: Symbol.for('LoggerApp'),
+    LoggerDatabase: Symbol.for('LoggerDatabase')
 }
 
 export type LoggerType = Logger

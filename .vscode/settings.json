@@ -1,0 +1,12 @@
+{
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "database": "${workspaceFolder:gefion}/src/storage/packages/main_db.sqlite",
+            "name": "Main",
+            "group": "Gefion"
+        }
+    ],
+    "sqltools.useNodeRuntime": true
+}
