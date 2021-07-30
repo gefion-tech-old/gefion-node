@@ -1,5 +1,3 @@
-import { Logger } from "pino"
-
 export const LOGGER_SYMBOL = {
     LoggerHttpConfig: Symbol.for('LoggerHttpConfig'),
     LoggerAppConfig: Symbol.for('LoggerAppConfig'),
@@ -8,8 +6,6 @@ export const LOGGER_SYMBOL = {
     LoggerApp: Symbol.for('LoggerApp'),
     LoggerDatabase: Symbol.for('LoggerDatabase')
 }
-
-export type LoggerType = Logger
 
 export type LoggerConfig = {
     // Имя регистратора. Будет добавляться к каждой строке. По умолчанию undefined

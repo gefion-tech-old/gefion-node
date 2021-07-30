@@ -1,5 +1,5 @@
 import { AsyncContainerModule, interfaces } from 'inversify'
-import { LOGGER_SYMBOL, LoggerConfig, LoggerType } from './logger.types'
+import { LOGGER_SYMBOL, LoggerConfig } from './logger.types'
 import { getAppLoggerConfig, getHttpLoggerConfig, getDatabaseLoggerConfig } from './logger.config'
 import pino from 'pino'
 
@@ -16,8 +16,8 @@ export const LoggerModule = new AsyncContainerModule(async (bind: interfaces.Bin
         .toDynamicValue(getDatabaseLoggerConfig)
         .inSingletonScope()
     
-    bind<Promise<LoggerType>>(LOGGER_SYMBOL.LoggerHttp)
-        .toDynamicValue(async (context: interfaces.Context): Promise<LoggerType> => {
+    bind<Promise<pino.Logger>>(LOGGER_SYMBOL.LoggerHttp)
+        .toDynamicValue(async (context: interfaces.Context): Promise<pino.Logger> => {
             const container = context.container
             const config = await container.get<Promise<LoggerConfig>>(LOGGER_SYMBOL.LoggerHttpConfig)
             
@@ -30,8 +30,8 @@ export const LoggerModule = new AsyncContainerModule(async (bind: interfaces.Bin
         })
         .inSingletonScope()
 
-    bind<Promise<LoggerType>>(LOGGER_SYMBOL.LoggerApp)
-        .toDynamicValue(async (context: interfaces.Context): Promise<LoggerType> => {
+    bind<Promise<pino.Logger>>(LOGGER_SYMBOL.LoggerApp)
+        .toDynamicValue(async (context: interfaces.Context): Promise<pino.Logger> => {
             const container = context.container
             const config = await container.get<Promise<LoggerConfig>>(LOGGER_SYMBOL.LoggerAppConfig)
             
@@ -44,8 +44,8 @@ export const LoggerModule = new AsyncContainerModule(async (bind: interfaces.Bin
         })
         .inSingletonScope()
 
-    bind<Promise<LoggerType>>(LOGGER_SYMBOL.LoggerDatabase)
-        .toDynamicValue(async (context: interfaces.Context): Promise<LoggerType> => {
+    bind<Promise<pino.Logger>>(LOGGER_SYMBOL.LoggerDatabase)
+        .toDynamicValue(async (context: interfaces.Context): Promise<pino.Logger> => {
             const container = context.container
             const config = await container.get<Promise<LoggerConfig>>(LOGGER_SYMBOL.LoggerDatabaseConfig)
             
