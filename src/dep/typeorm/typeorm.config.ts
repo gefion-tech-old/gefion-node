@@ -1,12 +1,13 @@
 import { interfaces } from 'inversify'
-import { ConnectionConfig, EntityType, TYPEORM_SYMBOL } from './typeorm.types'
+import { TYPEORM_SYMBOL } from './typeorm.types'
+import { EntitySchema, ConnectionOptions } from 'typeorm'
 
-export async function getConfigAppTypeormConnection(context: interfaces.Context): Promise<ConnectionConfig> {
+export async function getConfigAppTypeormConnection(context: interfaces.Context): Promise<ConnectionOptions> {
     const container = context.container
     let entities
 
     try {
-        entities = container.getAll<EntityType>(TYPEORM_SYMBOL.TypeOrmEntity)
+        entities = container.getAll<EntitySchema<any>>(TYPEORM_SYMBOL.TypeOrmEntity)
     } catch {}
 
     return {
