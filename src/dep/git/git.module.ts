@@ -1,7 +1,7 @@
 import { AsyncContainerModule, interfaces } from 'inversify'
-import { GIT_SYMBOL, GitConfig, GitType } from './git.types'
+import { GIT_SYMBOL, GitConfig } from './git.types'
 import { getGitConfig } from './git.config'
-import simpleGit from 'simple-git'
+import simpleGit, { SimpleGit as GitType } from 'simple-git'
 
 export const GitModule = new AsyncContainerModule(async (bind: interfaces.Bind) => {
     bind<Promise<GitConfig>>(GIT_SYMBOL.GitConfig)

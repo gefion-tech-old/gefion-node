@@ -6,13 +6,14 @@ import { Package } from './entities/package.entity'
 import { PackageTag } from './entities/package-tag.entity'
 import { Repository, EntitySchema, Connection } from 'typeorm'
 import { PackageStoreService } from './package-store.service'
+import { IPackageStoreService } from './package-store.interface'
 
 export const PackageStoreModule = new AsyncContainerModule(async (bind: interfaces.Bind) => {
     bind<Promise<PackageStoreConfig>>(PACKAGE_STORE_SYMBOL.PackageStoreConfig)
         .toDynamicValue(getPackageStoreConfig)
         .inSingletonScope()
 
-    bind<PackageStoreService>(PACKAGE_STORE_SYMBOL.PackageStoreService)
+    bind<IPackageStoreService>(PACKAGE_STORE_SYMBOL.PackageStoreService)
         .to(PackageStoreService)
 
     // Сущности
