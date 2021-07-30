@@ -15,5 +15,4 @@ export const GitModule = new AsyncContainerModule(async (bind: interfaces.Bind) 
 
             return simpleGit(config)
         })
-        .inSingletonScope()
 })
