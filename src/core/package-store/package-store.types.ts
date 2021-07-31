@@ -27,8 +27,6 @@ export type Package = {
     readonly type: PackageType
     // Путь к удаленному git репозиторию
     readonly gitPath: string
-    // Путь в каталоге файловой системы к пакету
-    readonly path: string
     // Список установленных тегов
     readonly installedTags: Array<PackageTag>
     // Список всех доступных для установки тегов
@@ -37,12 +35,7 @@ export type Package = {
 
 export type Packages = Array<Package>
 
-export type PackageTag = {
-    // Название тега
-    readonly name: Tag
-    // Путь к каталогу в файловой системе с версией
-    readonly path: string
-}
+export type PackageTag = string
 
 export type Tag = string
 
