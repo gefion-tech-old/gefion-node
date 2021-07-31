@@ -23,38 +23,38 @@ export const PackageStoreModule = new AsyncContainerModule(async (bind: interfac
 
     // Сущности
 
-    bind<EntitySchema<Package>>(TYPEORM_SYMBOL.TypeOrmEntity)
+    bind<EntitySchema<Package>>(TYPEORM_SYMBOL.TypeOrmAppEntity)
         .toConstructor(Package)
         .whenTargetNamed(PACKAGE_STORE_SYMBOL.PackageEntity)
 
-    bind<EntitySchema<PackageTag>>(TYPEORM_SYMBOL.TypeOrmEntity)
+    bind<EntitySchema<PackageTag>>(TYPEORM_SYMBOL.TypeOrmAppEntity)
         .toConstructor(PackageTag)
         .whenTargetNamed(PACKAGE_STORE_SYMBOL.PackageTagEntity)
 
     // Репозитории
 
-    bind<Promise<Repository<Package>>>(TYPEORM_SYMBOL.TypeOrmRepository)
+    bind<Promise<Repository<Package>>>(TYPEORM_SYMBOL.TypeOrmAppRepository)
         .toDynamicValue(async (context: interfaces.Context): Promise<Repository<Package>> => {
             const container = context.container
             const connection = await container
                 .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
             const packageEntity = container
                 .getNamed<EntitySchema<Package>>(
-                    TYPEORM_SYMBOL.TypeOrmEntity, PACKAGE_STORE_SYMBOL.PackageEntity
+                    TYPEORM_SYMBOL.TypeOrmAppEntity, PACKAGE_STORE_SYMBOL.PackageEntity
                 )
             const repository = connection.getRepository<Package>(packageEntity)
             return repository
         })
         .whenTargetNamed(PACKAGE_STORE_SYMBOL.PackageRepository)
 
-    bind<Promise<Repository<PackageTag>>>(TYPEORM_SYMBOL.TypeOrmRepository)
+    bind<Promise<Repository<PackageTag>>>(TYPEORM_SYMBOL.TypeOrmAppRepository)
         .toDynamicValue(async (context: interfaces.Context): Promise<Repository<PackageTag>> => {
             const container = context.container
             const connection = await container
                 .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
             const packageTagEntity = container
                 .getNamed<EntitySchema<PackageTag>>(
-                    TYPEORM_SYMBOL.TypeOrmEntity, PACKAGE_STORE_SYMBOL.PackageTagEntity
+                    TYPEORM_SYMBOL.TypeOrmAppEntity, PACKAGE_STORE_SYMBOL.PackageTagEntity
                 )
             const repository = connection.getRepository<PackageTag>(packageTagEntity)
             return repository

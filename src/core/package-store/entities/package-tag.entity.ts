@@ -7,14 +7,14 @@ import { Package } from './package.entity'
 export class PackageTag {
 
     @PrimaryGeneratedColumn()
-    id: number;
+    id?: number;
 
     @ManyToOne(() => Package, pkg => pkg.tags, {
         nullable: false,
         orphanedRowAction: 'delete',
         onDelete: 'CASCADE'
     })
-    package: Package;
+    package?: Package;
 
     @Column()
     name: string;

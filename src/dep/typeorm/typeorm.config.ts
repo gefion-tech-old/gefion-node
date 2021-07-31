@@ -7,7 +7,7 @@ export async function getConfigAppTypeormConnection(context: interfaces.Context)
     let entities
 
     try {
-        entities = container.getAll<EntitySchema<any>>(TYPEORM_SYMBOL.TypeOrmEntity)
+        entities = container.getAll<EntitySchema<any>>(TYPEORM_SYMBOL.TypeOrmAppEntity)
     } catch {}
 
     return {
