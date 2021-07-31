@@ -4,12 +4,15 @@ export const PACKAGE_STORE_SYMBOL = {
     PackageTagEntity: Symbol.for('PackageTagEntity'),
     PackageRepository: Symbol.for('PackageRepository'),
     PackageTagRepository: Symbol.for('PackageTagRepository'),
-    PackageStoreService: Symbol.for('PackageStoreService')
+    PackageStoreService: Symbol.for('PackageStoreService'),
+    GitManagerService: Symbol.for('GitManagerService')
 }
 
 export type PackageStoreConfig = {
-    // Путь к каталогу пакетов
-    readonly packageDir: string
+    // Путь к каталогу репозиториев
+    readonly repoDir: string
+    // Путь к каталогу тегов репозитория
+    readonly tagDir: string
 }
 
 export type OptionsInstallPackage = {

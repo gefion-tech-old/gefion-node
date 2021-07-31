@@ -7,6 +7,8 @@ import { PackageTag } from './entities/package-tag.entity'
 import { Repository, EntitySchema, Connection } from 'typeorm'
 import { PackageStoreService } from './package-store.service'
 import { IPackageStoreService } from './package-store.interface'
+import { IGitManagerService } from './git-manager/git-manager.interface'
+import { GitManagerService } from './git-manager/git-manager.service'
 
 export const PackageStoreModule = new AsyncContainerModule(async (bind: interfaces.Bind) => {
     bind<Promise<PackageStoreConfig>>(PACKAGE_STORE_SYMBOL.PackageStoreConfig)
@@ -15,6 +17,9 @@ export const PackageStoreModule = new AsyncContainerModule(async (bind: interfac
 
     bind<IPackageStoreService>(PACKAGE_STORE_SYMBOL.PackageStoreService)
         .to(PackageStoreService)
+
+    bind<IGitManagerService>(PACKAGE_STORE_SYMBOL.GitManagerService)
+        .to(GitManagerService)
 
     // Сущности
 
