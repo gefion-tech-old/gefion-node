@@ -2,9 +2,11 @@ export const LOGGER_SYMBOL = {
     LoggerHttpConfig: Symbol.for('LoggerHttpConfig'),
     LoggerAppConfig: Symbol.for('LoggerAppConfig'),
     LoggerDatabaseConfig: Symbol.for('LoggerDatabaseConfig'),
+    LoggerScheduleConfig: Symbol.for('LoggerScheduleConfig'),
     LoggerHttp: Symbol.for('LoggerHttp'),
     LoggerApp: Symbol.for('LoggerApp'),
-    LoggerDatabase: Symbol.for('LoggerDatabase')
+    LoggerDatabase: Symbol.for('LoggerDatabase'),
+    LoggerSchedule: Symbol.for('LoggerSchedule')
 }
 
 export type LoggerConfig = {
@@ -22,6 +24,6 @@ export type LoggerConfig = {
     // - string - Путь файловой системы
     // - number - файловый дескриптор
     // - undefined - значение по умолчанию
-    // - WritableStrem - свое решение
+    // - WritableStream - свое решение
     readonly destination?: string | number | NodeJS.WritableStream
 }

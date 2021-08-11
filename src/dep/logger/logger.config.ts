@@ -28,3 +28,12 @@ export async function getDatabaseLoggerConfig(_: interfaces.Context): Promise<Lo
         enabled: true
     }
 }
+
+export async function getScheduleLoggerConfig(_: interfaces.Context): Promise<LoggerConfig> {
+    return {
+        name: 'schedule',
+        level: 'info',
+        base: { pid: process.pid, hostname: os.hostname },
+        enabled: true
+    }
+}
