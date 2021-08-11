@@ -3,7 +3,7 @@
     "include": ["src", "types"],
     "compilerOptions": {
       "target": "es5",
-      "types": ["reflect-metadata", "node"],
+      "types": ["reflect-metadata", "node", "jest"],
       "experimentalDecorators": true,
       "emitDecoratorMetadata": true,
       "module": "ESNext",
