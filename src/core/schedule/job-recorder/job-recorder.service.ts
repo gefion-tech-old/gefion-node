@@ -25,13 +25,15 @@ export class JobRecorderService implements IJobRecorderService {
 
         const config = await this.config
 
-        config.jobs.forEach((job) => {
+        for (let job of config.jobs) {
             this.scheduleService.schedule(
                 job.name(),
-                job.rules(),
-                job.handler
+                await job.rules(),
+                async () => {
+                    await job.handler()
+                }
             )
-        })
+        }
     }
 
 }

@@ -42,11 +42,11 @@ export interface ScheduleJob {
     /**
      * Правила повторения
      */
-    rules(): Recurrence
+    rules(): Promise<Recurrence>
 
     /**
      * Обработчик задания
      */
-    handler(): void
+    handler(): Promise<void>
 
 }
