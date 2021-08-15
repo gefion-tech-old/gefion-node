@@ -7,7 +7,9 @@ import { Logger } from 'pino'
 
 export const SCHEDULE_SYMBOL = {
     ScheduleService: Symbol.for('ScheduleService'),
-    ScheduleConfig: Symbol.for('ScheduleConfig')
+    ScheduleConfig: Symbol.for('ScheduleConfig'),
+    ScheduleJob: Symbol.for('ScheduleJob'),
+    JobRecorderService: Symbol.for('JobRecorderService')
 }
 
 export type Recurrence = RecurrenceRule | RecurrenceSpecDateRange | RecurrenceSpecObjLit | Date | number
@@ -26,5 +28,25 @@ export type JobStats = {
 }
 
 export type ScheduleConfig = {
-    logger: Logger
+    logger: Logger,
+    jobs: ScheduleJob[]
+}
+
+export interface ScheduleJob {
+
+    /**
+     * Идентификатор задания
+     */
+    name(): Symbol
+
+    /**
+     * Правила повторения
+     */
+    rules(): Recurrence
+
+    /**
+     * Обработчик задания
+     */
+    handler(): void
+
 }
