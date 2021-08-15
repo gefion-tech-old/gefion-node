@@ -7,11 +7,11 @@ import { Logger } from 'pino'
 export async function getScheduleConfig(context: interfaces.Context): Promise<ScheduleConfig> {
     const container = context.container
     const logger = await container
-        .get<Logger>(LOGGER_SYMBOL.LoggerSchedule)
+        .get<Promise<Logger>>(LOGGER_SYMBOL.LoggerSchedule)
 
     let jobs: ScheduleJob[] = []
     try {
-        jobs = await container
+        jobs = container
             .getAll<ScheduleJob>(SCHEDULE_SYMBOL.ScheduleJob)
     } catch {}
     
