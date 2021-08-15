@@ -8,6 +8,7 @@ import { TypeOrmModule } from './dep/typeorm/typeorm.module'
 import { ScheduleNodeModule } from './dep/schedule-node/schedule-node.module'
 import { ScheduleModule } from './core/schedule/schedule.module'
 import { InitModule } from './core/init/init.module'
+import { RepairModule } from './core/repair/repair.module'
 
 let container: interfaces.Container
 
@@ -23,7 +24,8 @@ export async function getContainer(): Promise<interfaces.Container> {
             TypeOrmModule,
             ScheduleNodeModule,
             ScheduleModule,
-            InitModule
+            InitModule,
+            RepairModule
         )
     }
 
