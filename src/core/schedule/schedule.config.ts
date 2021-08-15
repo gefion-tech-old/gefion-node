@@ -9,8 +9,11 @@ export async function getScheduleConfig(context: interfaces.Context): Promise<Sc
     const logger = await container
         .get<Logger>(LOGGER_SYMBOL.LoggerSchedule)
 
-    const jobs = await container
-        .getAll<ScheduleJob>(SCHEDULE_SYMBOL.ScheduleJob)
+    let jobs: ScheduleJob[] = []
+    try {
+        jobs = await container
+            .getAll<ScheduleJob>(SCHEDULE_SYMBOL.ScheduleJob)
+    } catch {}
     
     return {
         logger: logger,
