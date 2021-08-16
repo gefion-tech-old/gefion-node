@@ -3,6 +3,7 @@ import { Container, interfaces } from 'inversify'
 import { FsModule } from './dep/fs/fs.module'
 import { GitModule } from './dep/git/git.module'
 import { LoggerModule } from './dep/logger/logger.module'
+import { AsyncRetryModule } from './dep/async-retry/async-retry.module'
 import { PackageStoreModule } from './core/package-store/package-store.module'
 import { TypeOrmModule } from './dep/typeorm/typeorm.module'
 import { ScheduleNodeModule } from './dep/schedule-node/schedule-node.module'
@@ -25,7 +26,8 @@ export async function getContainer(): Promise<interfaces.Container> {
             ScheduleNodeModule,
             ScheduleModule,
             InitModule,
-            RepairModule
+            RepairModule,
+            AsyncRetryModule
         )
     }
 
