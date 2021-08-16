@@ -1,0 +1,32 @@
+import { AsyncContainerModule, interfaces } from 'inversify'
+import { TYPEORM_SYMBOL } from '../../dep/typeorm/typeorm.types'
+import { EntitySchema, Repository, Connection } from 'typeorm'
+import { Atomic } from './entities/atomic.entity'
+import { ATOMIC_SYMBOL } from './atomic.types'
+import { IAtomicService } from './atomic.interface'
+import { AtomicService } from './atomic.service'
+
+export const AtomicModule = new AsyncContainerModule(async (bind: interfaces.Bind) => {
+    bind<IAtomicService>(ATOMIC_SYMBOL.AtomicService)
+        .to(AtomicService)
+
+    // Сущности
+    bind<EntitySchema<Atomic>>(TYPEORM_SYMBOL.TypeOrmAppEntity)
+        .toConstructor(Atomic)
+        .whenTargetNamed(ATOMIC_SYMBOL.AtomicEntity)
+
+    // Репозитории
+    bind<Promise<Repository<Atomic>>>(TYPEORM_SYMBOL.TypeOrmAppRepository)
+        .toDynamicValue(async (context: interfaces.Context): Promise<Repository<Atomic>> => {
+            const container = context.container
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const atomicEntity = container
+                .getNamed<EntitySchema<Atomic>>(
+                    TYPEORM_SYMBOL.TypeOrmAppEntity, ATOMIC_SYMBOL.AtomicEntity
+                )
+            const repository = connection.getRepository<Atomic>(atomicEntity)
+            return repository
+        })
+        .whenTargetNamed(ATOMIC_SYMBOL.AtomicRepository)
+})
