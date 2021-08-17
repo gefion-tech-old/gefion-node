@@ -26,9 +26,7 @@ class RepairJobSchedule implements RepairJob {
 
 }
 
-class MyError extends Error {
-    code: 'MyError'
-}
+class MyError extends Error {}
 
 describe('Сервис для запуска заданий починки', () => {
 
