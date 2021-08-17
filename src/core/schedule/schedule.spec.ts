@@ -3,11 +3,7 @@ import { SCHEDULE_SYMBOL } from './schedule.types'
 import { IncorrectRecurrence } from './schedule.errors'
 import { IScheduleService } from './schedule.interface'
 import { Buffer } from 'buffer'
-
-function getUsedMemory() {
-    (global as any).gc()
-    return process.memoryUsage().arrayBuffers
-}
+import { getUsedArrayBuffers } from '../../utils/gc'
 
 describe('Сервис планирования заданий', () => {
 
@@ -54,7 +50,7 @@ describe('Сервис планирования заданий', () => {
 
         const usedMemory = await new Promise<number>((resolve) => {
             let buffer = Buffer.allocUnsafe(bufferSize)
-            let usedMemory = getUsedMemory()
+            let usedMemory = getUsedArrayBuffers()
 
             scheduleService.schedule(name, new Date().getTime() + 100, function() {
                 void buffer
@@ -62,7 +58,7 @@ describe('Сервис планирования заданий', () => {
             })
         })
 
-        expect(usedMemory).toBeGreaterThan(getUsedMemory() + bufferSize * 0.9)
+        expect(usedMemory).toBeGreaterThan(getUsedArrayBuffers() + bufferSize * 0.9)
     })
 
     it('Долгоживущее задание успешно инициализируется и выполняется', async () => {
@@ -100,7 +96,7 @@ describe('Сервис планирования заданий', () => {
 
         const usedMemory = await new Promise<number>((resolve) => {
             let buffer = Buffer.allocUnsafe(bufferSize)
-            let usedMemory = getUsedMemory()
+            let usedMemory = getUsedArrayBuffers()
             
             scheduleService.schedule(name, { second: (null as any) }, function() {
                 void buffer
@@ -110,7 +106,7 @@ describe('Сервис планирования заданий', () => {
         scheduleService.remove(name)
         
         expect(scheduleService.has(name)).toBe(false)
-        expect(usedMemory).toBeGreaterThan(getUsedMemory() + bufferSize * 0.9)
+        expect(usedMemory).toBeGreaterThan(getUsedArrayBuffers() + bufferSize * 0.9)
     })
 
     it('Существующее задание можно вызвать напрямую #cold', async () => {
