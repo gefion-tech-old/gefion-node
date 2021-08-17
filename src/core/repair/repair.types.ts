@@ -2,7 +2,8 @@ import { Recurrence } from '../schedule/schedule.types'
 
 export const REPAIR_TYPES = {
     RepairJob: Symbol.for('RepairJob'),
-    RepairConfig: Symbol.for('RepairConfig')
+    RepairConfig: Symbol.for('RepairConfig'),
+    RepairService: Symbol.for('RepairService')
 }
 
 export interface RepairJob {
