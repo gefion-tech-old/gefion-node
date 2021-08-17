@@ -47,13 +47,15 @@ export class ScheduleService implements IScheduleService {
             this.remove(name)
         }
         
-        (async () => {
-            const config = await this.config
-            config.logger.error({
-                jobName: name,
-                error: error
-            })
-        })()
+        if (process.env.NODE_ENV !== 'test') {
+            (async () => {
+                const config = await this.config
+                config.logger.error({
+                    jobName: name,
+                    error: error
+                })
+            })()
+        }
     }
 
     public schedule(name: Symbol, recurrence: Recurrence, callback: JobHandler) {
