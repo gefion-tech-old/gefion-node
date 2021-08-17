@@ -30,7 +30,7 @@ class MyError extends Error {}
 
 describe('Сервис для запуска заданий починки', () => {
 
-    it('Задания починки запускаются корректно', async () => {
+    it('Задания починки запускаются корректно #cold', async () => {
         const container = await getContainer()
         container.snapshot()
 
@@ -69,7 +69,7 @@ describe('Сервис для запуска заданий починки', () 
      * Стоит учитывать, что ошибка в одном задании прервёт выполнение
      * всех дальнейших заданий.
      */
-    it('Ошибки в заданиях возвращаются в корректном формате', async () => {
+    it('Ошибки в заданиях возвращаются в корректном формате #cold', async () => {
         const container = await getContainer()
         container.snapshot()
 
