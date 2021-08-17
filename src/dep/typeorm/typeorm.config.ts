@@ -14,7 +14,7 @@ export async function getConfigAppTypeormConnection(context: interfaces.Context)
         name: 'app',
         type: 'better-sqlite3',
         database: '/home/valentin/Документы/not_work/gefion/src/storage/database/app.sqlite',
-        logging: 'all',
+        logging: false,
         synchronize: true,
         entities: entities,
         dropSchema: true
