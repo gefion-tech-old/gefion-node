@@ -26,7 +26,10 @@ export class InitService implements IInitService {
                 await runner.run()
             }
         } catch (error) {
-            config.logger.fatal(error)
+            if (process.env.NODE_ENV !== 'test') {
+                config.logger.fatal(error)
+            }
+
             throw error
         }
     }
