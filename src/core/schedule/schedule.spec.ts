@@ -41,7 +41,7 @@ describe('Сервис планирования заданий', () => {
 
         expect(() => {
             scheduleService.schedule(name, new Date().getTime() - 100, () => {})
-        }).toThrowError(new IncorrectRecurrence)
+        }).toThrowError(IncorrectRecurrence)
     })
     
     it('Одноразовое задание само удаляется после выполнения #gc', async () => {
@@ -144,19 +144,20 @@ describe('Сервис планирования заданий', () => {
             .get<IScheduleService>(SCHEDULE_SYMBOL.ScheduleService)
         const name = Symbol.for('Задание')
 
-        const job = new Promise(() => {
+        const job = new Promise((_, reject) => {
             scheduleService.schedule(name, new Date().getTime() + 100, function() {
+                reject(new Error)
                 throw new Error
             })
         })
 
         scheduleService.invoke(name)
         
-        expect(job).rejects.toThrowError(new Error)
+        await expect(job).rejects.toThrowError(Error)
         expect(scheduleService.stats(name)?.error).toEqual(1)
 
         scheduleService.remove(name)
-    })
+    }, 10 * 10000)
 
     it('Долгоживущее задание корректно обрабатывает ошибки', async () => {
         const container = await getContainer()
