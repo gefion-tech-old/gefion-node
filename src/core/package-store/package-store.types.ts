@@ -5,7 +5,8 @@ export const PACKAGE_STORE_SYMBOL = {
     PackageRepository: Symbol.for('PackageRepository'),
     PackageTagRepository: Symbol.for('PackageTagRepository'),
     PackageStoreService: Symbol.for('PackageStoreService'),
-    GitManagerService: Symbol.for('GitManagerService')
+    GitManagerService: Symbol.for('GitManagerService'),
+    PackageManagerService: Symbol.for('PackageManagerService')
 }
 
 export type PackageStoreConfig = {
@@ -15,12 +16,14 @@ export type PackageStoreConfig = {
     readonly tagDir: string
 }
 
-export type OptionsInstallPackage = {
+export type OptionsInstallPackageTag = {
     gitPath: string,
     tag: Tag,
     type: PackageType
     credential?: GitCredential
 }
+
+export type OptionsInstallPackage = Omit<OptionsInstallPackageTag, 'tag'>
 
 export type Package = {
     // Тип пакета (постоянный или временный)
