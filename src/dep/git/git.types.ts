@@ -1,6 +1,6 @@
 export const GIT_SYMBOL = {
-    GitConfig: Symbol.for('GitConfig'),
-    Git: Symbol.for('Git')
+    GitConfig: Symbol('GitConfig'),
+    Git: Symbol('Git')
 }
 
 export type GitConfig = {

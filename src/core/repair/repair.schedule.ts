@@ -15,7 +15,7 @@ export class RepairSchedule implements ScheduleJob {
     ) {}
 
     public name(): Symbol {
-        return Symbol.for('RepairSchedule')
+        return Symbol('RepairSchedule')
     }
 
     public async rules(): Promise<Recurrence> {

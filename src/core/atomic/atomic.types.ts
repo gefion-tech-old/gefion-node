@@ -1,9 +1,9 @@
 export const ATOMIC_SYMBOL = {
-    AtomicService: Symbol.for('AtomicService'),
-    AtomicEntity: Symbol.for('AtomicEntity'),
-    AtomicRepository: Symbol.for('AtomicRepository'),
-    AtomicConfig: Symbol.for('AtomicConfig'),
-    LockCollectorService: Symbol.for('LockCollectorService')
+    AtomicService: Symbol('AtomicService'),
+    AtomicEntity: Symbol('AtomicEntity'),
+    AtomicRepository: Symbol('AtomicRepository'),
+    AtomicConfig: Symbol('AtomicConfig'),
+    LockCollectorService: Symbol('LockCollectorService')
 }
 
 export type AtomicConfig = {

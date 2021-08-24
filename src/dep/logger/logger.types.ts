@@ -1,12 +1,12 @@
 export const LOGGER_SYMBOL = {
-    LoggerHttpConfig: Symbol.for('LoggerHttpConfig'),
-    LoggerAppConfig: Symbol.for('LoggerAppConfig'),
-    LoggerDatabaseConfig: Symbol.for('LoggerDatabaseConfig'),
-    LoggerScheduleConfig: Symbol.for('LoggerScheduleConfig'),
-    LoggerHttp: Symbol.for('LoggerHttp'),
-    LoggerApp: Symbol.for('LoggerApp'),
-    LoggerDatabase: Symbol.for('LoggerDatabase'),
-    LoggerSchedule: Symbol.for('LoggerSchedule')
+    LoggerHttpConfig: Symbol('LoggerHttpConfig'),
+    LoggerAppConfig: Symbol('LoggerAppConfig'),
+    LoggerDatabaseConfig: Symbol('LoggerDatabaseConfig'),
+    LoggerScheduleConfig: Symbol('LoggerScheduleConfig'),
+    LoggerHttp: Symbol('LoggerHttp'),
+    LoggerApp: Symbol('LoggerApp'),
+    LoggerDatabase: Symbol('LoggerDatabase'),
+    LoggerSchedule: Symbol('LoggerSchedule')
 }
 
 export type LoggerConfig = {

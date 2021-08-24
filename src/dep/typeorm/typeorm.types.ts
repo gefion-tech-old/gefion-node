@@ -1,6 +1,6 @@
 export const TYPEORM_SYMBOL = {
-    TypeOrmConnectionAppConfig: Symbol.for('TypeOrmConnectionConfigApp'),
-    TypeOrmConnectionApp: Symbol.for('TypeOrmConnectionApp'),
-    TypeOrmAppEntity: Symbol.for('TypeOrmAppEntity'),
-    TypeOrmAppRepository: Symbol.for('TypeOrmAppRepository')
+    TypeOrmConnectionAppConfig: Symbol('TypeOrmConnectionConfigApp'),
+    TypeOrmConnectionApp: Symbol('TypeOrmConnectionApp'),
+    TypeOrmAppEntity: Symbol('TypeOrmAppEntity'),
+    TypeOrmAppRepository: Symbol('TypeOrmAppRepository')
 }

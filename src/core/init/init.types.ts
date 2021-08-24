@@ -1,9 +1,9 @@
 import { Logger } from 'pino'
 
 export const INIT_SYMBOL = {
-    InitService: Symbol.for('InitService'),
-    InitConfig: Symbol.for('InitConfig'),
-    InitRunner: Symbol.for('InitRunner')
+    InitService: Symbol('InitService'),
+    InitConfig: Symbol('InitConfig'),
+    InitRunner: Symbol('InitRunner')
 }
 
 export type InitConfig = {

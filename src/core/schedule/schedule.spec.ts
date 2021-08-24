@@ -11,7 +11,7 @@ describe('Сервис планирования заданий', () => {
         const container = await getContainer()
         const scheduleService = container
             .get<IScheduleService>(SCHEDULE_SYMBOL.ScheduleService)
-        const name = Symbol.for('Задание')
+        const name = Symbol('Задание')
 
         const job = new Promise<number>((resolve) => {
             const date = new Date().getTime() + 100
@@ -33,7 +33,7 @@ describe('Сервис планирования заданий', () => {
         const container = await getContainer()
         const scheduleService = container
             .get<IScheduleService>(SCHEDULE_SYMBOL.ScheduleService)
-        const name = Symbol.for('Задание');
+        const name = Symbol('Задание');
 
         expect(() => {
             scheduleService.schedule(name, new Date().getTime() - 100, () => {})
@@ -44,7 +44,7 @@ describe('Сервис планирования заданий', () => {
         const container = await getContainer()
         const scheduleService = container
             .get<IScheduleService>(SCHEDULE_SYMBOL.ScheduleService)
-        const name = Symbol.for('Задание');
+        const name = Symbol('Задание');
         
         const bufferSize = 30 * 1024 * 1024
 
@@ -65,7 +65,7 @@ describe('Сервис планирования заданий', () => {
         const container = await getContainer()
         const scheduleService = container
             .get<IScheduleService>(SCHEDULE_SYMBOL.ScheduleService)
-        const name = Symbol.for('Задание')
+        const name = Symbol('Задание')
 
         const job = new Promise<void>((resolve) => {
             let index = 0
@@ -90,7 +90,7 @@ describe('Сервис планирования заданий', () => {
         const container = await getContainer()
         const scheduleService = container
             .get<IScheduleService>(SCHEDULE_SYMBOL.ScheduleService)
-        const name = Symbol.for('Задание')
+        const name = Symbol('Задание')
 
         const bufferSize = 30 * 1024 * 1024
 
@@ -113,7 +113,7 @@ describe('Сервис планирования заданий', () => {
         const container = await getContainer()
         const scheduleService = container
             .get<IScheduleService>(SCHEDULE_SYMBOL.ScheduleService)
-        const name = Symbol.for('Задание')
+        const name = Symbol('Задание')
 
         const job = new Promise<number>((resolve) => {
             const date = new Date().getTime() + 100
@@ -138,7 +138,7 @@ describe('Сервис планирования заданий', () => {
         const container = await getContainer()
         const scheduleService = container
             .get<IScheduleService>(SCHEDULE_SYMBOL.ScheduleService)
-        const name = Symbol.for('Задание')
+        const name = Symbol('Задание')
 
         const job = new Promise((_, reject) => {
             scheduleService.schedule(name, new Date().getTime() + 100, function() {
@@ -159,7 +159,7 @@ describe('Сервис планирования заданий', () => {
         const container = await getContainer()
         const scheduleService = container
             .get<IScheduleService>(SCHEDULE_SYMBOL.ScheduleService)
-        const name = Symbol.for('Задание')
+        const name = Symbol('Задание')
 
         scheduleService.schedule(name, { second: (null as any) }, function() {
             throw new Error

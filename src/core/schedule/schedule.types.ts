@@ -6,10 +6,10 @@ import {
 import { Logger } from 'pino'
 
 export const SCHEDULE_SYMBOL = {
-    ScheduleService: Symbol.for('ScheduleService'),
-    ScheduleConfig: Symbol.for('ScheduleConfig'),
-    ScheduleJob: Symbol.for('ScheduleJob'),
-    JobRecorderService: Symbol.for('JobRecorderService')
+    ScheduleService: Symbol('ScheduleService'),
+    ScheduleConfig: Symbol('ScheduleConfig'),
+    ScheduleJob: Symbol('ScheduleJob'),
+    JobRecorderService: Symbol('JobRecorderService')
 }
 
 export type Recurrence = RecurrenceRule | RecurrenceSpecDateRange | RecurrenceSpecObjLit | Date | number

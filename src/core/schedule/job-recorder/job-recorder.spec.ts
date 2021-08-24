@@ -24,7 +24,7 @@ describe('Регистратор заданий в планировщике', ()
                     logger: ({} as any),
                     jobs: [
                         ({
-                            name: () => Symbol.for('Name'),
+                            name: () => Symbol('Name'),
                             rules: async () => new Date(),
                             handler: async () => void true
                         } as ScheduleJob)
