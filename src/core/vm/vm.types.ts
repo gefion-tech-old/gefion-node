@@ -1,5 +1,5 @@
 import { 
-    APIVersionConstructable, 
+    APIVersion, 
     TargetApiProperty, 
     APIVersion 
 } from './api-property/api-property.types'
@@ -124,7 +124,7 @@ export type VMConfig = {
      * обязательно быть самые ранние версии. Это связано с тем, что глобальные api
      * свойства перезатираются по циклу более новыми api свойствами
      */
-    apiVersions: APIVersionConstructable[]
+    apiVersions: APIVersion[]
 }
 
 export type ScriptMetadata = {

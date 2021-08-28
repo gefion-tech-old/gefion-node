@@ -90,24 +90,30 @@ export class VMService implements IVMService {
          * свойств
          */
         const sandbox = await (async () => {
-            const sandbox: APINamespacedProperties & APIProperties = {}
+            const sandbox: APINamespacedProperties = {}
 
             for (const apiVersion of apiVersions) {
                 for (const apiProperty of apiVersion.properties) {
                     const property = await apiProperty.property()
                     
-                    Object.assign(sandbox, {
-                        [config.namespace]: {
-                            [apiVersion.version]: {
-                                [await apiProperty.name()]: property
-                            }
-                        }
-                    })
+                    ;(   
+                        sandbox[config.namespace] 
+                            || (sandbox[config.namespace] = {})
+                    );
+                    ;(
+                        sandbox[config.namespace][apiVersion.version]
+                            || (sandbox[config.namespace][apiVersion.version] = {})
+                    );
+                    ;(
+                        sandbox[config.namespace][apiVersion.version][await apiProperty.name()]
+                            || (sandbox[config.namespace][apiVersion.version][await apiProperty.name()] = property)
+                    );
 
                     if (await apiProperty.isGlobal()) {
-                        Object.assign(sandbox, {
-                            [await apiProperty.name()]: property
-                        })
+                        /**
+                         * К сожалению, вынужденная мера. Не хочу ставить any при объявлении интерфейса
+                         */
+                        sandbox[await apiProperty.name()] = (property as any)
                     }
                 }
             }
@@ -116,7 +122,7 @@ export class VMService implements IVMService {
         })()
 
         /**
-         * Функция для роверки того завершил ли скрипт уже свою работу
+         * Функция для проверки того, завершил ли скрипт свою работу
          */
         const isScriptStopped = (): boolean => {
             for (const apiVersion of apiVersions) {
@@ -131,7 +137,9 @@ export class VMService implements IVMService {
         }
 
         /**
-         * Навешиваю обработчики событий на все api свойства
+         * Навешиваю обработчики событий на все api свойства. Нужно пробросить
+         * все события свойств в события скрипта, так как с точки зрения наблюдателя
+         * каждое свойство является частью скрипта
          */
         for (const apiVersion of apiVersions) {
             for (const apiProperty of apiVersion.properties) {
