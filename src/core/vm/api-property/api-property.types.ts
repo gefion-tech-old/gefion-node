@@ -1,4 +1,5 @@
-import { IAPIPropertyConstructable, IAPIProperty } from './api-property.interface'
+import { APIPropertyStats } from './api-property.classes'
+import { APIPropertyError } from './api-property.errors'
 
 export const APIPropertyEvent = {
     /**
@@ -27,31 +28,29 @@ export const APIPropertyEvent = {
     error: Symbol('error')
 }
 
-export type APIVersionConstructable = {
-    version: string
-    properties: IAPIPropertyConstructable[]
-}
+export type EventEmitters = {
+    /**
+     * Генератор события link
+     */
+    link: () => void
 
-export type APIVersion = {
-    version: string
-    properties: IAPIProperty[]
+    /**
+     * Генератор события unlink
+     */
+    unlink: () => void
+
+    /**
+     * Генератор события stats
+     */
+    stats: (stats: APIPropertyStats) => void
+
+    /**
+     * Генератор события error
+     */
+    error: (error: APIPropertyError) => void
 }
 
 export type TargetApiProperty = {
     name: string
     version: string
 }
-
-export type APIProperties = {
-    [apiProperty: string]: Object
-}
-
-export type VersionedAPIProperties = {
-    [version: string]: APIProperties
-}
-
-export type APINamespacedProperties = {
-    [namespace: string]: VersionedAPIProperties
-}
-
-export type VersionedAPIPropertiesStats = VersionedAPIProperties

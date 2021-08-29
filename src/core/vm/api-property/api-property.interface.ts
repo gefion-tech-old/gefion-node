@@ -1,32 +1,11 @@
-import { APIPropertyStats } from './api-property.classes'
-import { ApiPropertyError } from './api-property.errors'
+import { APIPropertyStats, APIPropertyStatsReducer, APIProperty } from './api-property.classes'
 
-export interface IAPIPropertyConstructable {
-    new(): IAPIProperty
-}
-
-export interface IAPIProperty {
+export interface IAPIPropertyFactory {
 
     /**
      * Название api свойства
      */
     name(): Promise<string>
-
-    /**
-     * Получить необходимое свойство
-     */
-    property(): Promise<Object>
-
-    /**
-     * Сборщик всех оставленных в свойствах внешних ссылок на скрипт. Изо
-     * всех сил избегать утечки памяти
-     */
-    linkCollector(): Promise<void>
-
-    /**
-     * В свойстве есть внешние ссылки
-     */
-    hasLink(): boolean
 
     /**
      * Должно ли свойство быть доступно глобально без всякого пространства
@@ -35,10 +14,14 @@ export interface IAPIProperty {
     isGlobal(): Promise<boolean>
 
     /**
-     * Подписаться на события свойства 
+     * Правильным способом трактовать переданные сегменты статистики. Вернуть
+     * экземпляр APIPropertyStatsReducer
      */
-    on(event: symbol, handler: () => void): void
-    on(event: symbol, handler: (error: ApiPropertyError) => void): void
-    on(event: symbol, handler: (stats: APIPropertyStats) => void): void
+    statsReducer(statsSegments: APIPropertyStats[]): Promise<APIPropertyStatsReducer>
+
+    /**
+     * Создать новый экземпляр APIProperty
+     */
+    apiProperty(): Promise<APIProperty>
 
 }

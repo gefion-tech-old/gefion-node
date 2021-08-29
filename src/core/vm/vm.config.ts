@@ -1,24 +1,25 @@
 import { interfaces } from 'inversify'
 import { VMConfig, VM_SYMBOL } from './vm.types'
-import { IAPIPropertyConstructable } from './api-property/api-property.interface'
+import { IAPIPropertyFactory } from './api-property/api-property.interface'
 
 export async function getVMConfig(context: interfaces.Context): Promise<VMConfig> {
     const container = context.container
 
-    let apiPropertiesV1: IAPIPropertyConstructable[] = []
+    let apiPropertyFactoryV1: IAPIPropertyFactory[] = []
     try {
-        apiPropertiesV1 = container
-            .getAll<IAPIPropertyConstructable>(VM_SYMBOL.APIPropertyV1)
+        apiPropertyFactoryV1 = container
+            .getAll<IAPIPropertyFactory>(VM_SYMBOL.APIPropertyFactoryV1)
     } catch {}
 
     return {
         maxStatsSegments: 1000,
         maxStoppedScripts: 30,
+        maxScriptErrors: 30,
         namespace: 'gefion',
-        apiVersions: [
+        api: [
             {
                 version: 'v1',
-                properties: apiPropertiesV1
+                properties: apiPropertyFactoryV1
             }
         ]
     }

@@ -1,14 +1,13 @@
-import { 
-    APIVersion, 
-    TargetApiProperty, 
-    APIVersion 
-} from './api-property/api-property.types'
+import { TargetApiProperty } from './api-property/api-property.types'
+import { IAPIPropertyFactory } from './api-property/api-property.interface'
+import { ScriptError } from './vm.errors'
+import { APIProperty, APIPropertyStats, APIPropertyStatsReducer } from './api-property/api-property.classes'
 import { EventEmitter } from 'events'
 
 export const VM_SYMBOL = {
     VMService: Symbol('VMService'),
     VMConfig: Symbol('VMConfig'),
-    APIPropertyV1: Symbol('APIPropertyV1')
+    APIPropertyFactoryV1: Symbol('APIPropertyFactoryV1')
 }
 
 export const ScriptEvent = {
@@ -16,13 +15,14 @@ export const ScriptEvent = {
      * Скрипт завершил свою работу (неизвестно с ошибкой или нет). Запускается 
      * событие перед событием error, если скрипт завершился в результате ошибки. 
      * Может произвольно завершиться после того, как все api свойства освободят 
-     * ссылки на структуры пользовательского скрипта
+     * ссылки на структуры пользовательского скрипта. Срабатывает после события
+     * error, если скрипт завершился в результате ошибки
      */
     stop: Symbol('stop'),
 
     /**
      * Скрипт завершил свою работу в результате ошибки, которая передаётся в
-     * событие.
+     * событие. Срабатывает гарантировано раньше события stop
      */
     error: Symbol('error'),
 
@@ -76,9 +76,9 @@ export type ScriptInfo = {
     dateEnd?: Date
 
     /**
-     * Ошибка, с которой завершился скрипт
+     * Ошибки скрипта
      */
-    error?: Error
+    errors: ScriptError[]
 }
 
 export type ScriptActivityInfo = {
@@ -98,21 +98,27 @@ export type ScriptActivityInfo = {
     params?: Object
 }
 
-export type ScriptID = Symbol
+export type ScriptID = symbol
 
 export type VMConfig = {
     /**
-     * Максимальное количество остановленных скриптов информация о которых
+     * Максимальное количество остановленных скриптов, информация о которых
      * будет продолжать храниться в памяти до явного удаления. По достижении
-     * лимита будут удаляться самые старые скрипты.
+     * лимита информация о старых скриптах будет вытесняться.
      */
     maxStoppedScripts: number
 
     /**
      * Максимальное количество сегментов статистики по одному api свойству. По достижении
-     * лимита наиболее старые сегменты затираются
+     * лимита наиболее старые сегменты вытесняются
      */
     maxStatsSegments: number
+
+    /**
+     * Максимальное количество экземпляров ошибок, которые могут храниться в контексте
+     * одного скрипта. По достижении лимита информация о старых ошибках будет вытесняться
+     */
+    maxScriptErrors: number
 
     /**
      *  Пространство имён для api свойств
@@ -120,15 +126,84 @@ export type VMConfig = {
     namespace: string
 
     /**
-     * Все api свойства всех версий. Очень важен порядок массива. Вначале должны
-     * обязательно быть самые ранние версии. Это связано с тем, что глобальные api
-     * свойства перезатираются по циклу более новыми api свойствами
+     * Все фабрики api свойств всех версий. Очень важен порядок массива. Вначале должны
+     * обязательно быть самые ранние версии
      */
-    apiVersions: APIVersion[]
+    api: API[]
+}
+
+export type API = {
+    /**
+     * Версия api
+     */
+    version: string
+    
+    /**
+     * Список фабрик всех свойств api. Фабрики являются singleton,
+     * это стоит учитывать
+     */
+    properties: IAPIPropertyFactory[]
+}
+
+export type APIPropertyMetadata = {
+    /**
+     * Используемая фабрика
+     */
+    factory: IAPIPropertyFactory
+
+    /**
+     * Сегменты статистики
+     */
+    segmentsStats: APIPropertyStats[]
+
+    /**
+     * Экземпляр класса свойства
+     */
+    property: APIProperty
+}
+
+export type APIMetadata = {
+    /**
+     * Версия api
+     */
+    version: string
+
+    /**
+     * Необходимые методанные по всем используемым свойствам
+     */
+    properties: APIPropertyMetadata[]
 }
 
 export type ScriptMetadata = {
-    apiVersions: APIVersion[]
-    info: ScriptInfo,
+    /**
+     * Используемое скриптом api. Как и в конфигурации, порядок очень важен
+     */
+    api: APIMetadata[]
+
+    /**
+     * Информация о скрипте
+     */
+    info: ScriptInfo
+
+    /**
+     * Используемый для скрипта генератор событий
+     */
     eventEmitter: EventEmitter
+}
+
+export type ReadyAPIPropertyStats = {
+    /**
+     * Название API версии
+     */
+    version: string
+
+    /**
+     * Название API свойства
+     */
+    name: string
+
+    /**
+     * Готовая статистика по свойству
+     */
+    stats: APIPropertyStatsReducer
 }

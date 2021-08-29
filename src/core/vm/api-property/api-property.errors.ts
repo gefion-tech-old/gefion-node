@@ -1,6 +1,6 @@
 import { TargetApiProperty } from './api-property.types'
 
-export class ApiPropertyError extends Error {
+export class APIPropertyError extends Error {
 
     public constructor(
         public targetApiProperty: TargetApiProperty,
