@@ -1,5 +1,3 @@
-import { Logger } from 'pino'
-
 export const INIT_SYMBOL = {
     InitService: Symbol('InitService'),
     InitConfig: Symbol('InitConfig'),
@@ -7,7 +5,6 @@ export const INIT_SYMBOL = {
 }
 
 export type InitConfig = {
-    logger: Logger,
     runners: InitRunner[]
 }
 
