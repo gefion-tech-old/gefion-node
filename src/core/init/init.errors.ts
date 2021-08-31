@@ -1,7 +1,11 @@
-export class ReInitError extends Error {
+export class InitError extends Error {
 
-    constructor(message?: string) {
-        super(message)
+    public constructor(
+        public error?: Error
+    ) {
+        super()
     }
 
 }
+
+export class ReInitError extends InitError {}

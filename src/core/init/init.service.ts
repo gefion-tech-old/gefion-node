@@ -1,6 +1,6 @@
 import { injectable, inject } from 'inversify'
 import { IInitService } from './init.interface'
-import { ReInitError } from './init.errors'
+import { ReInitError, InitError } from './init.errors'
 import { INIT_SYMBOL, InitConfig } from './init.types'
 
 @injectable()
@@ -26,11 +26,7 @@ export class InitService implements IInitService {
                 await runner.run()
             }
         } catch (error) {
-            if (process.env.NODE_ENV !== 'test') {
-                config.logger.fatal(error)
-            }
-
-            throw error
+            throw new InitError(error)
         }
     }
 
