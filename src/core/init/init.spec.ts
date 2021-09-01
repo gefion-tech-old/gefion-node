@@ -28,7 +28,6 @@ describe('Модуль инициализации', () => {
         container.rebind(INIT_SYMBOL.InitConfig)
             .toDynamicValue(async (): Promise<InitConfig> => {
                 return {
-                    logger: ({} as any),
                     runners: [
                         new Runner(async () => void (runner1 = true)),
                         new Runner(async () => void (runner2 = true))
@@ -72,7 +71,6 @@ describe('Модуль инициализации', () => {
         container.rebind(INIT_SYMBOL.InitConfig)
             .toDynamicValue(async (): Promise<InitConfig> => {
                 return {
-                    logger: ({} as any),
                     runners: [
                         new Runner(async () => void (runner1 = true)),
                         new Runner(async () => {
