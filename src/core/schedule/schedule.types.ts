@@ -3,7 +3,6 @@ import {
     RecurrenceSpecDateRange,
     RecurrenceSpecObjLit
 } from 'node-schedule'
-import { Logger } from 'pino'
 
 export const SCHEDULE_SYMBOL = {
     ScheduleService: Symbol('ScheduleService'),
@@ -28,7 +27,6 @@ export type JobStats = {
 }
 
 export type ScheduleConfig = {
-    logger: Logger,
     jobs: ScheduleJob[]
 }
 

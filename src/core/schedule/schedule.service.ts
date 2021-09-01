@@ -1,24 +1,16 @@
-import { injectable, inject } from 'inversify'
+import { injectable } from 'inversify'
 import { IScheduleService } from './schedule.interface'
-import { Recurrence, SCHEDULE_SYMBOL, ScheduleConfig, JobHandler, JobStats } from './schedule.types'
+import { Recurrence, JobHandler, JobStats } from './schedule.types'
 import { IncorrectRecurrence } from './schedule.errors'
-import Schedule from 'node-schedule'
-import { SCHEDULE_NODE_SYMBOL } from '../../dep/schedule-node/schedule-node.types'
+import nodeSchedule from 'node-schedule'
+import { getScheduleLogger } from '../../utils/logger'
 
 @injectable()
 export class ScheduleService implements IScheduleService {
 
-    private jobs: Map<Symbol, { job: Schedule.Job, stats: JobStats }>
-
-    public constructor(
-        @inject(SCHEDULE_NODE_SYMBOL.Schedule)
-        private nodeSchedule: typeof Schedule,
-
-        @inject(SCHEDULE_SYMBOL.ScheduleConfig)
-        private config: Promise<ScheduleConfig>
-    ) {
-        this.jobs = new Map
-    }
+    private jobs: Map<
+        Symbol, { job: nodeSchedule.Job, stats: JobStats }
+    > = new Map
 
     private eventRun(name: Symbol) {
         const job = this.jobs.get(name)
@@ -47,19 +39,11 @@ export class ScheduleService implements IScheduleService {
             this.remove(name)
         }
         
-        if (process.env.NODE_ENV !== 'test') {
-            (async () => {
-                const config = await this.config
-                config.logger.error({
-                    jobName: name,
-                    error: error
-                })
-            })()
-        }
+        getScheduleLogger().error(error, name.toString())
     }
 
     public schedule(name: Symbol, recurrence: Recurrence, callback: JobHandler) {
-        const job = this.nodeSchedule.scheduleJob(recurrence, callback)
+        const job = nodeSchedule.scheduleJob(recurrence, callback)
 
         if (!job) {
             throw new IncorrectRecurrence()

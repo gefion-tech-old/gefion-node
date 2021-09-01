@@ -21,7 +21,6 @@ describe('Регистратор заданий в планировщике', ()
         container.rebind(SCHEDULE_SYMBOL.ScheduleConfig)
             .toDynamicValue(async (): Promise<ScheduleConfig> => {
                 return {
-                    logger: ({} as any),
                     jobs: [
                         ({
                             name: () => Symbol('Name'),
