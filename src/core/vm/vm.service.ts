@@ -1,7 +1,6 @@
 import { injectable, inject } from 'inversify'
 import { IVMService } from './vm.interface'
-import { VM2_SYMBOL } from '../../dep/vm2/vm2.types'
-import VM2TYPE from 'vm2'
+import { NodeVM } from 'vm2'
 import { 
     ScriptID, 
     VM_SYMBOL,
@@ -24,9 +23,6 @@ import { ScriptError } from './vm.errors'
 export class VMService implements IVMService {
 
     public constructor(
-        @inject(VM2_SYMBOL.VM2)
-        private vm2: typeof VM2TYPE,
-
         @inject(VM_SYMBOL.VMConfig)
         private config: Promise<VMConfig>
     ) {}
@@ -240,11 +236,11 @@ export class VMService implements IVMService {
                                 return 0
                             }
 
-                            if (datePrev === dateNext) {
+                            if (datePrev.getTime() === dateNext.getTime()) {
                                 return 0
                             }
 
-                            return (datePrev < dateNext) ? -1 : 1
+                            return (datePrev.getTime() < dateNext.getTime()) ? -1 : 1
                         })
                         
                         this.remove(listStoppedScripts[0].ScriptID)
@@ -325,7 +321,7 @@ export class VMService implements IVMService {
         /**
          * Создание экземпляра виртуальной машины
          */
-         const vm = new this.vm2.NodeVM({
+         const vm = new NodeVM({
             console: 'off',
             sandbox: sandbox,
             require: {

@@ -8,6 +8,7 @@ import {
 import { ScriptError } from './vm.errors'
 
 export interface IVMService {
+    
     /**
      * Запуск указанного скрипта
      */

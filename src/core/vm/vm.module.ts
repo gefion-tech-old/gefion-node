@@ -12,4 +12,5 @@ export const VMModule = new AsyncContainerModule(async (bind: interfaces.Bind) =
 
     bind<IVMService>(VM_SYMBOL.VMService)
         .to(VMService)
+        .inSingletonScope()
 })
