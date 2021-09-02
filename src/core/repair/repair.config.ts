@@ -13,7 +13,7 @@ export async function getRepairConfig(context: interfaces.Context): Promise<Repa
     return {
         repairJobs: repairJobs,
         recurrence: {
-            second: (null as any)
+            minute: 1
         }
     }
 }

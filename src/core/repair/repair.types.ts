@@ -28,7 +28,12 @@ export interface RepairJob {
 }
 
 export type RepairConfig = {
+    /**
+     * Список заданий
+     */
     repairJobs: RepairJob[],
-    // Как часто будут запускаться задания починки
+    /**
+     * Как часто будут запускаться задания починки
+     */
     recurrence: Recurrence
 }
