@@ -4,6 +4,7 @@ import { Recurrence, JobHandler, JobStats } from './schedule.types'
 import { IncorrectRecurrence } from './schedule.errors'
 import nodeSchedule from 'node-schedule'
 import { getScheduleLogger } from '../../utils/logger'
+import { getLoggerErrorFormat } from '../../utils/error-format'
 
 @injectable()
 export class ScheduleService implements IScheduleService {
@@ -39,7 +40,7 @@ export class ScheduleService implements IScheduleService {
             this.remove(name)
         }
         
-        getScheduleLogger().error(error, name.toString())
+        getScheduleLogger().error(getLoggerErrorFormat(error), name.toString())
     }
 
     public schedule(name: Symbol, recurrence: Recurrence, callback: JobHandler) {

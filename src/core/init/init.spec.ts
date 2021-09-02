@@ -22,14 +22,14 @@ beforeAll(async () => {
     container.snapshot()
 
     container.rebind(INIT_SYMBOL.InitConfig)
-    .toDynamicValue(async (): Promise<InitConfig> => {
-        return {
-            runners: [
-                new Runner(async () => void ('')),
-                new Runner(async () => void (''))
-            ]
-        }
-    })
+        .toDynamicValue(async (): Promise<InitConfig> => {
+            return {
+                runners: [
+                    new Runner(async () => void ('')),
+                    new Runner(async () => void (''))
+                ]
+            }
+        })
 })
 
 afterAll(async () => {

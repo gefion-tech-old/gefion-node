@@ -1,7 +1,24 @@
 import { getContainer } from '../../../inversify.config'
 import { IJobRecorderService } from './job-recorder.interface'
 import { SCHEDULE_SYMBOL, ScheduleConfig, ScheduleJob } from '../schedule.types'
-import { ReRegistrationError } from './job-recorder.errors'
+import { ReRegistrationJobError } from './job-recorder.errors'
+
+beforeAll(async () => {
+    const container = await getContainer()
+    container.snapshot()
+
+    container.rebind(SCHEDULE_SYMBOL.ScheduleConfig)
+        .toDynamicValue(async (): Promise<ScheduleConfig> => {
+            return {
+                jobs: []
+            }
+        })
+})
+
+afterAll(async () => {
+    const container = await getContainer()
+    container.restore()
+})
 
 describe('Регистратор заданий в планировщике', () => {
 
@@ -53,7 +70,7 @@ describe('Регистратор заданий в планировщике', ()
             .get<IJobRecorderService>(SCHEDULE_SYMBOL.JobRecorderService)
 
         await expect(jobRecorder.schedule()).resolves.toBeUndefined()
-        await expect(jobRecorder.schedule()).rejects.toThrowError(ReRegistrationError)
+        await expect(jobRecorder.schedule()).rejects.toBeInstanceOf(ReRegistrationJobError)
 
         container.restore()
     })

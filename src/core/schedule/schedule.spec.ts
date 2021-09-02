@@ -1,9 +1,26 @@
 import { getContainer } from '../../inversify.config'
-import { SCHEDULE_SYMBOL } from './schedule.types'
+import { SCHEDULE_SYMBOL, ScheduleConfig } from './schedule.types'
 import { IncorrectRecurrence } from './schedule.errors'
 import { IScheduleService } from './schedule.interface'
 import { Buffer } from 'buffer'
 import { getUsedArrayBuffers } from '../../utils/gc'
+
+beforeAll(async () => {
+    const container = await getContainer()
+    container.snapshot()
+
+    container.rebind(SCHEDULE_SYMBOL.ScheduleConfig)
+        .toDynamicValue(async (): Promise<ScheduleConfig> => {
+            return {
+                jobs: []
+            }
+        })
+})
+
+afterAll(async () => {
+    const container = await getContainer()
+    container.restore()
+})
 
 describe('Сервис планирования заданий', () => {
 
@@ -35,9 +52,9 @@ describe('Сервис планирования заданий', () => {
             .get<IScheduleService>(SCHEDULE_SYMBOL.ScheduleService)
         const name = Symbol('Задание');
 
-        expect(() => {
+        await expect(async () => {
             scheduleService.schedule(name, new Date().getTime() - 100, () => {})
-        }).toThrowError(IncorrectRecurrence)
+        }).rejects.toBeInstanceOf(IncorrectRecurrence)
     })
     
     it('Одноразовое задание само удаляется после выполнения #gc', async () => {
@@ -149,7 +166,7 @@ describe('Сервис планирования заданий', () => {
 
         scheduleService.invoke(name)
         
-        await expect(job).rejects.toThrowError(Error)
+        await expect(job).rejects.toBeInstanceOf(Error)
         expect(scheduleService.stats(name)?.error).toEqual(1)
 
         scheduleService.remove(name)

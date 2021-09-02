@@ -2,7 +2,7 @@ import { injectable, inject } from 'inversify'
 import { IJobRecorderService } from './job-recorder.interface'
 import { SCHEDULE_SYMBOL, ScheduleConfig } from '../schedule.types'
 import { IScheduleService } from '../schedule.interface'
-import { ReRegistrationError } from './job-recorder.errors'
+import { ReRegistrationJobError } from './job-recorder.errors'
 
 @injectable()
 export class JobRecorderService implements IJobRecorderService {
@@ -19,7 +19,7 @@ export class JobRecorderService implements IJobRecorderService {
 
     public async schedule() {
         if (this.isCallSchedule) {
-            throw new ReRegistrationError
+            throw new ReRegistrationJobError
         }
         this.isCallSchedule = true
 

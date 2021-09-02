@@ -1,7 +1,8 @@
-export class IncorrectRecurrence extends Error {
+export class ScheduleError extends Error {}
 
-    constructor(message?: string) {
-        super(message)
-    }
+export class IncorrectRecurrence extends ScheduleError {
+
+    public name = 'IncorrectRecurrence'
+    public message = 'Некорректные правила для планирования повторения задания в ScheduleModule'
 
 }
