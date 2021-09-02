@@ -3,6 +3,9 @@ import os from 'os'
 
 let appLogger: pino.Logger
 
+/**
+ * Получить экземпляр логгера для всего приложения
+ */
 export function getAppLogger(): pino.Logger {
     if (!appLogger) {
         appLogger = pino({
@@ -16,6 +19,9 @@ export function getAppLogger(): pino.Logger {
     return appLogger
 }
 
+/**
+ * Получить экземпляр логгера для планировщика заданий
+ */
 export function getScheduleLogger(): pino.Logger {
     return getAppLogger().child({
         type: 'schedule'

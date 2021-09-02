@@ -14,6 +14,10 @@ class FormatError extends Error {
 
 }
 
+/**
+ * Получить объект ошибки, который без проблем может быть
+ * в корректном формате сериализован в JSON формат
+ */
 export function getSerializableErrorFormat(error: any): object {
     try {
         return errorToJson(error)
@@ -22,6 +26,10 @@ export function getSerializableErrorFormat(error: any): object {
     }
 }
 
+/**
+ * Завернуть и сериализовать сырую ошибку в корректном для логгирования
+ * формате
+ */
 export function getLoggerErrorFormat(error: any) {
     return {
         error: getSerializableErrorFormat(error)
