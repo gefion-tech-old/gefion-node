@@ -1,20 +1,25 @@
-import { injectable, inject, named } from 'inversify'
+import { injectable, inject } from 'inversify'
 import { IAtomicService } from './atomic.interface'
 import { Options } from 'async-retry'
 import retry from 'async-retry'
-import { TYPEORM_SYMBOL } from '../../dep/typeorm/typeorm.types'
-import { ATOMIC_SYMBOL } from './atomic.types'
-import { Repository } from 'typeorm'
+import { TYPEORM_SYMBOL } from '../typeorm/typeorm.types'
+import { Repository, Connection } from 'typeorm'
 import { Atomic } from './entities/atomic.entity'
 
 @injectable()
 export class AtomicService implements IAtomicService {
 
+    private atomicRepository: Promise<Repository<Atomic>>
+
     public constructor(
-        @inject(TYPEORM_SYMBOL.TypeOrmAppRepository)
-        @named(ATOMIC_SYMBOL.AtomicRepository)
-        private atomicRepository: Promise<Repository<Atomic>>
-    ) {}
+        @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+        connection: Promise<Connection>
+    ) {
+        this.atomicRepository = connection
+            .then((connection) => {
+                return connection.getRepository(Atomic)
+            })
+    }
 
     public async lock(operation: string, options?: Options): Promise<boolean> {
         const atomicRepository = await this.atomicRepository
