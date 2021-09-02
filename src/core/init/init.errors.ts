@@ -2,10 +2,11 @@ export class InitError extends Error {}
 
 export class InitRunnerError extends InitError {
 
+    public name = 'InitRunnerError'
     public message = 'Ошибка в одном из инициализированных модулей'
 
     public constructor(
-        public error: Error
+        public error: any
     ) {
         super()
     }
@@ -14,6 +15,7 @@ export class InitRunnerError extends InitError {
 
 export class ReInitError extends InitError {
 
-    public message = 'Модуль инициализации не может быть повторно инициализирован'
+    public name = 'ReInitError'
+    public message = 'Попытка повторного запуска модуля инициализации'
 
 }
