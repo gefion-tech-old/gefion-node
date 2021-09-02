@@ -9,7 +9,7 @@ export function getAppLogger(): pino.Logger {
             name: 'App',
             level: 'info',
             base: { pid: process.pid, hostname: os.hostname },
-            enabled: true
+            enabled: process.env.NODE_ENV !== 'test'
         })
     }
 
