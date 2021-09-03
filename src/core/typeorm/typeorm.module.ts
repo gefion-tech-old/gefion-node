@@ -1,11 +1,15 @@
 import { AsyncContainerModule, interfaces } from 'inversify'
-import { getConfigAppTypeormConnection } from './typeorm.config'
+import { getConfigAppTypeormConnection, getConfigTestConnection } from './typeorm.config'
 import { TYPEORM_SYMBOL } from './typeorm.types'
 import { createConnection, Connection, ConnectionOptions } from 'typeorm'
 
 export const TypeOrmModule = new AsyncContainerModule(async (bind: interfaces.Bind) => {
     bind<Promise<ConnectionOptions>>(TYPEORM_SYMBOL.TypeOrmConnectionAppConfig)
-        .toDynamicValue(getConfigAppTypeormConnection)
+        .toDynamicValue(
+            process.env.NODE_ENV === 'test'
+                ? getConfigTestConnection
+                : getConfigAppTypeormConnection
+        )
         .inSingletonScope()
 
     bind<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
