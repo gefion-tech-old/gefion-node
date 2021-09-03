@@ -1,18 +1,17 @@
 import { getContainer } from '../../../inversify.config'
-import { ATOMIC_SYMBOL, AtomicConfig } from '../atomic.types'
+import { ATOMIC_SYMBOL } from '../atomic.types'
 import { IAtomicService } from '../atomic.interface'
 import { ILockCollectorService } from './lock-collector.interface'
+import { getAtomicConfig } from '../__mock/AtomicConfig.mock'
 
 beforeAll(async () => {
     const container = await getContainer()
     container.snapshot()
 
     container.rebind(ATOMIC_SYMBOL.AtomicConfig)
-        .toDynamicValue(async (): Promise<AtomicConfig> => {
-            return {
-                lockExpires: 0
-            }
-        })
+        .toDynamicValue(getAtomicConfig({
+            lockExpires: 0
+        }))
 })
 
 afterAll(async () => {

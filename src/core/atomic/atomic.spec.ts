@@ -3,10 +3,16 @@ import { ATOMIC_SYMBOL } from './atomic.types'
 import { IAtomicService } from './atomic.interface'
 import { getUsedArrayBuffers } from '../../utils/gc'
 import { Buffer } from 'buffer'
+import { getAtomicConfig } from './__mock/AtomicConfig.mock'
 
 beforeAll(async () => {
     const container = await getContainer()
     container.snapshot()
+
+    container.rebind(ATOMIC_SYMBOL.AtomicConfig)
+        .toDynamicValue(getAtomicConfig({
+            lockExpires: 5 * 1000 * 60
+        }))
 })
 
 afterAll(async () => {
