@@ -1,18 +1,32 @@
 import { getContainer } from '../../../inversify.config'
 import { IJobRecorderService } from './job-recorder.interface'
-import { SCHEDULE_SYMBOL, ScheduleConfig, ScheduleJob } from '../schedule.types'
+import { 
+    SCHEDULE_SYMBOL, 
+    Recurrence, 
+    JobHandler 
+} from '../schedule.types'
 import { ReRegistrationJobError } from './job-recorder.errors'
+import { getScheduleConfig } from '../__mock/ScheduleConfig.mock'
+import { getScheduleService } from '../__mock/ScheduleService.mock'
+import { getScheduleJob } from '../__mock/ScheduleJob.mock'
 
 beforeAll(async () => {
     const container = await getContainer()
     container.snapshot()
 
     container.rebind(SCHEDULE_SYMBOL.ScheduleConfig)
-        .toDynamicValue(async (): Promise<ScheduleConfig> => {
-            return {
-                jobs: []
-            }
-        })
+        .toDynamicValue(getScheduleConfig({
+            jobs: []
+        }))
+
+    container.rebind(SCHEDULE_SYMBOL.ScheduleService)
+        .to(getScheduleService({
+            has: () => false,
+            invoke: () => {},
+            remove: () => {},
+            schedule: () => {},
+            stats: () => undefined
+        }))
 })
 
 afterAll(async () => {
@@ -26,34 +40,38 @@ describe('Регистратор заданий в планировщике', ()
         const container = await getContainer()
         container.snapshot()
 
-        let scheduleParams: any[] = []
+        let name: Symbol | undefined
+        let rules: Recurrence | undefined
+        let handler: JobHandler | undefined
 
         container.rebind(SCHEDULE_SYMBOL.ScheduleService)
-            .toConstantValue({
-                schedule: (...params: any[]) => {
-                    scheduleParams = params
-                }
-            })
+            .to(getScheduleService({
+                has: () => false,
+                invoke: () => {},
+                remove: () => {},
+                schedule: (n: Symbol, r: Recurrence, h: JobHandler) => {
+                    name = n
+                    rules = r
+                    handler = h
+                },
+                stats: () => undefined
+            }))
 
         container.rebind(SCHEDULE_SYMBOL.ScheduleConfig)
-            .toDynamicValue(async (): Promise<ScheduleConfig> => {
-                return {
-                    jobs: [
-                        ({
-                            name: () => Symbol('Name'),
-                            rules: async () => new Date(),
-                            handler: async () => void true
-                        } as ScheduleJob)
-                    ]
-                }
-            })
+            .toDynamicValue(getScheduleConfig({
+                jobs: [
+                    getScheduleJob({
+                        name: () => Symbol('Name'),
+                        rules: () => new Date(),
+                        handler: () => {}
+                    })
+                ]
+            }))
 
         const jobRecorder = container
             .get<IJobRecorderService>(SCHEDULE_SYMBOL.JobRecorderService)
 
         await jobRecorder.schedule()
-
-        let [name, rules, handler] = scheduleParams
 
         expect(typeof name).toBe('symbol')
         expect(rules).toBeInstanceOf(Date)
