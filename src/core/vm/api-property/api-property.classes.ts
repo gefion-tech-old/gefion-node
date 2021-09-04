@@ -93,7 +93,7 @@ export class APIPropertyStats {
     /**
      * Выполнить сохранённое замыкание и получить часть статистики
      */
-    public stats(): Object {
+    public stats(): object {
         return this.closure()
     }
 

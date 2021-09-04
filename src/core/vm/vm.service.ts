@@ -1,6 +1,5 @@
 import { injectable, inject } from 'inversify'
 import { IVMService } from './vm.interface'
-import { NodeVM } from 'vm2'
 import { 
     ScriptID, 
     VM_SYMBOL,
@@ -18,13 +17,17 @@ import { APIPropertyError } from './api-property/api-property.errors'
 import { APIPropertyStats } from './api-property/api-property.classes'
 import { EventEmitter } from 'events'
 import { ScriptError } from './vm.errors'
+import { IScriptStarterService } from './script-starter/script-starter.interface'
 
 @injectable()
 export class VMService implements IVMService {
 
     public constructor(
         @inject(VM_SYMBOL.VMConfig)
-        private config: Promise<VMConfig>
+        private config: Promise<VMConfig>,
+
+        @inject(VM_SYMBOL.ScriptStarterService)
+        private scriptStarter: IScriptStarterService
     ) {}
 
     private metaScripts: Map<ScriptID, ScriptMetadata> = new Map
@@ -66,7 +69,7 @@ export class VMService implements IVMService {
                         const apiMetadataIndex = apiMetadataList.push({
                             version: api.version,
                             properties: []
-                        })
+                        }) - 1
 
                         return apiMetadataList[apiMetadataIndex]
                     })()
@@ -87,7 +90,7 @@ export class VMService implements IVMService {
         })()
 
         /**
-         * Сгенерировать и получить базовую метаинформацию скрипта
+         * Сгенерировать, сохранить и получить базовую метаинформацию скрипта
          */
         const metaScript = ((): ScriptMetadata => {
             const meta: ScriptMetadata = {
@@ -128,6 +131,16 @@ export class VMService implements IVMService {
 
                 metaProperty.property.on(APIPropertyEvent.unlink, () => {
                     (async () => {
+                        /**
+                         * Если на скрипт не осталось ссылок, то запустить событие
+                         * `stop`, ведь скрипт завершил свою работу
+                         */
+                        {
+                            if (this.isStopped(scriptId)) {
+                                metaScript.eventEmitter.emit(ScriptEvent.stop)
+                            }
+                        }
+                        
                         const info: ScriptActivityInfo = {
                             event: APIPropertyEvent.unlink,
                             apiProperty: {
@@ -150,7 +163,7 @@ export class VMService implements IVMService {
                 metaProperty.property.on(APIPropertyEvent.stats, (stats: APIPropertyStats) => {
                     (async () => {
                         /**
-                         * Сохранить сегмент статистики в контексте свойства
+                         * Сохранить сегмент статистики в метаинформации свойства
                          */
                         {
                             metaProperty.segmentsStats.push(stats)
@@ -212,7 +225,7 @@ export class VMService implements IVMService {
                  * Удаляю всю информацию о наиболее старом и уже завершённом скрипте,
                  * если достигнут лимит по количеству допустимых завершённых скриптов
                  */
-                (async () => {
+                (() => {
                     const listStoppedScripts: { 
                         ScriptID: symbol
                         ScriptMetadata: ScriptMetadata
@@ -256,32 +269,16 @@ export class VMService implements IVMService {
         }
 
         /**
-         * Через общее событие `activity` должным образом реагирую на 
-         * события api свойств
-         */
-        this.on(scriptId, ScriptEvent.activity, (info: ScriptActivityInfo) => {
-            /**
-             * Если на скрипт не осталось ссылок, то запустить событие
-             * `stop`
-             */
-            if (info.event === APIPropertyEvent.unlink) {
-                if (this.isStopped(scriptId)) {
-                    metaScript.eventEmitter.emit(ScriptEvent.stop)
-                }
-            }
-        })
-
-        /**
          * Сгенерировать и получить объект песочницы для вставки в виртуальную машину
          */
         const sandbox = await (async (): Promise<Object> => {
-            const sandbox: Object = {}
+            const sandbox: object = {}
 
             /**
              * Вставка значений в объекты любой вложенности начиная с sandbox
              * в качестве корневого объекта
              */
-            const setSandboxProperty = (value: Object, key: string, nested: string[]) => {
+            const setSandboxProperty = (value: object, key: string, nested: string[]) => {
                 let currentObject: {
                     [key: string]: any
                 } = sandbox
@@ -319,22 +316,15 @@ export class VMService implements IVMService {
         })()
 
         /**
-         * Создание экземпляра виртуальной машины
-         */
-         const vm = new NodeVM({
-            console: 'off',
-            sandbox: sandbox,
-            require: {
-                root: params.rootDir
-            }
-        })
-
-        /**
          * Запуск указанного скрипта в виртуальной машине и перехват ошибок в
          * случае, если они возникают
          */
          try {
-            vm.runFile(params.path)
+            this.scriptStarter.runFile({
+                filename: params.path,
+                sandbox: sandbox,
+                rootDir: params.rootDir
+            })
         } catch(error) {
             const newError = new ScriptError(scriptId, error)
             
@@ -386,7 +376,7 @@ export class VMService implements IVMService {
             return
         }
 
-        metaScript.eventEmitter.emit(event, handler)
+        metaScript.eventEmitter.on(event, handler)
     }
 
     public remove(scriptId: ScriptID): void {

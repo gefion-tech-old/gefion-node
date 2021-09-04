@@ -7,6 +7,7 @@ import { EventEmitter } from 'events'
 export const VM_SYMBOL = {
     VMService: Symbol('VMService'),
     VMConfig: Symbol('VMConfig'),
+    ScriptStarterService: Symbol('ScriptStarterService'),
     APIPropertyFactoryV1: Symbol('APIPropertyFactoryV1')
 }
 
