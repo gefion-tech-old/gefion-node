@@ -41,23 +41,19 @@ describe('Сервис планирования заданий', () => {
         expect(scheduleService.has(name)).toBe(true)
         expect(job).not.toHaveBeenCalled()
 
-        await ((): Promise<void> => {
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    resolve()
-                }, 10)
-            })
-        })()
+        await new Promise<void>((resolve) => {
+            setTimeout(() => {
+                resolve()
+            }, 10)
+        })
 
         expect(job).not.toHaveBeenCalled()
 
-        await ((): Promise<void> => {
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    resolve()
-                }, 100)
-            })
-        })()
+        await new Promise<void>((resolve) => {
+            setTimeout(() => {
+                resolve()
+            }, 100)
+        })
 
         expect(job).toHaveBeenCalled()
         expect(scheduleService.has(name)).toBe(false)
