@@ -132,6 +132,22 @@ export class VMService implements IVMService {
                 metaProperty.property.on(APIPropertyEvent.unlink, () => {
                     (async () => {
                         /**
+                         * Сгенерировать событие активности до возможного события
+                         * остановки скрипта
+                         */
+                        {
+                            const info: ScriptActivityInfo = {
+                                event: APIPropertyEvent.unlink,
+                                apiProperty: {
+                                    name: await metaProperty.factory.name(),
+                                    version: api.version
+                                }
+                            }
+        
+                            metaScript.eventEmitter.emit(ScriptEvent.activity, info)
+                        }
+
+                        /**
                          * Если на скрипт не осталось ссылок, то запустить событие
                          * `stop`, ведь скрипт завершил свою работу
                          */
@@ -140,16 +156,6 @@ export class VMService implements IVMService {
                                 metaScript.eventEmitter.emit(ScriptEvent.stop)
                             }
                         }
-                        
-                        const info: ScriptActivityInfo = {
-                            event: APIPropertyEvent.unlink,
-                            apiProperty: {
-                                name: await metaProperty.factory.name(),
-                                version: api.version
-                            }
-                        }
-    
-                        metaScript.eventEmitter.emit(ScriptEvent.activity, info)
                     })()
                 })
 
