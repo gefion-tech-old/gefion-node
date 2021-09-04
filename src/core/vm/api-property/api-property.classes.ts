@@ -87,13 +87,13 @@ export abstract class APIProperty {
 export class APIPropertyStats {
 
     public constructor(
-        private closure: () => Object
+        private closure: () => any
     ) {}
 
     /**
      * Выполнить сохранённое замыкание и получить часть статистики
      */
-    public stats(): object {
+    public stats(): any {
         return this.closure()
     }
 
@@ -115,6 +115,6 @@ export abstract class APIPropertyStatsReducer {
      * Получить итоговую человеческую статистику на основе необработанных
      * сегментов статистики
      */
-    abstract stats(): Object
+    abstract stats(): any
 
 }

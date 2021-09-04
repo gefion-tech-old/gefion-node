@@ -264,7 +264,7 @@ describe('Сервис виртуальной машины', () => {
             name: 'Название скрипта 1',
             path: '/path/path/a1.js',
             rootDir: '/path/path1',
-            apiProperties: ['test1'],
+            apiProperties: ['property1', 'test1'],
         }
 
         const scriptId = await vmService.run(scriptRunParams)
@@ -309,8 +309,8 @@ describe('Сервис виртуальной машины', () => {
 
         startEventsFn()
 
-        await new Promise((resolve) => {
-            setTimeout(resolve)
+        await new Promise<void>((resolve) => {
+            resolve()
         })
 
         expect(errorEventFn).toHaveBeenCalledTimes(1)
@@ -321,27 +321,425 @@ describe('Сервис виртуальной машины', () => {
         container.restore()
     })
 
-    it.todo(`
-        Событие ошибки скрипта, успешно сохраняется в список ошибок скрипта и
-        этот список не может привысить лимит
-    `)
+    it(`
+        Событие ошибки скрипта успешно сохраняется в список ошибок скрипта и
+        этот список не может привысить лимит #cold
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
 
-    it.todo(`
+        const errorEventFn = jest.fn()
+        const MyError = class extends Error {
+            public name = 'MyError'
+        }
+
+        let startEventsFn: any
+
+        container.rebind(VM_SYMBOL.ScriptStarterService)
+            .to(getScriptStarterService({
+                runFile: (options) => {
+                    startEventsFn = (options.sandbox as any)
+                        .gefion.v4.test1.startEvents
+                }
+            }))
+
+        container.rebind(VM_SYMBOL.VMConfig)
+            .toDynamicValue(getDefaultVMConfig([
+                {
+                    version: 'v4',
+                    properties: [
+                        getAPIPropertyFactory({
+                            name: () => 'test1',
+                            isGlobal: () => true,
+                            statsReducer: (statsSegments) => {
+                                return getAPIPropertyStatsReducer({
+                                    stats: () => ({})
+                                })(statsSegments)
+                            },
+                            apiProperty: () => getAPIProperty({
+                                hasLink: () => true,
+                                init: (events) => {
+                                    return {
+                                        name: 'test1',
+                                        startEvents: () => {
+                                            events.error(new APIPropertyError({
+                                                name: 'test1',
+                                                version: 'v4'
+                                            }, new MyError('Первая ошибка')))
+
+                                            events.error(new APIPropertyError({
+                                                name: 'test1',
+                                                version: 'v4'
+                                            }, new MyError('Вторая ошибка')))
+
+                                            events.error(new APIPropertyError({
+                                                name: 'test1',
+                                                version: 'v4'
+                                            }, new MyError('Третья ошибка')))
+
+                                            events.error(new APIPropertyError({
+                                                name: 'test1',
+                                                version: 'v4'
+                                            }, new MyError('Четвёртая ошибка')))
+                                        }
+                                    }
+                                },
+                                linkCollector: () => {}
+                            })
+                        })
+                    ]
+                }
+            ]))
+
+        const vmService = container
+            .get<IVMService>(VM_SYMBOL.VMService)
+
+        const scriptRunParams = {
+            name: 'Название скрипта 1',
+            path: '/path/path/a1.js',
+            rootDir: '/path/path1',
+            apiProperties: ['property1', 'test1'],
+        }
+
+        const scriptId = await vmService.run(scriptRunParams)
+
+        expect(vmService.info(scriptId)).not.toBeUndefined()
+
+        vmService.on(scriptId, ScriptEvent.activity, (info: ScriptActivityInfo) => {
+            if (info.event === ScriptEvent.error) {
+                expect(info.params).toMatchObject({
+                    name: 'ScriptError',
+                    scriptId: scriptId,
+                    error: {
+                        name: 'APIPropertyError',
+                        targetApiProperty: {
+                            name: 'test1',
+                            version: 'v4'
+                        },
+                        error: {
+                            name: 'MyError'
+                        }
+                    }
+                })
+                errorEventFn()
+            }
+        })
+
+        startEventsFn()
+
+        await new Promise<void>((resolve) => {
+            resolve()
+        })
+
+        expect(errorEventFn).toHaveBeenCalledTimes(4)
+        expect(vmService.info(scriptId)?.errors).toHaveLength(3)
+        expect(vmService.info(scriptId)?.dateEnd).toBeUndefined()
+        expect(vmService.info(scriptId)?.errors[0]).toMatchObject({
+            name: 'ScriptError',
+            scriptId: scriptId,
+            error: {
+                name: 'APIPropertyError',
+                targetApiProperty: {
+                    name: 'test1',
+                    version: 'v4'
+                },
+                error: {
+                    name: 'MyError',
+                    message: 'Вторая ошибка'
+                }
+            }
+        })
+        expect(vmService.info(scriptId)?.errors[2]).toMatchObject({
+            name: 'ScriptError',
+            scriptId: scriptId,
+            error: {
+                name: 'APIPropertyError',
+                targetApiProperty: {
+                    name: 'test1',
+                    version: 'v4'
+                },
+                error: {
+                    name: 'MyError',
+                    message: 'Четвёртая ошибка'
+                }
+            }
+        })
+
+        container.restore()
+    })
+
+    it(`
         Все собственные события скрипта генерируют событие активности скрипта
-        за исключением самого события активности
-    `)
+        за исключением самого события активности #cold
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
 
-    it.todo(`
+        const unlinkEventFn = jest.fn()
+        const stopEventFn = jest.fn()
+        const errorEventFn = jest.fn()
+        const eventFn = jest.fn()
+        const MyError = class extends Error {
+            public name = 'MyError'
+        }
+
+        let startEventsFn: any
+        let test1HasLink = true
+
+        container.rebind(VM_SYMBOL.ScriptStarterService)
+            .to(getScriptStarterService({
+                runFile: (options) => {
+                    startEventsFn = (options.sandbox as any)
+                        .gefion.v4.test1.startEvents
+                }
+            }))
+
+        container.rebind(VM_SYMBOL.VMConfig)
+            .toDynamicValue(getDefaultVMConfig([
+                {
+                    version: 'v4',
+                    properties: [
+                        getAPIPropertyFactory({
+                            name: () => 'test1',
+                            isGlobal: () => true,
+                            statsReducer: (statsSegments) => {
+                                return getAPIPropertyStatsReducer({
+                                    stats: () => ({})
+                                })(statsSegments)
+                            },
+                            apiProperty: () => getAPIProperty({
+                                hasLink: () => test1HasLink,
+                                init: (events) => {
+                                    return {
+                                        name: 'test1',
+                                        startEvents: () => {
+                                            events.error(new APIPropertyError({
+                                                name: 'test1',
+                                                version: 'v4'
+                                            }, new MyError('Ошибочка')))
+
+                                            test1HasLink = false
+
+                                            events.unlink()
+                                        }
+                                    }
+                                },
+                                linkCollector: () => {}
+                            })
+                        })
+                    ]
+                }
+            ]))    
+            
+        const vmService = container
+            .get<IVMService>(VM_SYMBOL.VMService)
+
+        const scriptRunParams = {
+            name: 'Название скрипта 1',
+            path: '/path/path/a1.js',
+            rootDir: '/path/path1',
+            apiProperties: ['property1', 'test1'],
+        }
+
+        const scriptId = await vmService.run(scriptRunParams)
+
+        vmService.on(scriptId, ScriptEvent.activity, (info: ScriptActivityInfo) => {
+            if (info.event === ScriptEvent.error) {
+                expect(info.params).toMatchObject({
+                    name: 'ScriptError',
+                    scriptId: scriptId,
+                    error: {
+                        name: 'APIPropertyError',
+                        targetApiProperty: {
+                            name: 'test1',
+                            version: 'v4'
+                        },
+                        error: {
+                            name: 'MyError',
+                            message: 'Ошибочка'
+                        }
+                    }
+                })
+                errorEventFn()
+            }
+
+            if (info.event === ScriptEvent.stop) {
+                stopEventFn()
+            }
+
+            if (info.event === APIPropertyEvent.unlink) {
+                unlinkEventFn()
+            }
+
+            eventFn()
+        })
+
+        startEventsFn()
+
+        await new Promise<void>((resolve) => {
+            resolve()
+        })
+
+        expect(errorEventFn).toHaveBeenCalled()
+        expect(stopEventFn).toHaveBeenCalled()
+        expect(unlinkEventFn).toHaveBeenCalled()
+        expect(eventFn).toHaveBeenCalledTimes(3)
+
+        container.restore()
+    })
+
+    it(`
         Сегмент статистики, который передается в обработчик события статистики, 
         которое генерирует api свойство скрипта, успешно добавляется список
-        сегментов статистики и не может привысить лимит
-    `)
+        сегментов статистики и не может привысить лимит. Сама же статистика на 
+        основе предоставленных сегментов корректно генерируется
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        const statsEventFn = jest.fn()
+
+        let startEventsFn: any
+
+        container.rebind(VM_SYMBOL.ScriptStarterService)
+            .to(getScriptStarterService({
+                runFile: (options) => {
+                    startEventsFn = (options.sandbox as any)
+                        .gefion.v4.test1.startEvents
+                }
+            }))
+
+        container.rebind(VM_SYMBOL.VMConfig)
+            .toDynamicValue(getDefaultVMConfig([
+                {
+                    version: 'v4',
+                    properties: [
+                        getAPIPropertyFactory({
+                            name: () => 'test1',
+                            isGlobal: () => true,
+                            statsReducer: (statsSegments) => {
+                                expect(statsSegments).toHaveLength(3)
+                                expect((statsSegments[0] as any).stats()).toMatchObject({
+                                    type: 'stats',
+                                    name: 'stats2',
+                                    count: 1
+                                })
+
+                                return getAPIPropertyStatsReducer({
+                                    stats: (statsSegments) => {
+                                        let count = 0
+                                        let segments: string[] = []
+
+                                        statsSegments.forEach((statsSegment) => {
+                                            count += statsSegment.stats().count
+                                            segments.push(statsSegment.stats().name)
+                                        })
+
+                                        return {
+                                            segments: segments,
+                                            count: count
+                                        }
+                                    }
+                                })(statsSegments)
+                            },
+                            apiProperty: () => getAPIProperty({
+                                hasLink: () => false,
+                                init: (events) => {
+                                    return {
+                                        name: 'test1',
+                                        startEvents: () => {
+                                            events.stats(new APIPropertyStats((): object => {
+                                                return {
+                                                    type: 'stats',
+                                                    name: 'stats1',
+                                                    count: 1
+                                                }
+                                            }))
+
+                                            events.stats(new APIPropertyStats((): object => {
+                                                return {
+                                                    type: 'stats',
+                                                    name: 'stats2',
+                                                    count: 1
+                                                }
+                                            }))
+
+                                            events.stats(new APIPropertyStats((): object => {
+                                                return {
+                                                    type: 'stats',
+                                                    name: 'stats3',
+                                                    count: 1
+                                                }
+                                            }))
+
+                                            events.stats(new APIPropertyStats((): object => {
+                                                return {
+                                                    type: 'stats',
+                                                    name: 'stats4',
+                                                    count: 1
+                                                }
+                                            }))
+                                        }
+                                    }
+                                },
+                                linkCollector: () => {}
+                            })
+                        })
+                    ]
+                }
+            ]))
+
+        const vmService = container
+            .get<IVMService>(VM_SYMBOL.VMService)
+
+        const scriptRunParams = {
+            name: 'Название скрипта 1',
+            path: '/path/path/a1.js',
+            rootDir: '/path/path1',
+            apiProperties: ['test1'],
+        }
+
+        const scriptId = await vmService.run(scriptRunParams)
+
+        vmService.on(scriptId, ScriptEvent.activity, (info: ScriptActivityInfo) => {
+            if (info.event === APIPropertyEvent.stats) {
+                expect((info.params as any).stats()).toMatchObject({
+                    type: 'stats',
+                    count: 1
+                })
+
+                statsEventFn()
+            }
+        })
+
+        startEventsFn()
+
+        await new Promise<void>((resolve) => {
+            resolve()
+        })
+        
+        const stats = await vmService.stats(scriptId)
+        
+        expect(statsEventFn).toHaveBeenCalledTimes(4)
+        expect(stats).toHaveLength(1)
+        expect((stats as any)[0]).toMatchObject({
+            name: 'test1',
+            version: 'v4'
+        })
+
+        const finalStats = (stats as any)[0]?.stats.stats()
+
+        expect(finalStats?.count).toBe(3)
+        expect(finalStats?.segments).toHaveLength(3)
+
+        container.restore()
+    })
 
     it.todo(`
         Если событие остановки скрипта срабатывает и приводит к тому, что в
         списке сохранённых скриптов заканчивается лимит остановленных скриптов,
         то самый давний остановленный скрипт удаляется из списка сохранённых
-        скриптов
+        скриптов.
     `)
 
     it.todo(`
@@ -365,7 +763,9 @@ describe('Сервис виртуальной машины', () => {
     `)
 
     it.todo(`
-        Скрипт успешно и полностью удаляется
+        Скрипт успешно и полностью можно удалить. Свойства не должны иметь на него ссылок,
+        в противном случае принудительно запускается функция linkCollector (сборка ссылок)
+        в каждом из свойств
     `)
 
     it.todo(`
@@ -373,8 +773,13 @@ describe('Сервис виртуальной машины', () => {
     `)
 
     it.todo(`
-        Скрипт, свойства внутри которого имеют ссыки на скрипт не завершает свою
+        Скрипт, свойства внутри которого имеют ссыkки на скрипт не завершает свою
         работу
+    `)
+
+    it.todo(`
+        Скрипт, свойства внутри которого имели ссылки на скрипт, но уже не имеют, 
+        завершает свою работу благодаря событию свойств 'unlink'
     `)
 
 })
