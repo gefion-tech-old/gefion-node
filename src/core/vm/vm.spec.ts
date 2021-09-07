@@ -592,7 +592,7 @@ describe('Сервис виртуальной машины', () => {
         Сегмент статистики, который передается в обработчик события статистики, 
         которое генерирует api свойство скрипта, успешно добавляется список
         сегментов статистики и не может привысить лимит. Сама же статистика на 
-        основе предоставленных сегментов корректно генерируется
+        основе предоставленных сегментов корректно генерируется #cold
     `, async () => {
         const container = await getContainer()
         container.snapshot()
@@ -735,51 +735,468 @@ describe('Сервис виртуальной машины', () => {
         container.restore()
     })
 
-    it.todo(`
+    it(`
         Если событие остановки скрипта срабатывает и приводит к тому, что в
         списке сохранённых скриптов заканчивается лимит остановленных скриптов,
         то самый давний остановленный скрипт удаляется из списка сохранённых
-        скриптов.
-    `)
+        скриптов #cold
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
 
-    it.todo(`
-        Событие остановки скрипта устанавливает дату остановки скрипта
-    `)
+        const vmService = container
+            .get<IVMService>(VM_SYMBOL.VMService)
 
-    it.todo(`
+        const scriptRunParams = [
+            {
+                name: 'Название скрипта 1',
+                path: '/path/path/a1.js',
+                rootDir: '/path/path1',
+                apiProperties: ['property1', 'property2'],
+            },
+            {
+                name: 'Название скрипта 2',
+                path: '/path/path/a2.js',
+                rootDir: '/path/path2',
+                apiProperties: ['property1', 'property2'],
+            },
+            {
+                name: 'Название скрипта 3',
+                path: '/path/path/a3.js',
+                rootDir: '/path/path3',
+                apiProperties: ['property1', 'property2'],
+            },
+            {
+                name: 'Название скрипта 4',
+                path: '/path/path/a4.js',
+                rootDir: '/path/path4',
+                apiProperties: ['property1', 'property2'],
+            },
+        ]
+
+        const scriptId1 = await vmService.run(scriptRunParams[0])
+        const scriptId2 = await vmService.run(scriptRunParams[1])
+        const scriptId3 = await vmService.run(scriptRunParams[2])
+        const scriptId4 = await vmService.run(scriptRunParams[3])
+
+        await new Promise<void>((resolve) => {
+            resolve()
+        })
+
+        expect(vmService.info(scriptId1)).toBeUndefined()
+        
+        const script2Info = vmService.info(scriptId2)
+        expect(script2Info).toMatchObject({
+            params: {
+                name: scriptRunParams[1].name,
+                path: scriptRunParams[1].path,
+                rootDir: scriptRunParams[1].rootDir
+            }
+        })
+        expect(script2Info?.dateEnd).toBeInstanceOf(Date)
+
+        const script3Info = vmService.info(scriptId3)
+        expect(script3Info).toMatchObject({
+            params: {
+                name: scriptRunParams[2].name,
+                path: scriptRunParams[2].path,
+                rootDir: scriptRunParams[2].rootDir
+            }
+        })
+        expect(script3Info?.dateEnd).toBeInstanceOf(Date)
+        
+        const script4Info = vmService.info(scriptId4)
+        expect(script4Info).toMatchObject({
+            params: {
+                name: scriptRunParams[3].name,
+                path: scriptRunParams[3].path,
+                rootDir: scriptRunParams[3].rootDir
+            }
+        })
+        expect(script4Info?.dateEnd).toBeInstanceOf(Date)
+
+        container.restore()
+    })
+
+    it(`
         Событие освобождения от ссылок (unlink), которое генерирует api свойство
         скрипта, запускает событие остановки скрипта, в случае, если ни одно свойство
-        скрипта не имеет ссылок на сам скрипт
-    `)
+        скрипта не имеет ссылок на сам скрипт #cold
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
 
-    it.todo(`
+        const linkCollectorFn = jest.fn()
+        const stopEventFn = jest.fn()
+        const unlinkEventFn = jest.fn()
+
+        let startEventsFn: any
+        let propertyHasLink = true
+
+        container.rebind(VM_SYMBOL.ScriptStarterService)
+            .to(getScriptStarterService({
+                runFile: (options) => {
+                    startEventsFn = (options.sandbox as any)
+                        .gefion.v4.test1.startEvents
+                }
+            }))
+
+        container.rebind(VM_SYMBOL.VMConfig)
+            .toDynamicValue(getDefaultVMConfig([
+                {
+                    version: 'v4',
+                    properties: [
+                        getAPIPropertyFactory({
+                            name: () => 'test1',
+                            isGlobal: () => true,
+                            statsReducer: (statsSegments) => {
+                                return getAPIPropertyStatsReducer({
+                                    stats: () => ({})
+                                })(statsSegments)
+                            },
+                            apiProperty: () => getAPIProperty({
+                                hasLink: () => propertyHasLink,
+                                init: (events) => {
+                                    return {
+                                        name: 'test1',
+                                        startEvents: () => {
+                                            new Promise<void>((resolve) => {
+                                                propertyHasLink = false
+                                                events.unlink()
+                                                resolve()
+                                            })
+                                        }
+                                    }
+                                },
+                                linkCollector: () => {
+                                    linkCollectorFn()
+                                }
+                            })
+                        })
+                    ]
+                }
+            ]))
+
+        const vmService = container
+            .get<IVMService>(VM_SYMBOL.VMService)
+
+        const scriptRunParams = {
+            name: 'Название скрипта 1',
+            path: '/path/path/a1.js',
+            rootDir: '/path/path1',
+            apiProperties: ['test1'],
+        }
+
+        const scriptId = await vmService.run(scriptRunParams)
+
+        vmService.on(scriptId, ScriptEvent.activity, (info: ScriptActivityInfo) => {
+            if (info.event === ScriptEvent.stop) {
+                stopEventFn()
+            }
+
+            if (info.event === APIPropertyEvent.unlink) {
+                unlinkEventFn()
+            }
+        })
+
+        expect(vmService.info(scriptId)?.dateEnd).toBeUndefined()
+
+        startEventsFn()
+
+        await new Promise<void>((resolve) => {
+            resolve()
+        })
+
+        expect(unlinkEventFn).toHaveBeenCalled()
+        expect(linkCollectorFn).not.toHaveBeenCalled()
+        expect(stopEventFn).toHaveBeenCalled()
+        expect(vmService.info(scriptId)?.dateEnd).toBeInstanceOf(Date)
+
+        container.restore()
+    })
+
+    it(`
         Если запущенный скрипт сразу же в одном цикле событий генерирует ошибку,
-        то она перехватывается и передаётся в событие ошибки скрипта
-    `)
+        то она перехватывается и передаётся в событие ошибки скрипта. Однако, так как
+        нельзя зарегистрировать обработчик события до запуска скрипта, то вылавливать
+        эту ошибку нужно в информации о скрипте сразу после запуска #cold
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
 
-    it.todo(`
-        Если скрипт закончил свою работу в одном цикле событий, то он сразу же
-        будет отмечен как завершённый
-    `)
+        const MyError = class extends Error {}
 
-    it.todo(`
+        container.rebind(VM_SYMBOL.ScriptStarterService)
+            .to(getScriptStarterService({
+                runFile: () => {
+                    throw new MyError
+                }
+            }))
+
+        const vmService = container
+            .get<IVMService>(VM_SYMBOL.VMService)
+
+        const scriptRunParams = {
+            name: 'Название скрипта 1',
+            path: '/path/path/a1.js',
+            rootDir: '/path/path1',
+            apiProperties: ['property1', 'property2'],
+        }
+
+        const scriptId = await vmService.run(scriptRunParams)
+        const scriptInfo = vmService.info(scriptId)
+
+        expect(scriptInfo?.errors).toHaveLength(1)
+        expect(scriptInfo?.errors[0].error).toBeInstanceOf(MyError)
+        expect(scriptInfo?.dateEnd).toBeInstanceOf(Date)
+
+        container.restore()
+    })
+
+    it(`
         Скрипт успешно и полностью можно удалить. Свойства не должны иметь на него ссылок,
         в противном случае принудительно запускается функция linkCollector (сборка ссылок)
-        в каждом из свойств
-    `)
+        в каждом из свойств #cold
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
 
-    it.todo(`
-        Статистика скрипта корректно и ожидаемым образом генерируется
-    `)
+        const unlinkEventFn = jest.fn()
+        const linkCollectorFn = jest.fn()
+        const stopEventFn = jest.fn()
+        const removeEventFn = jest.fn()
 
-    it.todo(`
-        Скрипт, свойства внутри которого имеют ссыkки на скрипт не завершает свою
-        работу
-    `)
+        let test1HasLink = true
 
-    it.todo(`
+        container.rebind(VM_SYMBOL.VMConfig)
+            .toDynamicValue(getDefaultVMConfig([
+                {
+                    version: 'v4',
+                    properties: [
+                        getAPIPropertyFactory({
+                            name: () => 'test1',
+                            isGlobal: () => true,
+                            statsReducer: (statsSegments) => {
+                                return getAPIPropertyStatsReducer({
+                                    stats: () => ({})
+                                })(statsSegments)
+                            },
+                            apiProperty: () => getAPIProperty({
+                                hasLink: () => {
+                                    return test1HasLink
+                                },
+                                init: () => {
+                                    return {
+                                        name: 'test1'
+                                    }
+                                },
+                                linkCollector: (events) => {
+                                    test1HasLink = false
+                                    linkCollectorFn()
+                                    events.unlink()
+                                }
+                            })
+                        })
+                    ]
+                }
+            ])) 
+
+        const vmService = container
+            .get<IVMService>(VM_SYMBOL.VMService)
+
+        const scriptRunParams = {
+            name: 'Название скрипта 1',
+            path: '/path/path/a1.js',
+            rootDir: '/path/path1',
+            apiProperties: ['test1'],
+        }
+
+        const scriptId = await vmService.run(scriptRunParams)
+
+        expect(vmService.info(scriptId)).not.toBeUndefined()
+        expect(vmService.info(scriptId)?.dateEnd).toBeUndefined()
+
+        vmService.on(scriptId, ScriptEvent.activity, (info: ScriptActivityInfo) => {
+            if (info.event === APIPropertyEvent.unlink) {
+                unlinkEventFn()
+            }
+
+            if (info.event === ScriptEvent.stop) {
+                stopEventFn()
+            }
+
+            if (info.event === ScriptEvent.remove) {
+                removeEventFn()
+            }
+        })
+
+        vmService.remove(scriptId)
+
+        await new Promise<void>(resolve => {
+            resolve()
+        })
+
+        expect(linkCollectorFn).toHaveBeenCalled()
+        expect(unlinkEventFn).toHaveBeenCalledTimes(1)
+        expect(stopEventFn).toHaveBeenCalled()
+        expect(removeEventFn).toHaveBeenCalled()
+        expect(vmService.info(scriptId)).toBeUndefined()
+
+        container.restore()
+    })
+
+    it(`
+        Скрипт, свойства внутри которого имеют ссылки на него не завершает свою
+        работу #cold
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        container.rebind(VM_SYMBOL.VMConfig)
+            .toDynamicValue(getDefaultVMConfig([
+                {
+                    version: 'v4',
+                    properties: [
+                        getAPIPropertyFactory({
+                            name: () => 'test1',
+                            isGlobal: () => true,
+                            statsReducer: (statsSegments) => {
+                                return getAPIPropertyStatsReducer({
+                                    stats: () => ({})
+                                })(statsSegments)
+                            },
+                            apiProperty: () => getAPIProperty({
+                                hasLink: () => {
+                                    return true
+                                },
+                                init: () => {
+                                    return {
+                                        name: 'test1'
+                                    }
+                                },
+                                linkCollector: () => {}
+                            })
+                        })
+                    ]
+                }
+            ])) 
+
+        const vmService = container
+            .get<IVMService>(VM_SYMBOL.VMService)
+
+        const scriptRunParams = {
+            name: 'Название скрипта 1',
+            path: '/path/path/a1.js',
+            rootDir: '/path/path1',
+            apiProperties: ['test1'],
+        }
+
+        const scriptId = await vmService.run(scriptRunParams)
+
+        expect(vmService.info(scriptId)).not.toBeUndefined()
+        expect(vmService.info(scriptId)?.dateEnd).toBeUndefined()
+
+        await new Promise<void>(resolve => {
+            resolve()
+        })
+
+        expect(vmService.info(scriptId)).not.toBeUndefined()
+        expect(vmService.info(scriptId)?.dateEnd).toBeUndefined()
+
+        container.restore()
+    })
+
+    it(`
         Скрипт, свойства внутри которого имели ссылки на скрипт, но уже не имеют, 
-        завершает свою работу благодаря событию свойств 'unlink'
-    `)
+        завершает свою работу благодаря событию свойств 'unlink' #cold
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        const stopEventFn = jest.fn()
+        const unlinkEventFn = jest.fn()
+
+        let startEventsFn: any
+        let test1HasLink = true
+
+        container.rebind(VM_SYMBOL.ScriptStarterService)
+            .to(getScriptStarterService({
+                runFile: (options) => {
+                    startEventsFn = (options.sandbox as any)
+                        .gefion.v4.test1.startEvents
+                }
+            }))
+
+        container.rebind(VM_SYMBOL.VMConfig)
+            .toDynamicValue(getDefaultVMConfig([
+                {
+                    version: 'v4',
+                    properties: [
+                        getAPIPropertyFactory({
+                            name: () => 'test1',
+                            isGlobal: () => true,
+                            statsReducer: (statsSegments) => {
+                                return getAPIPropertyStatsReducer({
+                                    stats: () => ({})
+                                })(statsSegments)
+                            },
+                            apiProperty: () => getAPIProperty({
+                                hasLink: () => test1HasLink,
+                                init: (events) => {
+                                    return {
+                                        name: 'test1',
+                                        startEvents: () => {
+                                            test1HasLink = false
+                                            events.unlink()
+                                        }
+                                    }
+                                },
+                                linkCollector: () => {}
+                            })
+                        })
+                    ]
+                }
+            ]))
+
+        const vmService = container
+            .get<IVMService>(VM_SYMBOL.VMService)
+
+        const scriptRunParams = {
+            name: 'Название скрипта 1',
+            path: '/path/path/a1.js',
+            rootDir: '/path/path1',
+            apiProperties: ['test1'],
+        }
+
+        const scriptId = await vmService.run(scriptRunParams)
+
+        vmService.on(scriptId, ScriptEvent.activity, (info: ScriptActivityInfo) => {
+            if (info.event === APIPropertyEvent.unlink) {
+                unlinkEventFn()
+            }
+
+            if (info.event === ScriptEvent.stop) {
+                stopEventFn()
+            }
+        })
+
+        expect(vmService.info(scriptId)).not.toBeUndefined()
+        expect(vmService.info(scriptId)?.dateEnd).toBeUndefined()
+        expect(unlinkEventFn).not.toHaveBeenCalled()
+        expect(stopEventFn).not.toHaveBeenCalled()
+
+        startEventsFn()
+
+        await new Promise<void>(resolve => {
+            resolve()
+        })
+
+        expect(vmService.info(scriptId)).not.toBeUndefined()
+        expect(vmService.info(scriptId)?.dateEnd).toBeInstanceOf(Date)
+        expect(unlinkEventFn).toHaveBeenCalledTimes(1)
+        expect(stopEventFn).toHaveBeenCalledTimes(1)
+
+        container.restore()
+    })
 
 })

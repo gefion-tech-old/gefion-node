@@ -146,17 +146,17 @@ export class VMService implements IVMService {
         
                             metaScript.eventEmitter.emit(ScriptEvent.activity, info)
                         }
-
-                        /**
-                         * Если на скрипт не осталось ссылок, то запустить событие
-                         * `stop`, ведь скрипт завершил свою работу
-                         */
-                        {
-                            if (this.isStopped(scriptId)) {
-                                metaScript.eventEmitter.emit(ScriptEvent.stop)
-                            }
-                        }
                     })()
+
+                    /**
+                     * Если на скрипт не осталось ссылок, то запустить событие
+                     * `stop`, ведь скрипт завершил свою работу
+                     */
+                    {
+                        if (this.isStopped(scriptId)) {
+                            metaScript.eventEmitter.emit(ScriptEvent.stop)
+                        }
+                    }
                 })
 
                 metaProperty.property.on(APIPropertyEvent.error, (error: APIPropertyError) => {
@@ -219,6 +219,14 @@ export class VMService implements IVMService {
                 metaScript.eventEmitter.emit(ScriptEvent.activity, info)
             })
 
+            this.on(scriptId, ScriptEvent.remove, () => {
+                const info: ScriptActivityInfo = {
+                    event: ScriptEvent.remove
+                }
+
+                metaScript.eventEmitter.emit(ScriptEvent.activity, info)
+            })
+
             this.on(scriptId, ScriptEvent.stop, () => {
                 /**
                  * Поставить дату завершения работы скрипта
@@ -236,7 +244,7 @@ export class VMService implements IVMService {
                         ScriptID: symbol
                         ScriptMetadata: ScriptMetadata
                     }[] = []
-
+    
                     for (const [targetScriptId, targetMetaScript] of this.metaScripts) {
                         if (targetMetaScript.info.dateEnd) {
                             listStoppedScripts.push({
@@ -245,20 +253,20 @@ export class VMService implements IVMService {
                             })
                         }
                     }
-
+    
                     if (listStoppedScripts.length > config.maxStoppedScripts) {
                         listStoppedScripts.sort((scriptPrev, scriptNext) => {
                             const datePrev = scriptPrev.ScriptMetadata.info.dateEnd
                             const dateNext = scriptNext.ScriptMetadata.info.dateEnd
-
+    
                             if (!datePrev || !dateNext) {
                                 return 0
                             }
-
+    
                             if (datePrev.getTime() === dateNext.getTime()) {
                                 return 0
                             }
-
+    
                             return (datePrev.getTime() < dateNext.getTime()) ? -1 : 1
                         })
                         
@@ -399,6 +407,7 @@ export class VMService implements IVMService {
         }
 
         this.metaScripts.delete(scriptId)
+        metaScript.eventEmitter.emit(ScriptEvent.remove)
     }
 
     public listScripts(): ScriptID[] {
