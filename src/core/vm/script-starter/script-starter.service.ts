@@ -11,6 +11,7 @@ export class ScriptStarterService implements IScriptStarterService {
             console: 'off',
             sandbox: options.sandbox,
             require: {
+                external: true,
                 root: options.rootDir
             }
         })
