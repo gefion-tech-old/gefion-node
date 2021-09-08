@@ -8,7 +8,7 @@ export const VM_SYMBOL = {
     VMService: Symbol('VMService'),
     VMConfig: Symbol('VMConfig'),
     ScriptStarterService: Symbol('ScriptStarterService'),
-    APIPropertyFactoryV1: Symbol('APIPropertyFactoryV1')
+    APIPropertyFactorySystemV1: Symbol('APIPropertyFactorySystemV1')
 }
 
 export const ScriptEvent = {

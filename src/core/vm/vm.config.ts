@@ -5,10 +5,10 @@ import { IAPIPropertyFactory } from './api-property/api-property.interface'
 export async function getVMConfig(context: interfaces.Context): Promise<VMConfig> {
     const container = context.container
 
-    let apiPropertyFactoryV1: IAPIPropertyFactory[] = []
+    let apiPropertyFactorySystemV1: IAPIPropertyFactory[] = []
     try {
-        apiPropertyFactoryV1 = container
-            .getAll<IAPIPropertyFactory>(VM_SYMBOL.APIPropertyFactoryV1)
+        apiPropertyFactorySystemV1 = container
+            .getAll<IAPIPropertyFactory>(VM_SYMBOL.APIPropertyFactorySystemV1)
     } catch {}
 
     return {
@@ -19,7 +19,7 @@ export async function getVMConfig(context: interfaces.Context): Promise<VMConfig
         api: [
             {
                 version: 'v1',
-                properties: apiPropertyFactoryV1
+                properties: apiPropertyFactorySystemV1
             }
         ]
     }
