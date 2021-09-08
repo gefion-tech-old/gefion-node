@@ -18,7 +18,7 @@ export async function getVMConfig(context: interfaces.Context): Promise<VMConfig
         namespace: 'gefion',
         api: [
             {
-                version: 'system-v1',
+                version: 'systemV1',
                 properties: apiPropertyFactorySystemV1
             }
         ]
