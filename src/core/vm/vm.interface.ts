@@ -37,7 +37,10 @@ export interface IVMService {
     stats(scriptId: ScriptID): Promise<ReadyAPIPropertyStats[] | undefined>
 
     /**
-     * Подписаться на событие конкретного скрипта
+     * Подписаться на событие конкретного скрипта. Стоит помнить, что с событиями
+     * следует обращаться очень аккуратно. Например, событие активности срабатывает
+     * в промисе и из-за этого могут возникнуть нежелательные побочные эффекты, если
+     * предполагать, что на момент срабатывания события скрипт еще существует
      */
     on(scriptId: ScriptID, event: symbol, handler: (error: ScriptError) => void): void
     on(scriptId: ScriptID, event: symbol, handler: (info: ScriptActivityInfo) => void): void
