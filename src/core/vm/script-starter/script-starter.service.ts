@@ -8,7 +8,7 @@ export class ScriptStarterService implements IScriptStarterService {
 
     runFile(options: FileRunOptions): void {
         const vm = new NodeVM({
-            console: 'off',
+            // console: 'off',
             sandbox: options.sandbox,
             require: {
                 external: true,
