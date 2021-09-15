@@ -1,6 +1,9 @@
 import { APIPropertyStats } from './api-property.classes'
 import { APIPropertyError } from './api-property.errors'
 
+/**
+ * События, генерируемые в реализация APIProperty класса
+ */
 export const APIPropertyEvent = {
     /**
      * Пользовательский скрипт оставил в методах свойства ссылки на себя
@@ -25,7 +28,28 @@ export const APIPropertyEvent = {
      * должна всплыть и быть видна пользователю. Самый яркий пример - это перехват
      * ошибок в промисах и функциях вне одного цикла событий
      */
-    error: Symbol('error')
+    error: Symbol('error'),
+
+    /**
+     * Событие запуска сборщика мусора. В большей степени оно необходимо для того,
+     * чтобы внутренняя реализация свойства из обрабтчиков этого события освобождало
+     * в различных контекстах ссылки
+     */
+    linkCollector: Symbol('linkCollector')
+}
+
+/**
+ * События, генерируемые в классе APIPropertyCallParams. Необходимы для внутренней
+ * реализации
+ */
+export const APIPropertyParamsEvent = {
+    
+    /**
+     * В экземпляре класса в результате удаления параметра больше нет ни одного
+     * сохранённого параметра
+     */
+    paramsMissing: Symbol('paramsMissing')
+
 }
 
 export type EventEmitters = {
