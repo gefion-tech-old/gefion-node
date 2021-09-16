@@ -4,7 +4,11 @@ import { IVMService } from '../../../core/vm/vm.interface'
 import { PromiseName } from './promise.types'
 import { addTestInVmConfig, TestAPIProperty } from '../../__helper/test-vm-config.helper'
 import path from 'path'
+import { unhandledRejection } from '../../../event-handlers'
 import { VMPromise } from './promise.classes'
+import { getUsedArrayBuffers } from '../../../utils/gc'
+import { ScriptError } from '../../../core/vm/vm.errors'
+import { APIPropertyError } from '../../../core/vm/api-property/api-property.errors'
 
 beforeAll(async () => {
     const container = await getContainer()
@@ -19,7 +23,7 @@ afterAll(async () => {
 describe('API Promise V1', () => {
 
     it(`
-        Промисы успешно внедряются и соответствуют оригинальному объекту
+        Промисы успешно внедряются и соответствуют оригинальному объекту #cold
     `, async () => {
         const container = await getContainer()
         container.snapshot()
@@ -27,19 +31,19 @@ describe('API Promise V1', () => {
         const vmConfig = await container
             .get<Promise<VMConfig>>(VM_SYMBOL.VMConfig)
         const testObject: {
-            promise1?: PromiseConstructor
-            promise2?: PromiseConstructor
-            promise3?: PromiseConstructor
-            promise4?: PromiseConstructor
-            promise5?: PromiseConstructor
-            promise6?: PromiseConstructor
-            promise7?: PromiseConstructor
-            promise8?: PromiseConstructor
-            promise9?: PromiseConstructor
-            promise10?: PromiseConstructor
-            promise11?: PromiseConstructor
-            promise12?: PromiseConstructor
-            promise13?: PromiseConstructor
+            promise1?: Promise<any>
+            promise2?: Promise<any>
+            promise3?: Promise<any>
+            promise4?: Promise<any>
+            promise5?: Promise<any>
+            promise6?: Promise<any>
+            promise7?: Promise<any>
+            promise8?: Promise<any>
+            promise9?: Promise<any>
+            promise10?: Promise<any>
+            promise11?: Promise<any>
+            promise12?: Promise<any>
+            promise13?: Promise<any>
         } = {}
     
         container
@@ -95,68 +99,282 @@ describe('API Promise V1', () => {
         container.restore()
     })
 
-    // it(`
-    //     Активные оставленные ссылки на пользовательский скрипт в промисах не дают 
-    //     скрипту завершить свою работу
-    // `, async () => {
-    //     const container = await getContainer()
-    //     container.snapshot()
+    it(`
+        Активные оставленные ссылки на пользовательский скрипт в промисах не дают 
+        скрипту завершить свою работу, но после их удаления скрипт завершает свою работу #cold
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
 
-    //     const vmConfig = await container
-    //         .get<Promise<VMConfig>>(VM_SYMBOL.VMConfig)
-    //     const testObject: {
-    //         promise1?: PromiseConstructor
-    //     } = {}
+        const vmConfig = await container
+            .get<Promise<VMConfig>>(VM_SYMBOL.VMConfig)
+        const testObject: {
+            promise1?: Promise<any>
+            promise2?: Promise<any>
+            promise3?: Promise<any>
+        } = {}
         
-    //     container
-    //         .rebind<Promise<VMConfig>>(VM_SYMBOL.VMConfig)
-    //         .toDynamicValue(addTestInVmConfig(testObject, vmConfig))
-    //         .inSingletonScope()
+        container
+            .rebind<Promise<VMConfig>>(VM_SYMBOL.VMConfig)
+            .toDynamicValue(addTestInVmConfig(testObject, vmConfig))
+            .inSingletonScope()
 
-    //     const vmService = container
-    //         .get<IVMService>(VM_SYMBOL.VMService)
+        const vmService = container
+            .get<IVMService>(VM_SYMBOL.VMService)
 
-    //     const scriptId = await vmService.run({
-    //         name: 'Тестирование Promise API',
-    //         path: path.join(__dirname, './__test/test1.js'),
-    //         rootDir: path.join(__dirname, './__test'),
-    //         apiProperties: [PromiseName, TestAPIProperty.name]
-    //     })
+        /**
+         * Из-за того, что функция запуска скрипта асинхронная, одна вложенность 
+         * then, finally и catch не удерживают ссылку, а завершают скрипт сразу. Для
+         * удерживания ссылки нужно как минимум пропустить два тика событий, как это сделано
+         * ниже
+         */
+        const scriptId1 = await vmService.run({
+            name: 'Тестирование Promise API',
+            path: path.join(__dirname, './__test/test2.js'),
+            rootDir: path.join(__dirname, './__test'),
+            apiProperties: [PromiseName, TestAPIProperty.name]
+        })
 
-    //     console.log(vmService.info(scriptId))
+        expect(vmService.info(scriptId1)?.dateEnd).toBeUndefined()
+        await async function() {}
+        expect(vmService.info(scriptId1)?.dateEnd).toBeInstanceOf(Date)
+        await expect(testObject?.promise1).resolves.toBe(1)
+        
+        const scriptId2 = await vmService.run({
+            name: 'Тестирование Promise API',
+            path: path.join(__dirname, './__test/test3.js'),
+            rootDir: path.join(__dirname, './__test'),
+            apiProperties: [PromiseName, TestAPIProperty.name]
+        })
 
-    //     container.restore()
-    // })
+        expect(vmService.info(scriptId2)?.dateEnd).toBeUndefined()
+        await async function() {}
+        expect(vmService.info(scriptId2)?.dateEnd).toBeInstanceOf(Date)
 
-    it.todo(`
-        Освобождение ссылок в промисе приводит к завершению скрипта при условии, что
-        больше нигде нет ссылок на пользовательский скрипт
-    `)
+        const scriptId3 = await vmService.run({
+            name: 'Тестирование Promise API',
+            path: path.join(__dirname, './__test/test4.js'),
+            rootDir: path.join(__dirname, './__test'),
+            apiProperties: [PromiseName, TestAPIProperty.name]
+        })
 
-    it.todo(`
+        expect(vmService.info(scriptId3)?.dateEnd).toBeUndefined()
+        await async function() {}
+        expect(vmService.info(scriptId3)?.dateEnd).toBeInstanceOf(Date)
+        
+        container.restore()
+    })
+
+    it(`
+        Попытка передать в функцию then параметры отличные от функции ни к чему не
+        приводят #cold
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        const vmConfig = await container
+            .get<Promise<VMConfig>>(VM_SYMBOL.VMConfig)
+        const testObject: {
+            promise1?: Promise<any>
+            promise2?: Promise<any>
+        } = {}
+        
+        container
+            .rebind<Promise<VMConfig>>(VM_SYMBOL.VMConfig)
+            .toDynamicValue(addTestInVmConfig(testObject, vmConfig))
+            .inSingletonScope()
+
+        const vmService = container
+            .get<IVMService>(VM_SYMBOL.VMService)
+            
+        const scriptId = await vmService.run({
+            name: 'Тестирование Promise API',
+            path: path.join(__dirname, './__test/test5.js'),
+            rootDir: path.join(__dirname, './__test'),
+            apiProperties: [PromiseName, TestAPIProperty.name]
+        })
+
+        expect(vmService.info(scriptId)?.dateEnd).toBeInstanceOf(Date)
+
+        await expect(testObject.promise1).resolves.toBeUndefined()
+        await expect(testObject.promise2).resolves.toBeUndefined()
+
+        container.restore()
+    })
+
+    it(`
+        Скрипт полностью завершает свою работу, если промисы не держат ссылки на него,
+        при услловии, что ссылок на скрипт нет и в других свойствах #cold
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        const vmConfig = await container
+            .get<Promise<VMConfig>>(VM_SYMBOL.VMConfig)
+        const testObject: {
+            promise1?: Promise<any>
+            promise2?: Promise<any>
+        } = {}
+        
+        container
+            .rebind<Promise<VMConfig>>(VM_SYMBOL.VMConfig)
+            .toDynamicValue(addTestInVmConfig(testObject, vmConfig))
+            .inSingletonScope()
+
+        const vmService = container
+            .get<IVMService>(VM_SYMBOL.VMService)
+
+        const scriptId = await vmService.run({
+            name: 'Тестирование Promise API',
+            path: path.join(__dirname, './__test/test6.js'),
+            rootDir: path.join(__dirname, './__test'),
+            apiProperties: [PromiseName, TestAPIProperty.name]
+        })
+
+        expect(vmService.info(scriptId)?.dateEnd).toBeInstanceOf(Date)
+
+        await expect(testObject.promise1).resolves.toBe(1)
+        await expect(testObject.promise2).rejects.toBe(1)
+
+        container.restore()
+    })
+
+    it(`
+        Полное удаление скрипта запускает сборщик ссылок и за один тик событий
+        полностью их корректно и без побочных эффектов их освобождает #gc
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        const vmConfig = await container
+            .get<Promise<VMConfig>>(VM_SYMBOL.VMConfig)
+        
+        container
+            .rebind<Promise<VMConfig>>(VM_SYMBOL.VMConfig)
+            .toDynamicValue(addTestInVmConfig({}, vmConfig))
+            .inSingletonScope()
+
+        const vmService = container
+            .get<IVMService>(VM_SYMBOL.VMService)
+
+        const usedMemory = getUsedArrayBuffers()
+
+        const scriptId = await vmService.run({
+            name: 'Тестирование Promise API',
+            path: path.join(__dirname, './__test/test7.js'),
+            rootDir: path.join(__dirname, './__test'),
+            apiProperties: [PromiseName, TestAPIProperty.name]
+        })
+
+        expect(vmService.info(scriptId)?.dateEnd).toBeUndefined()
+
+        vmService.remove(scriptId)
+        
+        expect(vmService.info(scriptId)).toBeUndefined()
+        expect(usedMemory).toBe(getUsedArrayBuffers())
+
+        container.restore()
+    })
+
+    it(`
         Неперехваченные исключения в промисах успешно перенаправляются в событие ошибки
-        свойства
-    `)
+        свойства #cold
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        const vmConfig = await container
+            .get<Promise<VMConfig>>(VM_SYMBOL.VMConfig)
+
+        const MyError = class extends Error {}
+
+        const testObject = {
+            MyError
+        }
+        
+        container
+            .rebind<Promise<VMConfig>>(VM_SYMBOL.VMConfig)
+            .toDynamicValue(addTestInVmConfig(testObject, vmConfig))
+            .inSingletonScope()
+
+        const vmService = container
+            .get<IVMService>(VM_SYMBOL.VMService)
+
+        /**
+         * Зарегистрировать глобальные обработчики событий. Сделать это незаметно
+         * от jest
+         */
+        const operations: {
+            __jestListener: (...params: any) => void
+            start: () => void
+            end: () => void
+        } = {
+            __jestListener: () => {},
+            start: () => {
+                const [ listener ] = (process as any)
+                    ._original()
+                    .listeners('unhandledRejection')
+
+                operations.__jestListener = listener
+
+                ;(process as any)
+                    ._original()
+                    .off('unhandledRejection', listener)
+
+                ;(process as any)._original().once('unhandledRejection', unhandledRejection)
+            },
+
+            end: () => {
+                ;(process as any)._original().on(
+                    'unhandledRejection', 
+                    operations.__jestListener
+                )
+            }
+        }
+        operations.start()
+
+        const scriptId = await vmService.run({
+            name: 'Тестирование Promise API',
+            path: path.join(__dirname, './__test/test8.js'),
+            rootDir: path.join(__dirname, './__test'),
+            apiProperties: [PromiseName, TestAPIProperty.name]
+        })
+
+        const scriptInfo = vmService.info(scriptId)
+
+        
+        expect(scriptInfo?.dateEnd).toBeInstanceOf(Date)
+        
+        /**
+         * Jest не хочет ждать срабатывания события unhandledRejection, который нужен
+         * для теста, поэтому придётся ждать за него
+         */
+        await new Promise<void>(resolve => {
+            (process as any)._original().once('unhandledRejection', (reason: any, promise: any) => {
+                if (promise instanceof VMPromise) {
+                    resolve()
+                } else {
+                    operations.__jestListener(reason, promise)
+                }
+            })
+        })
+        
+        expect(scriptInfo?.errors).toHaveLength(1)
+        const [ error ] = (scriptInfo as any).errors
+        expect(error).toBeInstanceOf(ScriptError)
+        expect(error.error).toBeInstanceOf(APIPropertyError)
+        expect(error.error.error).toBeInstanceOf(MyError)
+
+        operations.end()
+
+        expect((process as any)._original().listenerCount('unhandledRejection')).toBe(1)
+
+        container.restore()
+    })
 
     it.todo(`
         Нельзя переопределить свойства оригинального Promise по ссылкам из прототипа, а
         если и можно, то это никак не будет влиять на другие скрипты и на приложение
-    `)
-
-    it.todo(`
-        Новый объект промиса полностью совместим с оригинальным объектом и наиболее
-        известные его методы работают корректно
-    `)
-
-    it.todo(`
-        Если освободить все ссылки до запуска функции в промисе, то функция в промисе
-        не будет запущена
-    `)
-
-    it.todo(`
-        Если в параметры then, finally или catch вместо функций передать не функции,
-        а что-то другое, то будет выброшено исключение TypeError времени выполенния
-        в результате попытки вызова переданного параметра
     `)
 
 })
