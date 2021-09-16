@@ -73,8 +73,13 @@ export class PromiseAPIProperty extends APIProperty {
                     const thenOnFulfilledId = Symbol('thenParamsId')
                     const thenOnRejectedId = Symbol('thenRejectedId')
 
-                    callParams.setCallParams<typeof onfulfilled>(thenOnFulfilledId, onfulfilled)
-                    callParams.setCallParams<typeof onrejected>(thenOnRejectedId, onrejected)
+                    if (typeof onfulfilled === 'function') {
+                        callParams.setCallParams<typeof onfulfilled>(thenOnFulfilledId, onfulfilled)
+                    }
+
+                    if (typeof onrejected === 'function') {
+                        callParams.setCallParams<typeof onrejected>(thenOnRejectedId, onrejected)
+                    }
 
                     /**
                      * Определить свою функцию для обработки успешного выполнения промиса
@@ -85,6 +90,10 @@ export class PromiseAPIProperty extends APIProperty {
                          * Если параметра нет, то ничего не делать
                          */
                         if (!callParams.hasCallParams(thenOnFulfilledId)) {
+                            /**
+                             * Удаляю второй обработчик, ибо он не сработает
+                             */
+                            callParams.removeCallParams(thenOnRejectedId)
                             return (undefined as any)
                         }
 
@@ -99,7 +108,11 @@ export class PromiseAPIProperty extends APIProperty {
                         } catch(error) {
                             throw error
                         } finally {
+                            /**
+                             * Удаляю оба обработчика, ибо второй не сработает
+                             */
                             callParams.removeCallParams(thenOnFulfilledId)
+                            callParams.removeCallParams(thenOnRejectedId)
                         }
                     }
 
@@ -111,7 +124,11 @@ export class PromiseAPIProperty extends APIProperty {
                          * Проверить, что параметр еще существует и ссылки не были почищены.
                          * Если параметра нет, то ничего не делать
                          */
-                        if (!callParams.hasCallParams(thenOnFulfilledId)) {
+                        if (!callParams.hasCallParams(thenOnRejectedId)) {
+                            /**
+                             * Удаляю второй обработчик, ибо он не сработает
+                             */
+                            callParams.removeCallParams(thenOnFulfilledId)
                             return (undefined as any)
                         }
 
@@ -126,91 +143,15 @@ export class PromiseAPIProperty extends APIProperty {
                         } catch(error) {
                             throw error
                         } finally {
+                            /**
+                             * Удаляю оба обработчика, ибо второй не сработает
+                             */
                             callParams.removeCallParams(thenOnRejectedId)
+                            callParams.removeCallParams(thenOnFulfilledId)
                         }
                     }
 
                     return super.then(__onfulfilled, __onrejected)
-                }
-
-                public finally(
-                    onfinally?: (() => void) | undefined | null
-                ): Promise<T> {
-                    /**
-                     * Сохранить параметры
-                     */
-                    const finallyOnFinallyId = Symbol('finallyOnFinallyId')
-
-                    callParams.setCallParams<typeof onfinally>(finallyOnFinallyId, onfinally)
-
-                    /**
-                     * Определить свою функцию обертку
-                     */
-                    const __onfinally: typeof onfinally = () => {
-                        /**
-                         * Проверить, что параметр еще существует и ссылки не были почищены.
-                         * Если параметра нет, то ничего не делать
-                         */
-                        if (!callParams.hasCallParams(finallyOnFinallyId)) {
-                            return
-                        }
-
-                        const func = callParams
-                            .getCallParams<typeof onfinally>(finallyOnFinallyId)
-
-                        try {
-                            /**
-                             * Явно уведомлять пользователя об ошибке в параметре
-                             */
-                            return (func as any)()
-                        } catch(error) {
-                            throw error
-                        } finally {
-                            callParams.removeCallParams(finallyOnFinallyId)
-                        }
-                    }
-
-                    return super.finally(__onfinally)
-                }
-
-                public catch<TResult = never>(
-                    onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null
-                ): Promise<T | TResult> {
-                    /**
-                     * Сохранить параметры
-                     */
-                    const catchOnRejectedId = Symbol('catchOnRejectedId')
-
-                    callParams.setCallParams<typeof onrejected>(catchOnRejectedId, onrejected)
-
-                    /**
-                     * Определить свою функцию обертку
-                     */
-                    const __onrejected: typeof onrejected = (reason) => {
-                        /**
-                         * Проверить, что параметр еще существует и ссылки не были почищены.
-                         * Если параметра нет, то ничего не делать
-                         */
-                         if (!callParams.hasCallParams(catchOnRejectedId)) {
-                            return
-                        }
-
-                        const func = callParams
-                            .getCallParams<typeof onrejected>(catchOnRejectedId)
-
-                        try {
-                            /**
-                             * Явно уведомлять пользователя об ошибке в параметре
-                             */
-                            return (func as any)(reason)
-                        } catch(error) {
-                            throw error
-                        } finally {
-                            callParams.removeCallParams(catchOnRejectedId)
-                        }
-                    }
-
-                    return super.catch(__onrejected)
                 }
     
             }
