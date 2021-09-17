@@ -4,12 +4,12 @@ import {
 } from '../api-property/api-property.classes'
 
 export function getAPIPropertyStatsReducer(mock: {
-    stats: (propertyStats: APIPropertyStats[]) => Object
-}): (propertyStats: APIPropertyStats[]) => APIPropertyStatsReducer {
-    return function(statsSegments: APIPropertyStats[]): APIPropertyStatsReducer {
-        class StatsReducer extends APIPropertyStatsReducer {
+    stats: (propertyStats: APIPropertyStats<any>[]) => Object
+}): (propertyStats: APIPropertyStats<any>[]) => APIPropertyStatsReducer<any> {
+    return function(statsSegments: APIPropertyStats<any>[]): APIPropertyStatsReducer<any> {
+        class StatsReducer extends APIPropertyStatsReducer<any> {
             public stats(): object {
-                return mock.stats(this.propertyStats)
+                return mock.stats(this.propertyStatsSegments)
             }
         }
         

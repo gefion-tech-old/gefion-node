@@ -8,7 +8,7 @@ import {
 export function getAPIPropertyFactory(mock: {
     name: () => string
     isGlobal: () => boolean
-    statsReducer: (statsSegments: APIPropertyStats[]) => APIPropertyStatsReducer
+    statsReducer: (statsSegments: APIPropertyStats<any>[]) => APIPropertyStatsReducer<any>
     apiProperty: () => APIProperty
 }): IAPIPropertyFactory {
     return new class implements IAPIPropertyFactory {
@@ -20,7 +20,7 @@ export function getAPIPropertyFactory(mock: {
             return mock.isGlobal()
         }
     
-        public async statsReducer(statsSegments: APIPropertyStats[]): Promise<APIPropertyStatsReducer> {
+        public async statsReducer(statsSegments: APIPropertyStats<any>[]): Promise<APIPropertyStatsReducer<any>> {
             return mock.statsReducer(statsSegments)
         }
     

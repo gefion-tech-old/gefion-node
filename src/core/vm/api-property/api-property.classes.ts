@@ -30,7 +30,7 @@ export abstract class APIProperty {
         unlink: () => {
             this.eventEmitter.emit(APIPropertyEvent.unlink)
         },
-        stats: (statsSegment: APIPropertyStats) => {
+        stats: <TSegment>(statsSegment: APIPropertyStats<TSegment>) => {
             this.eventEmitter.emit(APIPropertyEvent.stats, statsSegment)
         },
         error: (error: APIPropertyError) => {
@@ -89,7 +89,7 @@ export abstract class APIProperty {
      */
     on(event: symbol, handler: () => void): void
     on(event: symbol, handler: (error: APIPropertyError) => void): void
-    on(event: symbol, handler: (stats: APIPropertyStats) => void): void
+    on(event: symbol, handler: (stats: APIPropertyStats<any>) => void): void
     public on(event: symbol, handler: any): void {
         this.eventEmitter.on(event, handler)
     }
@@ -100,18 +100,18 @@ export abstract class APIProperty {
 
 /**
  * Часть события, экземпляр которой будет передаваться при вызове события
- * `stats` какого-либо api свойства
+ * `stats` какого-либо api свойства. Сегмент статистики, другими словами
  */
-export class APIPropertyStats {
+export class APIPropertyStats<TSegment> {
 
     public constructor(
-        private closure: () => any
+        private closure: () => TSegment
     ) {}
 
     /**
      * Выполнить сохранённое замыкание и получить часть статистики
      */
-    public stats(): any {
+    public stats(): TSegment {
         return this.closure()
     }
 
@@ -123,17 +123,38 @@ export class APIPropertyStats {
  * Преобразователь сегментов статистики какого-либо api свойства в единую
  * человекочитаемую статистику
  */
-export abstract class APIPropertyStatsReducer {
+export abstract class APIPropertyStatsReducer<TStats, TSegment = any> {
 
     public constructor(
-        protected propertyStats: APIPropertyStats[]
+        protected propertyStatsSegments: APIPropertyStats<TSegment>[]
     ) {}
 
     /**
      * Получить итоговую человеческую статистику на основе необработанных
      * сегментов статистики
      */
-    abstract stats(): any
+    abstract stats(): TStats
+
+}
+
+
+
+/**
+ * Слияние двух или более итоговых статистик по какому-то одному свойству.
+ * Может понадобиться для того, чтобы дополнять статистику не вычисляя её
+ * каждый раз с нуля по всем сегментам, что может быть очень затратно
+ */
+export abstract class MergeStatsAPIProperty<TStats> {
+
+    public constructor(
+        protected propertyStats: TStats[]
+    ) {}
+
+    /**
+     * Получить итоговую статистику на основе нескольких готовых
+     * статистик
+     */
+    abstract stats(): TStats
 
 }
 

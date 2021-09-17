@@ -66,7 +66,7 @@ export type EventEmitters = {
     /**
      * Генератор события stats
      */
-    stats: (stats: APIPropertyStats) => void
+    stats: <TSegment>(statsSegment: APIPropertyStats<TSegment>) => void
 
     /**
      * Генератор события error

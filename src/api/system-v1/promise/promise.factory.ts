@@ -1,12 +1,11 @@
 import { injectable } from 'inversify'
 import { IAPIPropertyFactory } from '../../../core/vm/api-property/api-property.interface'
 import {  
-    APIPropertyStatsReducer,
-    APIPropertyStats 
+    APIPropertyStatsReducer
 } from '../../../core/vm/api-property/api-property.classes'
 import { PromiseStatsReducer } from './promise.stats-reducer'
 import { PromiseAPIProperty } from './promise.property'
-import { PromiseName } from './promise.types'
+import { PromiseName, StatsSegment, Stats } from './promise.types'
 
 @injectable()
 export class PromiseFactory implements IAPIPropertyFactory {
@@ -19,7 +18,7 @@ export class PromiseFactory implements IAPIPropertyFactory {
         return true
     }
 
-    public async statsReducer(statsSegments: APIPropertyStats[]): Promise<APIPropertyStatsReducer> {
+    public async statsReducer(statsSegments: StatsSegment[]): Promise<APIPropertyStatsReducer<Stats>> {
         return new PromiseStatsReducer(statsSegments)
     }
 

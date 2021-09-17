@@ -166,7 +166,7 @@ export type APIPropertyMetadata = {
     /**
      * Сегменты статистики
      */
-    segmentsStats: APIPropertyStats[]
+    segmentsStats: APIPropertyStats<any>[]
 
     /**
      * Экземпляр класса свойства
@@ -203,7 +203,7 @@ export type ScriptMetadata = {
     eventEmitter: EventEmitter
 }
 
-export type ReadyAPIPropertyStats = {
+export type ReadyAPIPropertyStats<TStats> = {
     /**
      * Название API версии
      */
@@ -217,5 +217,5 @@ export type ReadyAPIPropertyStats = {
     /**
      * Готовая статистика по свойству
      */
-    stats: APIPropertyStatsReducer
+    stats: APIPropertyStatsReducer<TStats>
 }

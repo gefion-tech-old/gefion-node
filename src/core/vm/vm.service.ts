@@ -166,7 +166,7 @@ export class VMService implements IVMService {
                     )
                 })
 
-                metaProperty.property.on(APIPropertyEvent.stats, (stats: APIPropertyStats) => {
+                metaProperty.property.on(APIPropertyEvent.stats, (stats: APIPropertyStats<any>) => {
                     (async () => {
                         /**
                          * Сохранить сегмент статистики в метаинформации свойства
@@ -430,14 +430,14 @@ export class VMService implements IVMService {
         return metaScript.info
     }
 
-    public async stats(scriptId: ScriptID): Promise<ReadyAPIPropertyStats[] | undefined> {
+    public async stats(scriptId: ScriptID): Promise<ReadyAPIPropertyStats<any>[] | undefined> {
         const metaScript = this.metaScripts.get(scriptId)
 
         if (!metaScript) {
             return
         }
 
-        const stats: ReadyAPIPropertyStats[] = []
+        const stats: ReadyAPIPropertyStats<any>[] = []
 
         for (const api of metaScript.api) {
             for (const metaProperty of api.properties) {
