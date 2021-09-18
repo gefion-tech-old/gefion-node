@@ -17,7 +17,7 @@ export interface IAPIPropertyFactory {
      * Правильным способом трактовать переданные сегменты статистики. Вернуть
      * экземпляр APIPropertyStatsReducer
      */
-    statsReducer(statsSegments: APIPropertyStats[]): Promise<APIPropertyStatsReducer>
+    statsReducer(statsSegments: APIPropertyStats<any>[]): Promise<APIPropertyStatsReducer<any>>
 
     /**
      * Создать новый экземпляр APIProperty
