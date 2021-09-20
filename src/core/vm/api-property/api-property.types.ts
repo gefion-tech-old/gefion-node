@@ -1,4 +1,6 @@
-import { APIPropertyStats } from './api-property.classes'
+import { 
+    APIPropertyStatsSegment
+} from './api-property.classes'
 import { APIPropertyError } from './api-property.errors'
 
 /**
@@ -16,10 +18,10 @@ export const APIPropertyEvent = {
     unlink: Symbol('unlink'),
 
     /**
-     * Передача экземпляра класса APIPropertyStats когда свойство посчитает нужным
+     * Передача экземпляра класса APIPropertyStatsSegment когда свойство посчитает нужным
      * что-то зафиксировать. Трактовать один или несколько экземпляров APIPropertyStats
-     * должен исключительно реализованный специально для свойство экземпляр класса
-     * APIPropertyStatsReducer
+     * должен исключительно реализованный специально для свойства экземпляр класса
+     * APIPropertyStats
      */
     stats: Symbol('stats'),
 
@@ -66,7 +68,7 @@ export type EventEmitters = {
     /**
      * Генератор события stats
      */
-    stats: <TSegment>(statsSegment: APIPropertyStats<TSegment>) => void
+    stats: (statsSegment: APIPropertyStatsSegment) => void
 
     /**
      * Генератор события error

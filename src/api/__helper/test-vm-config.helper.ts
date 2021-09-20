@@ -1,6 +1,6 @@
 import { VMConfig } from '../../core/vm/vm.types'
 import { getAPIPropertyFactory } from '../../core/vm/__mock/APIPropertyFactory.mock'
-import { getAPIPropertyStatsReducer } from '../../core/vm/__mock/APIPropertyStatsReducer.mock'
+import { getAPIPropertyStats } from '../../core/vm/__mock/APIPropertyStats.mock'
 import { getAPIProperty } from '../../core/vm/__mock/APIProperty.mock'
 
 /**
@@ -30,9 +30,6 @@ export function addTestInVmConfig(testObject: any, vmConfig: VMConfig, config?: 
         vmConfig.maxStoppedScripts = (
             config?.maxStoppedScripts ?? vmConfig.maxStoppedScripts
         )
-        vmConfig.maxStatsSegments = (
-            config?.maxStatsSegments ?? vmConfig.maxStatsSegments
-        )
         vmConfig.maxScriptErrors = (
             config?.maxScriptErrors ?? vmConfig.maxScriptErrors
         )
@@ -46,8 +43,9 @@ export function addTestInVmConfig(testObject: any, vmConfig: VMConfig, config?: 
                 getAPIPropertyFactory({
                     name: () => TestAPIProperty.name,
                     isGlobal: () => true,
-                    statsReducer: getAPIPropertyStatsReducer({
-                        stats: () => ({})
+                    stats: () => getAPIPropertyStats({
+                        stats: () => ({}),
+                        addStatsSegment: () => {}
                     }),
                     apiProperty: () => getAPIProperty({
                         hasLink: () => false,

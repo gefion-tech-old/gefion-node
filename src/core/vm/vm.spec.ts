@@ -4,12 +4,17 @@ import { IVMService } from './vm.interface'
 import { getDefaultVMConfig } from './__helper/config.helper'
 import { getScriptStarterService } from './__mock/ScriptStarterService.mock'
 import { getAPIPropertyFactory } from './__mock/APIPropertyFactory.mock'
-import { getAPIPropertyStatsReducer } from './__mock/APIPropertyStatsReducer.mock'
+import { getAPIPropertyStats } from './__mock/APIPropertyStats.mock'
 import { getAPIProperty } from './__mock/APIProperty.mock'
 import { FileRunOptions } from './script-starter/script-starter.types'
 import { APIPropertyError } from './api-property/api-property.errors'
-import { APIPropertyStats } from './api-property/api-property.classes'
-import { APIPropertyEvent } from './api-property/api-property.types'
+import { 
+    APIPropertyStatsSegment, 
+    APIPropertyStats
+} from './api-property/api-property.classes'
+import { 
+    APIPropertyEvent
+} from './api-property/api-property.types'
 
 beforeAll(async () => {
     const container = await getContainer()
@@ -222,10 +227,11 @@ describe('Сервис виртуальной машины', () => {
                         getAPIPropertyFactory({
                             name: () => 'test1',
                             isGlobal: () => true,
-                            statsReducer: (statsSegments) => {
-                                return getAPIPropertyStatsReducer({
-                                    stats: () => ({})
-                                })(statsSegments)
+                            stats: () => {
+                                return getAPIPropertyStats({
+                                    stats: () => ({}),
+                                    addStatsSegment: () => {}
+                                })
                             },
                             apiProperty: () => getAPIProperty({
                                 hasLink: () => true,
@@ -238,7 +244,7 @@ describe('Сервис виртуальной машины', () => {
                                                 version: 'v4'
                                             }, new MyError()))
                                             
-                                            events.stats(new APIPropertyStats((): object => {
+                                            events.stats(new APIPropertyStatsSegment((): object => {
                                                 return {
                                                     name: 'test1'
                                                 }
@@ -291,10 +297,12 @@ describe('Сервис виртуальной машины', () => {
             }
 
             if (info.event === APIPropertyEvent.stats) {
-                expect(info.params).toBeInstanceOf(APIPropertyStats)
-                expect((info.params as any).stats()).toMatchObject({
+                expect((info.params as any)[0]).toBeInstanceOf(APIPropertyStatsSegment)
+                expect((info.params as any)[0].rawSegment()).toMatchObject({
                     name: 'test1'
                 })
+                expect((info.params as any)[1]).toBeInstanceOf(APIPropertyStats)
+
                 statsEventFn()
             }
 
@@ -309,6 +317,9 @@ describe('Сервис виртуальной машины', () => {
 
         startEventsFn()
 
+        await new Promise<void>((resolve) => {
+            resolve()
+        })
         await new Promise<void>((resolve) => {
             resolve()
         })
@@ -351,10 +362,11 @@ describe('Сервис виртуальной машины', () => {
                         getAPIPropertyFactory({
                             name: () => 'test1',
                             isGlobal: () => true,
-                            statsReducer: (statsSegments) => {
-                                return getAPIPropertyStatsReducer({
-                                    stats: () => ({})
-                                })(statsSegments)
+                            stats: () => {
+                                return getAPIPropertyStats({
+                                    stats: () => ({}),
+                                    addStatsSegment: () => {}
+                                })
                             },
                             apiProperty: () => getAPIProperty({
                                 hasLink: () => true,
@@ -502,10 +514,11 @@ describe('Сервис виртуальной машины', () => {
                         getAPIPropertyFactory({
                             name: () => 'test1',
                             isGlobal: () => true,
-                            statsReducer: (statsSegments) => {
-                                return getAPIPropertyStatsReducer({
-                                    stats: () => ({})
-                                })(statsSegments)
+                            stats: () => {
+                                return getAPIPropertyStats({
+                                    stats: () => ({}),
+                                    addStatsSegment: () => {}
+                                })
                             },
                             apiProperty: () => getAPIProperty({
                                 hasLink: () => test1HasLink,
@@ -590,9 +603,8 @@ describe('Сервис виртуальной машины', () => {
 
     it(`
         Сегмент статистики, который передается в обработчик события статистики, 
-        которое генерирует api свойство скрипта, успешно добавляется список
-        сегментов статистики и не может привысить лимит. Сама же статистика на 
-        основе предоставленных сегментов корректно генерируется #cold
+        корректно принимает участие в генерации итоговой статистики. Параметры в
+        событие статистики передаются корректные #cold
     `, async () => {
         const container = await getContainer()
         container.snapshot()
@@ -609,6 +621,23 @@ describe('Сервис виртуальной машины', () => {
                 }
             }))
 
+        const apiPropertyStats = getAPIPropertyStats({
+            stats: (context) => {
+                const ctx = (context as any)
+
+                return {
+                    count: ctx.count
+                }
+            },
+            addStatsSegment: (context, segment) => {
+                const ctx = (context as any)
+                ctx.count = ctx.count ? ctx.count : 0
+
+                expect(segment).toBeInstanceOf(APIPropertyStatsSegment)
+
+                ctx.count += segment.rawSegment().count
+            }
+        })
         container.rebind(VM_SYMBOL.VMConfig)
             .toDynamicValue(getDefaultVMConfig([
                 {
@@ -617,30 +646,8 @@ describe('Сервис виртуальной машины', () => {
                         getAPIPropertyFactory({
                             name: () => 'test1',
                             isGlobal: () => true,
-                            statsReducer: (statsSegments) => {
-                                expect(statsSegments).toHaveLength(3)
-                                expect((statsSegments[0] as any).stats()).toMatchObject({
-                                    type: 'stats',
-                                    name: 'stats2',
-                                    count: 1
-                                })
-
-                                return getAPIPropertyStatsReducer({
-                                    stats: (statsSegments) => {
-                                        let count = 0
-                                        let segments: string[] = []
-
-                                        statsSegments.forEach((statsSegment) => {
-                                            count += statsSegment.stats().count
-                                            segments.push(statsSegment.stats().name)
-                                        })
-
-                                        return {
-                                            segments: segments,
-                                            count: count
-                                        }
-                                    }
-                                })(statsSegments)
+                            stats: () => {
+                                return apiPropertyStats
                             },
                             apiProperty: () => getAPIProperty({
                                 hasLink: () => false,
@@ -648,7 +655,7 @@ describe('Сервис виртуальной машины', () => {
                                     return {
                                         name: 'test1',
                                         startEvents: () => {
-                                            events.stats(new APIPropertyStats((): object => {
+                                            events.stats(new APIPropertyStatsSegment((): object => {
                                                 return {
                                                     type: 'stats',
                                                     name: 'stats1',
@@ -656,7 +663,7 @@ describe('Сервис виртуальной машины', () => {
                                                 }
                                             }))
 
-                                            events.stats(new APIPropertyStats((): object => {
+                                            events.stats(new APIPropertyStatsSegment((): object => {
                                                 return {
                                                     type: 'stats',
                                                     name: 'stats2',
@@ -664,7 +671,7 @@ describe('Сервис виртуальной машины', () => {
                                                 }
                                             }))
 
-                                            events.stats(new APIPropertyStats((): object => {
+                                            events.stats(new APIPropertyStatsSegment((): object => {
                                                 return {
                                                     type: 'stats',
                                                     name: 'stats3',
@@ -672,7 +679,7 @@ describe('Сервис виртуальной машины', () => {
                                                 }
                                             }))
 
-                                            events.stats(new APIPropertyStats((): object => {
+                                            events.stats(new APIPropertyStatsSegment((): object => {
                                                 return {
                                                     type: 'stats',
                                                     name: 'stats4',
@@ -703,10 +710,15 @@ describe('Сервис виртуальной машины', () => {
 
         vmService.on(scriptId, ScriptEvent.activity, (info: ScriptActivityInfo) => {
             if (info.event === APIPropertyEvent.stats) {
-                expect((info.params as any).stats()).toMatchObject({
+                expect((info.params as any)[0]).toBeInstanceOf(APIPropertyStatsSegment)
+                expect((info.params as any)[0].rawSegment()).toMatchObject({
                     type: 'stats',
                     count: 1
                 })
+
+                expect((info.params as any)[1]).toBeInstanceOf(APIPropertyStats)
+                expect((info.params as any)[1].stats().count).toBeLessThanOrEqual(4)
+                expect((info.params as any)[1].stats().count).toBeGreaterThanOrEqual(1)
 
                 statsEventFn()
             }
@@ -722,6 +734,7 @@ describe('Сервис виртуальной машины', () => {
         
         expect(statsEventFn).toHaveBeenCalledTimes(4)
         expect(stats).toHaveLength(1)
+        expect((stats as any)[0]?.stats).toBeInstanceOf(APIPropertyStats)
         expect((stats as any)[0]).toMatchObject({
             name: 'test1',
             version: 'v4'
@@ -729,8 +742,7 @@ describe('Сервис виртуальной машины', () => {
 
         const finalStats = (stats as any)[0]?.stats.stats()
 
-        expect(finalStats?.count).toBe(3)
-        expect(finalStats?.segments).toHaveLength(3)
+        expect(finalStats?.count).toBe(4)
 
         container.restore()
     })
@@ -849,10 +861,11 @@ describe('Сервис виртуальной машины', () => {
                         getAPIPropertyFactory({
                             name: () => 'test1',
                             isGlobal: () => true,
-                            statsReducer: (statsSegments) => {
-                                return getAPIPropertyStatsReducer({
-                                    stats: () => ({})
-                                })(statsSegments)
+                            stats: () => {
+                                return getAPIPropertyStats({
+                                    stats: () => ({}),
+                                    addStatsSegment: () => {}
+                                })
                             },
                             apiProperty: () => getAPIProperty({
                                 hasLink: () => propertyHasLink,
@@ -976,10 +989,11 @@ describe('Сервис виртуальной машины', () => {
                         getAPIPropertyFactory({
                             name: () => 'test1',
                             isGlobal: () => true,
-                            statsReducer: (statsSegments) => {
-                                return getAPIPropertyStatsReducer({
-                                    stats: () => ({})
-                                })(statsSegments)
+                            stats: () => {
+                                return getAPIPropertyStats({
+                                    stats: () => ({}),
+                                    addStatsSegment: () => {}
+                                })
                             },
                             apiProperty: () => getAPIProperty({
                                 hasLink: () => {
@@ -1060,10 +1074,11 @@ describe('Сервис виртуальной машины', () => {
                         getAPIPropertyFactory({
                             name: () => 'test1',
                             isGlobal: () => true,
-                            statsReducer: (statsSegments) => {
-                                return getAPIPropertyStatsReducer({
-                                    stats: () => ({})
-                                })(statsSegments)
+                            stats: () => {
+                                return getAPIPropertyStats({
+                                    stats: () => ({}),
+                                    addStatsSegment: () => {}
+                                })
                             },
                             apiProperty: () => getAPIProperty({
                                 hasLink: () => {
@@ -1135,10 +1150,11 @@ describe('Сервис виртуальной машины', () => {
                         getAPIPropertyFactory({
                             name: () => 'test1',
                             isGlobal: () => true,
-                            statsReducer: (statsSegments) => {
-                                return getAPIPropertyStatsReducer({
-                                    stats: () => ({})
-                                })(statsSegments)
+                            stats: () => {
+                                return getAPIPropertyStats({
+                                    stats: () => ({}),
+                                    addStatsSegment: () => {}
+                                })
                             },
                             apiProperty: () => getAPIProperty({
                                 hasLink: () => test1HasLink,
@@ -1198,5 +1214,54 @@ describe('Сервис виртуальной машины', () => {
 
         container.restore()
     })
+
+    // it(`
+    //     Несколько готовых статистик различных типов (MergeStatsAPIProperty или APIPropertyStatsReducer) 
+    //     успешно и без пересечений сливаются друг с другом
+    // `, async () => {
+    //     const container = await getContainer()
+    //     container.snapshot()
+
+    //     const date1 = new Date(new Date().getTime() - 1000 * 3)
+    //     const date2 = new Date(new Date().getTime() - 1000 * 2)
+    //     const date3 = new Date(new Date().getTime() - 1000 * 1)
+
+    //     const statsReducer1 = getAPIPropertyStatsReducer({
+    //         stats: () => ({count: 1}),
+    //         getDateLastSegment: () => date1
+    //     })([])
+    //     const statsReducer2 = getAPIPropertyStatsReducer({
+    //         stats: () => ({count: 1}),
+    //         getDateLastSegment: () => date2
+    //     })([])
+    //     const statsReducer3 = getAPIPropertyStatsReducer({
+    //         stats: () => ({count: 1}),
+    //         getDateLastSegment: () => date3
+    //     })([])
+
+    //     const MergeStatsAPIProperty = getMergeStatsAPIProperty({
+    //         stats: (propertyStats: APIPropertyFinalStats[]): Object => {
+    //             let count: number = 0
+
+    //             propertyStats.forEach((stats) => {
+    //                 count += stats.stats()?.count
+    //             })
+
+    //             return {
+    //                 count: count
+    //             }
+    //         }
+    //     })
+
+    //     const mergeStats1 = new MergeStatsAPIProperty([statsReducer1, statsReducer2])
+    //     const mergeStats2 = new MergeStatsAPIProperty([statsReducer1, statsReducer2, statsReducer3])
+
+    //     expect(mergeStats1.stats()?.count).toBe(2)
+    //     expect(mergeStats2.stats()?.count).toBe(3)
+    //     expect(mergeStats1.getDateLastSegment()).toBeInstanceOf(Date)
+    //     expect(mergeStats2.getDateLastSegment()).toBeInstanceOf(Date)
+
+    //     container.restore()
+    // })
 
 })

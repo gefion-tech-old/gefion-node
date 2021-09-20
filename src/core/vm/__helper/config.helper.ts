@@ -1,17 +1,18 @@
 import { VMConfig, API } from '../vm.types'
 import { getVMConfig } from '../__mock/VMConfig.mock'
 import { getAPIPropertyFactory } from '../__mock/APIPropertyFactory.mock'
-import { getAPIPropertyStatsReducer } from '../__mock/APIPropertyStatsReducer.mock'
+import { getAPIPropertyStats } from '../__mock/APIPropertyStats.mock'
 import { getAPIProperty } from '../__mock/APIProperty.mock'
 
 export function getDefaultVMConfig(api: API[] = []): () => Promise<VMConfig> {
     const propertyFactory1 = getAPIPropertyFactory({
         name: () => 'property1',
         isGlobal: () => true,
-        statsReducer: (statsSegments) => {
-            return getAPIPropertyStatsReducer({
-                stats: () => ({})
-            })(statsSegments)
+        stats: () => {
+            return getAPIPropertyStats({
+                stats: () => ({}),
+                addStatsSegment: () => {}
+            })
         },
         apiProperty: () => getAPIProperty({
             hasLink: () => false,
@@ -25,10 +26,11 @@ export function getDefaultVMConfig(api: API[] = []): () => Promise<VMConfig> {
     const propertyFactory1_2 = getAPIPropertyFactory({
         name: () => 'property1',
         isGlobal: () => true,
-        statsReducer: (statsSegments) => {
-            return getAPIPropertyStatsReducer({
-                stats: () => ({})
-            })(statsSegments)
+        stats: () => {
+            return getAPIPropertyStats({
+                stats: () => ({}),
+                addStatsSegment: () => {}
+            })
         },
         apiProperty: () => getAPIProperty({
             hasLink: () => false,
@@ -42,10 +44,11 @@ export function getDefaultVMConfig(api: API[] = []): () => Promise<VMConfig> {
     const propertyFactory2 = getAPIPropertyFactory({
         name: () => 'property2',
         isGlobal: () => false,
-        statsReducer: (statsSegments) => {
-            return getAPIPropertyStatsReducer({
-                stats: () => ({})
-            })(statsSegments)
+        stats: () => {
+            return getAPIPropertyStats({
+                stats: () => ({}),
+                addStatsSegment: () => {}
+            })
         },
         apiProperty: () => getAPIProperty({
             hasLink: () => false,
@@ -59,10 +62,11 @@ export function getDefaultVMConfig(api: API[] = []): () => Promise<VMConfig> {
     const propertyFactory3 = getAPIPropertyFactory({
         name: () => 'property3',
         isGlobal: () => false,
-        statsReducer: (statsSegments) => {
-            return getAPIPropertyStatsReducer({
-                stats: () => ({})
-            })(statsSegments)
+        stats: () => {
+            return getAPIPropertyStats({
+                stats: () => ({}),
+                addStatsSegment: () => {}
+            })
         },
         apiProperty: () => getAPIProperty({
             hasLink: () => false,
@@ -76,10 +80,11 @@ export function getDefaultVMConfig(api: API[] = []): () => Promise<VMConfig> {
     const propertyFactory4 = getAPIPropertyFactory({
         name: () => 'property4',
         isGlobal: () => false,
-        statsReducer: (statsSegments) => {
-            return getAPIPropertyStatsReducer({
-                stats: () => ({})
-            })(statsSegments)
+        stats: () => {
+            return getAPIPropertyStats({
+                stats: () => ({}),
+                addStatsSegment: () => {}
+            })
         },
         apiProperty: () => getAPIProperty({
             hasLink: () => false,
@@ -93,7 +98,6 @@ export function getDefaultVMConfig(api: API[] = []): () => Promise<VMConfig> {
     return getVMConfig({
         namespace: 'gefion',
         maxScriptErrors: 3,
-        maxStatsSegments: 3,
         maxStoppedScripts: 3,
         api: [
             {

@@ -1,4 +1,7 @@
-import { APIPropertyStats, APIPropertyStatsReducer, APIProperty } from './api-property.classes'
+import {  
+    APIPropertyStats, 
+    APIProperty 
+} from './api-property.classes'
 
 export interface IAPIPropertyFactory {
 
@@ -14,10 +17,10 @@ export interface IAPIPropertyFactory {
     isGlobal(): Promise<boolean>
 
     /**
-     * Правильным способом трактовать переданные сегменты статистики. Вернуть
-     * экземпляр APIPropertyStatsReducer
+     * Вернуть экземпляр класса статистики. Возвращаться должен каждый раз
+     * один и тот же экземпляр
      */
-    statsReducer(statsSegments: APIPropertyStats<any>[]): Promise<APIPropertyStatsReducer<any>>
+    stats(): Promise<APIPropertyStats>
 
     /**
      * Создать новый экземпляр APIProperty

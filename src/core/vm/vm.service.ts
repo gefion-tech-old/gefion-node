@@ -14,7 +14,7 @@ import {
 } from './vm.types'
 import { APIPropertyEvent } from './api-property/api-property.types'
 import { APIPropertyError } from './api-property/api-property.errors'
-import { APIPropertyStats } from './api-property/api-property.classes'
+import { APIPropertyStatsSegment } from './api-property/api-property.classes'
 import { EventEmitter } from 'events'
 import { ScriptError } from './vm.errors'
 import { IScriptStarterService } from './script-starter/script-starter.interface'
@@ -80,8 +80,7 @@ export class VMService implements IVMService {
                      */
                     apiMetadata.properties.push({
                         factory: propertyFactory,
-                        property: await propertyFactory.apiProperty(),
-                        segmentsStats: []
+                        property: await propertyFactory.apiProperty()
                     })
                 }
             }
@@ -166,18 +165,10 @@ export class VMService implements IVMService {
                     )
                 })
 
-                metaProperty.property.on(APIPropertyEvent.stats, (stats: APIPropertyStats<any>) => {
+                metaProperty.property.on(APIPropertyEvent.stats, (segment: APIPropertyStatsSegment) => {
                     (async () => {
-                        /**
-                         * Сохранить сегмент статистики в метаинформации свойства
-                         */
-                        {
-                            metaProperty.segmentsStats.push(stats)
-        
-                            if (metaProperty.segmentsStats.length > config.maxStatsSegments) {
-                                metaProperty.segmentsStats.shift()
-                            }
-                        }
+                        const stats = await metaProperty.factory.stats()
+                        stats.addStatsSegment(segment)
 
                         const info: ScriptActivityInfo = {
                             event: APIPropertyEvent.stats,
@@ -185,7 +176,7 @@ export class VMService implements IVMService {
                                 name: await metaProperty.factory.name(),
                                 version: api.version
                             },
-                            params: stats
+                            params: [segment, stats]
                         }
 
                         metaScript.eventEmitter.emit(ScriptEvent.activity, info)
@@ -430,23 +421,21 @@ export class VMService implements IVMService {
         return metaScript.info
     }
 
-    public async stats(scriptId: ScriptID): Promise<ReadyAPIPropertyStats<any>[] | undefined> {
+    public async stats(scriptId: ScriptID): Promise<ReadyAPIPropertyStats[] | undefined> {
         const metaScript = this.metaScripts.get(scriptId)
 
         if (!metaScript) {
             return
         }
 
-        const stats: ReadyAPIPropertyStats<any>[] = []
+        const stats: ReadyAPIPropertyStats[] = []
 
         for (const api of metaScript.api) {
             for (const metaProperty of api.properties) {
                 stats.push({
                     name: await metaProperty.factory.name(),
                     version: api.version,
-                    stats: await metaProperty.factory.statsReducer(
-                        metaProperty.segmentsStats
-                    )
+                    stats: await metaProperty.factory.stats()
                 })
             }
         }

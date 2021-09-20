@@ -1,7 +1,7 @@
 import { TargetApiProperty } from './api-property/api-property.types'
 import { IAPIPropertyFactory } from './api-property/api-property.interface'
 import { ScriptError } from './vm.errors'
-import { APIProperty, APIPropertyStats, APIPropertyStatsReducer } from './api-property/api-property.classes'
+import { APIProperty, APIPropertyStats } from './api-property/api-property.classes'
 import { EventEmitter } from 'events'
 
 export const VM_SYMBOL = {
@@ -121,12 +121,6 @@ export type VMConfig = {
     maxStoppedScripts: number
 
     /**
-     * Максимальное количество сегментов статистики по одному api свойству. По достижении
-     * лимита наиболее старые сегменты вытесняются
-     */
-    maxStatsSegments: number
-
-    /**
      * Максимальное количество экземпляров ошибок, которые могут храниться в контексте
      * одного скрипта. По достижении лимита информация о старых ошибках будет вытесняться
      */
@@ -164,11 +158,6 @@ export type APIPropertyMetadata = {
     factory: IAPIPropertyFactory
 
     /**
-     * Сегменты статистики
-     */
-    segmentsStats: APIPropertyStats<any>[]
-
-    /**
      * Экземпляр класса свойства
      */
     property: APIProperty
@@ -203,7 +192,7 @@ export type ScriptMetadata = {
     eventEmitter: EventEmitter
 }
 
-export type ReadyAPIPropertyStats<TStats> = {
+export type ReadyAPIPropertyStats = {
     /**
      * Название API версии
      */
@@ -217,5 +206,5 @@ export type ReadyAPIPropertyStats<TStats> = {
     /**
      * Готовая статистика по свойству
      */
-    stats: APIPropertyStatsReducer<TStats>
+    stats: APIPropertyStats
 }

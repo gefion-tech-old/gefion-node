@@ -1,5 +1,9 @@
 import { APIPropertyError } from './api-property.errors'
-import { EventEmitters, APIPropertyEvent, APIPropertyParamsEvent } from './api-property.types'
+import { 
+    EventEmitters, 
+    APIPropertyEvent, 
+    APIPropertyParamsEvent
+} from './api-property.types'
 import { EventEmitter } from 'events'
 
 /**
@@ -30,7 +34,7 @@ export abstract class APIProperty {
         unlink: () => {
             this.eventEmitter.emit(APIPropertyEvent.unlink)
         },
-        stats: <TSegment>(statsSegment: APIPropertyStats<TSegment>) => {
+        stats: (statsSegment: APIPropertyStatsSegment) => {
             this.eventEmitter.emit(APIPropertyEvent.stats, statsSegment)
         },
         error: (error: APIPropertyError) => {
@@ -89,7 +93,7 @@ export abstract class APIProperty {
      */
     on(event: symbol, handler: () => void): void
     on(event: symbol, handler: (error: APIPropertyError) => void): void
-    on(event: symbol, handler: (stats: APIPropertyStats<any>) => void): void
+    on(event: symbol, handler: (segment: APIPropertyStatsSegment) => void): void
     public on(event: symbol, handler: any): void {
         this.eventEmitter.on(event, handler)
     }
@@ -97,21 +101,20 @@ export abstract class APIProperty {
 }
 
 
-
 /**
- * Часть события, экземпляр которой будет передаваться при вызове события
- * `stats` какого-либо api свойства. Сегмент статистики, другими словами
+ * Сегмент статистики. Передаётся при вызове события `stats` какого-либо
+ * api свойства
  */
-export class APIPropertyStats<TSegment> {
+export class APIPropertyStatsSegment {
 
     public constructor(
-        private closure: () => TSegment
+        private closure: () => any
     ) {}
 
     /**
-     * Выполнить сохранённое замыкание и получить часть статистики
+     * Получить сырой объект сегмента статистики
      */
-    public stats(): TSegment {
+    public rawSegment(): any {
         return this.closure()
     }
 
@@ -120,41 +123,21 @@ export class APIPropertyStats<TSegment> {
 
 
 /**
- * Преобразователь сегментов статистики какого-либо api свойства в единую
- * человекочитаемую статистику
+ * Класс статистики свойства. В него передаются сегменты статистики, на основе
+ * которых плавно должна генерироваться статистика
  */
-export abstract class APIPropertyStatsReducer<TStats, TSegment = any> {
-
-    public constructor(
-        protected propertyStatsSegments: APIPropertyStats<TSegment>[]
-    ) {}
+export abstract class APIPropertyStats {
 
     /**
      * Получить итоговую человеческую статистику на основе необработанных
      * сегментов статистики
      */
-    abstract stats(): TStats
-
-}
-
-
-
-/**
- * Слияние двух или более итоговых статистик по какому-то одному свойству.
- * Может понадобиться для того, чтобы дополнять статистику не вычисляя её
- * каждый раз с нуля по всем сегментам, что может быть очень затратно
- */
-export abstract class MergeStatsAPIProperty<TStats> {
-
-    public constructor(
-        protected propertyStats: TStats[]
-    ) {}
+    abstract stats(): any
 
     /**
-     * Получить итоговую статистику на основе нескольких готовых
-     * статистик
+     * Добавить новый сегмент статистики
      */
-    abstract stats(): TStats
+    abstract addStatsSegment(segment: APIPropertyStatsSegment): void
 
 }
 
