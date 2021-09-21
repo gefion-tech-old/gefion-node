@@ -2,7 +2,14 @@ import {
     TargetAPIProperty
 } from './promise.types'
 import { APIProperty } from '../../../core/vm/api-property/api-property.classes'
-import { VMPromise } from './promise.classes'
+import { 
+    VMPromise,
+    PromiseErrorStatsSegment,
+    PromiseAddOnFulfilledStatsSegment,
+    PromiseAddOnRejectedStatsSegment,
+    PromiseRemoveOnFulfilledStatsSegment,
+    PromiseRemoveOnRejectedStatsSegment
+} from './promise.classes'
 import { 
     APIPropertyEvent, 
     APIPropertyParamsEvent,
@@ -44,6 +51,13 @@ export class PromiseAPIProperty extends APIProperty {
         this.on(APIPropertyEvent.linkCollector, () => {
             this.callParams.removeAllCallParams()
         })
+
+        /**
+         * Генерация события статистики
+         */
+        this.on(APIPropertyEvent.error, () => {
+            this.events.stats(new PromiseErrorStatsSegment)
+        })
         
         /**
          * Генерация нового безопасного экземпляра Promise для песочницы
@@ -75,10 +89,24 @@ export class PromiseAPIProperty extends APIProperty {
 
                     if (typeof onfulfilled === 'function') {
                         callParams.setCallParams<typeof onfulfilled>(thenOnFulfilledId, onfulfilled)
+                        
+                        /**
+                         * Генерация события статистики
+                         */
+                        {
+                            events.stats(new PromiseAddOnFulfilledStatsSegment)
+                        }
                     }
 
                     if (typeof onrejected === 'function') {
                         callParams.setCallParams<typeof onrejected>(thenOnRejectedId, onrejected)
+                        
+                        /**
+                         * Генерация события статистики
+                         */
+                        {
+                            events.stats(new PromiseAddOnRejectedStatsSegment)
+                        }
                     }
 
                     /**
@@ -91,9 +119,18 @@ export class PromiseAPIProperty extends APIProperty {
                          */
                         if (!callParams.hasCallParams(thenOnFulfilledId)) {
                             /**
+                             * Генерация события статистики, если обработчик действительно удаляется
+                             */
+                            if (callParams.hasCallParams(thenOnRejectedId)) {
+                                
+                                events.stats(new PromiseRemoveOnRejectedStatsSegment)
+                            }
+
+                            /**
                              * Удаляю второй обработчик, ибо он не сработает
                              */
                             callParams.removeCallParams(thenOnRejectedId)
+
                             return (undefined as any)
                         }
 
@@ -108,6 +145,19 @@ export class PromiseAPIProperty extends APIProperty {
                         } catch(error) {
                             throw error
                         } finally {
+                            /**
+                             * Генерация события статистики, если каждый обрабтчик действительно удаляется
+                             */
+                            {
+                                if (callParams.hasCallParams(thenOnFulfilledId)) {
+                                    events.stats(new PromiseRemoveOnFulfilledStatsSegment)
+                                }
+
+                                if (callParams.hasCallParams(thenOnRejectedId)) {
+                                    events.stats(new PromiseRemoveOnRejectedStatsSegment)
+                                }
+                            }
+
                             /**
                              * Удаляю оба обработчика, ибо второй не сработает
                              */
@@ -126,6 +176,14 @@ export class PromiseAPIProperty extends APIProperty {
                          */
                         if (!callParams.hasCallParams(thenOnRejectedId)) {
                             /**
+                             * Генерация события статистики, если обработчик действительно удаляется
+                             */
+                             if (callParams.hasCallParams(thenOnFulfilledId)) {
+                                
+                                events.stats(new PromiseRemoveOnFulfilledStatsSegment)
+                            }
+
+                            /**
                              * Удаляю второй обработчик, ибо он не сработает
                              */
                             callParams.removeCallParams(thenOnFulfilledId)
@@ -143,6 +201,19 @@ export class PromiseAPIProperty extends APIProperty {
                         } catch(error) {
                             throw error
                         } finally {
+                            /**
+                             * Генерация события статистики, если каждый обрабтчик действительно удаляется
+                             */
+                             {
+                                if (callParams.hasCallParams(thenOnFulfilledId)) {
+                                    events.stats(new PromiseRemoveOnFulfilledStatsSegment)
+                                }
+
+                                if (callParams.hasCallParams(thenOnRejectedId)) {
+                                    events.stats(new PromiseRemoveOnRejectedStatsSegment)
+                                }
+                            }
+            
                             /**
                              * Удаляю оба обработчика, ибо второй не сработает
                              */
