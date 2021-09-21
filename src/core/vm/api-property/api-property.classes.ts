@@ -28,9 +28,6 @@ export abstract class APIProperty {
      * напрямую
      */
     protected events: EventEmitters = {
-        link: () => {
-            this.eventEmitter.emit(APIPropertyEvent.link)
-        },
         unlink: () => {
             this.eventEmitter.emit(APIPropertyEvent.unlink)
         },
