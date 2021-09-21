@@ -310,13 +310,6 @@ describe('Сервис виртуальной машины', () => {
 
         startEventsFn()
 
-        await new Promise<void>((resolve) => {
-            resolve()
-        })
-        await new Promise<void>((resolve) => {
-            resolve()
-        })
-
         expect(errorEventFn).toHaveBeenCalledTimes(1)
         expect(statsEventFn).toHaveBeenCalled()
         expect(unlinkEventFn).toHaveBeenCalled()
@@ -430,10 +423,6 @@ describe('Сервис виртуальной машины', () => {
         })
 
         startEventsFn()
-
-        await new Promise<void>((resolve) => {
-            resolve()
-        })
 
         expect(errorEventFn).toHaveBeenCalledTimes(4)
         expect(vmService.info(scriptId)?.errors).toHaveLength(3)
@@ -581,10 +570,6 @@ describe('Сервис виртуальной машины', () => {
 
         startEventsFn()
 
-        await new Promise<void>((resolve) => {
-            resolve()
-        })
-
         expect(errorEventFn).toHaveBeenCalled()
         expect(stopEventFn).toHaveBeenCalled()
         expect(unlinkEventFn).toHaveBeenCalled()
@@ -714,10 +699,6 @@ describe('Сервис виртуальной машины', () => {
         })
 
         startEventsFn()
-
-        await new Promise<void>((resolve) => {
-            resolve()
-        })
         
         const stats = await vmService.stats(scriptId)
         
@@ -779,10 +760,6 @@ describe('Сервис виртуальной машины', () => {
         const scriptId2 = await vmService.run(scriptRunParams[1])
         const scriptId3 = await vmService.run(scriptRunParams[2])
         const scriptId4 = await vmService.run(scriptRunParams[3])
-
-        await new Promise<void>((resolve) => {
-            resolve()
-        })
 
         expect(vmService.info(scriptId1)).toBeUndefined()
         
@@ -904,10 +881,6 @@ describe('Сервис виртуальной машины', () => {
         expect(vmService.info(scriptId)?.dateEnd).toBeUndefined()
 
         startEventsFn()
-
-        await new Promise<void>((resolve) => {
-            resolve()
-        })
 
         expect(unlinkEventFn).toHaveBeenCalled()
         expect(linkCollectorFn).not.toHaveBeenCalled()
@@ -1035,10 +1008,6 @@ describe('Сервис виртуальной машины', () => {
 
         vmService.remove(scriptId)
 
-        await new Promise<void>(resolve => {
-            resolve()
-        })
-
         expect(linkCollectorFn).toHaveBeenCalled()
         expect(unlinkEventFn).toHaveBeenCalledTimes(1)
         expect(stopEventFn).toHaveBeenCalled()
@@ -1099,10 +1068,6 @@ describe('Сервис виртуальной машины', () => {
 
         expect(vmService.info(scriptId)).not.toBeUndefined()
         expect(vmService.info(scriptId)?.dateEnd).toBeUndefined()
-
-        await new Promise<void>(resolve => {
-            resolve()
-        })
 
         expect(vmService.info(scriptId)).not.toBeUndefined()
         expect(vmService.info(scriptId)?.dateEnd).toBeUndefined()
@@ -1191,10 +1156,6 @@ describe('Сервис виртуальной машины', () => {
         expect(stopEventFn).not.toHaveBeenCalled()
 
         startEventsFn()
-
-        await new Promise<void>(resolve => {
-            resolve()
-        })
 
         expect(vmService.info(scriptId)).not.toBeUndefined()
         expect(vmService.info(scriptId)?.dateEnd).toBeInstanceOf(Date)

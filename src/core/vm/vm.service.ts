@@ -115,8 +115,10 @@ export class VMService implements IVMService {
          */
         for (const api of metaScript.api) {
             for (const metaProperty of api.properties) {
+                const propertyName = await metaProperty.factory.name()
+                
                 metaProperty.property.on(APIPropertyEvent.unlink, () => {
-                    (async () => {
+                    {
                         /**
                          * Сгенерировать событие активности до возможного события
                          * остановки скрипта
@@ -125,14 +127,15 @@ export class VMService implements IVMService {
                             const info: ScriptActivityInfo = {
                                 event: APIPropertyEvent.unlink,
                                 apiProperty: {
-                                    name: await metaProperty.factory.name(),
+                                    name: propertyName,
                                     version: api.version
                                 }
                             }
         
                             metaScript.eventEmitter.emit(ScriptEvent.activity, info)
                         }
-                    })()
+                    }
+
 
                     /**
                      * Если на скрипт не осталось ссылок, то запустить событие
@@ -153,7 +156,7 @@ export class VMService implements IVMService {
                 })
 
                 metaProperty.property.on(APIPropertyEvent.stats, (segment: APIPropertyStatsSegment) => {
-                    (async () => {
+                    {
                         /**
                          * Обновление объекта статистиики
                          */
@@ -168,7 +171,7 @@ export class VMService implements IVMService {
                             const info: ScriptActivityInfo = {
                                 event: APIPropertyEvent.stats,
                                 apiProperty: {
-                                    name: await metaProperty.factory.name(),
+                                    name: propertyName,
                                     version: api.version
                                 },
                                 params: [segment, metaProperty.stats]
@@ -176,7 +179,7 @@ export class VMService implements IVMService {
     
                             metaScript.eventEmitter.emit(ScriptEvent.activity, info)
                         }
-                    })()
+                    }
                 })
             }
         }
