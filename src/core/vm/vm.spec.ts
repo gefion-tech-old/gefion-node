@@ -201,7 +201,6 @@ describe('Сервис виртуальной машины', () => {
         const container = await getContainer()
         container.snapshot()
 
-        const linkEventFn = jest.fn()
         const unlinkEventFn = jest.fn()
         const statsEventFn = jest.fn()
         const errorEventFn = jest.fn()
@@ -249,8 +248,6 @@ describe('Сервис виртуальной машины', () => {
                                                     name: 'test1'
                                                 }
                                             }))
-
-                                            events.link()
 
                                             events.unlink()
                                         }
@@ -306,10 +303,6 @@ describe('Сервис виртуальной машины', () => {
                 statsEventFn()
             }
 
-            if (info.event === APIPropertyEvent.link) {
-                linkEventFn()
-            }
-
             if (info.event === APIPropertyEvent.unlink) {
                 unlinkEventFn()
             }
@@ -326,7 +319,6 @@ describe('Сервис виртуальной машины', () => {
 
         expect(errorEventFn).toHaveBeenCalledTimes(1)
         expect(statsEventFn).toHaveBeenCalled()
-        expect(linkEventFn).toHaveBeenCalled()
         expect(unlinkEventFn).toHaveBeenCalled()
 
         container.restore()
@@ -621,23 +613,6 @@ describe('Сервис виртуальной машины', () => {
                 }
             }))
 
-        const apiPropertyStats = getAPIPropertyStats({
-            stats: (context) => {
-                const ctx = (context as any)
-
-                return {
-                    count: ctx.count
-                }
-            },
-            addStatsSegment: (context, segment) => {
-                const ctx = (context as any)
-                ctx.count = ctx.count ? ctx.count : 0
-
-                expect(segment).toBeInstanceOf(APIPropertyStatsSegment)
-
-                ctx.count += segment.rawSegment().count
-            }
-        })
         container.rebind(VM_SYMBOL.VMConfig)
             .toDynamicValue(getDefaultVMConfig([
                 {
@@ -646,9 +621,23 @@ describe('Сервис виртуальной машины', () => {
                         getAPIPropertyFactory({
                             name: () => 'test1',
                             isGlobal: () => true,
-                            stats: () => {
-                                return apiPropertyStats
-                            },
+                            stats: () => getAPIPropertyStats({
+                                stats: (context) => {
+                                    const ctx = (context as any)
+                    
+                                    return {
+                                        count: ctx.count
+                                    }
+                                },
+                                addStatsSegment: (context, segment) => {
+                                    const ctx = (context as any)
+                                    ctx.count = ctx.count ? ctx.count : 0
+                    
+                                    expect(segment).toBeInstanceOf(APIPropertyStatsSegment)
+                    
+                                    ctx.count += segment.rawSegment().count
+                                }
+                            }),
                             apiProperty: () => getAPIProperty({
                                 hasLink: () => false,
                                 init: (events) => {
@@ -1214,54 +1203,5 @@ describe('Сервис виртуальной машины', () => {
 
         container.restore()
     })
-
-    // it(`
-    //     Несколько готовых статистик различных типов (MergeStatsAPIProperty или APIPropertyStatsReducer) 
-    //     успешно и без пересечений сливаются друг с другом
-    // `, async () => {
-    //     const container = await getContainer()
-    //     container.snapshot()
-
-    //     const date1 = new Date(new Date().getTime() - 1000 * 3)
-    //     const date2 = new Date(new Date().getTime() - 1000 * 2)
-    //     const date3 = new Date(new Date().getTime() - 1000 * 1)
-
-    //     const statsReducer1 = getAPIPropertyStatsReducer({
-    //         stats: () => ({count: 1}),
-    //         getDateLastSegment: () => date1
-    //     })([])
-    //     const statsReducer2 = getAPIPropertyStatsReducer({
-    //         stats: () => ({count: 1}),
-    //         getDateLastSegment: () => date2
-    //     })([])
-    //     const statsReducer3 = getAPIPropertyStatsReducer({
-    //         stats: () => ({count: 1}),
-    //         getDateLastSegment: () => date3
-    //     })([])
-
-    //     const MergeStatsAPIProperty = getMergeStatsAPIProperty({
-    //         stats: (propertyStats: APIPropertyFinalStats[]): Object => {
-    //             let count: number = 0
-
-    //             propertyStats.forEach((stats) => {
-    //                 count += stats.stats()?.count
-    //             })
-
-    //             return {
-    //                 count: count
-    //             }
-    //         }
-    //     })
-
-    //     const mergeStats1 = new MergeStatsAPIProperty([statsReducer1, statsReducer2])
-    //     const mergeStats2 = new MergeStatsAPIProperty([statsReducer1, statsReducer2, statsReducer3])
-
-    //     expect(mergeStats1.stats()?.count).toBe(2)
-    //     expect(mergeStats2.stats()?.count).toBe(3)
-    //     expect(mergeStats1.getDateLastSegment()).toBeInstanceOf(Date)
-    //     expect(mergeStats2.getDateLastSegment()).toBeInstanceOf(Date)
-
-    //     container.restore()
-    // })
 
 })

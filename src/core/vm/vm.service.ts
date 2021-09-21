@@ -80,7 +80,8 @@ export class VMService implements IVMService {
                      */
                     apiMetadata.properties.push({
                         factory: propertyFactory,
-                        property: await propertyFactory.apiProperty()
+                        property: await propertyFactory.apiProperty(),
+                        stats: await propertyFactory.stats()
                     })
                 }
             }
@@ -114,20 +115,6 @@ export class VMService implements IVMService {
          */
         for (const api of metaScript.api) {
             for (const metaProperty of api.properties) {
-                metaProperty.property.on(APIPropertyEvent.link, () => {
-                    (async () => {
-                        const info: ScriptActivityInfo = {
-                            event: APIPropertyEvent.link,
-                            apiProperty: {
-                                name: await metaProperty.factory.name(),
-                                version: api.version
-                            }
-                        }
-    
-                        metaScript.eventEmitter.emit(ScriptEvent.activity, info)
-                    })()
-                })
-
                 metaProperty.property.on(APIPropertyEvent.unlink, () => {
                     (async () => {
                         /**
@@ -167,19 +154,28 @@ export class VMService implements IVMService {
 
                 metaProperty.property.on(APIPropertyEvent.stats, (segment: APIPropertyStatsSegment) => {
                     (async () => {
-                        const stats = await metaProperty.factory.stats()
-                        stats.addStatsSegment(segment)
-
-                        const info: ScriptActivityInfo = {
-                            event: APIPropertyEvent.stats,
-                            apiProperty: {
-                                name: await metaProperty.factory.name(),
-                                version: api.version
-                            },
-                            params: [segment, stats]
+                        /**
+                         * Обновление объекта статистиики
+                         */
+                        {
+                            metaProperty.stats.addStatsSegment(segment)
                         }
 
-                        metaScript.eventEmitter.emit(ScriptEvent.activity, info)
+                        /**
+                         * Генерация события активности
+                         */
+                        {
+                            const info: ScriptActivityInfo = {
+                                event: APIPropertyEvent.stats,
+                                apiProperty: {
+                                    name: await metaProperty.factory.name(),
+                                    version: api.version
+                                },
+                                params: [segment, metaProperty.stats]
+                            }
+    
+                            metaScript.eventEmitter.emit(ScriptEvent.activity, info)
+                        }
                     })()
                 })
             }
@@ -435,7 +431,7 @@ export class VMService implements IVMService {
                 stats.push({
                     name: await metaProperty.factory.name(),
                     version: api.version,
-                    stats: await metaProperty.factory.stats()
+                    stats: metaProperty.stats
                 })
             }
         }

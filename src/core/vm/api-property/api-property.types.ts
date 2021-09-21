@@ -8,11 +8,6 @@ import { APIPropertyError } from './api-property.errors'
  */
 export const APIPropertyEvent = {
     /**
-     * Пользовательский скрипт оставил в методах свойства ссылки на себя
-     */
-    link: Symbol('link'),
-
-    /**
      * Ссылки на пользовательский скрипт были полностью очищены со свойства
      */
     unlink: Symbol('unlink'),
@@ -55,10 +50,6 @@ export const APIPropertyParamsEvent = {
 }
 
 export type EventEmitters = {
-    /**
-     * Генератор события link
-     */
-    link: () => void
 
     /**
      * Генератор события unlink

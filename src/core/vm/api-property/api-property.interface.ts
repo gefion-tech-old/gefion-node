@@ -17,8 +17,7 @@ export interface IAPIPropertyFactory {
     isGlobal(): Promise<boolean>
 
     /**
-     * Вернуть экземпляр класса статистики. Возвращаться должен каждый раз
-     * один и тот же экземпляр
+     * Вернуть экземпляр класса статистики.
      */
     stats(): Promise<APIPropertyStats>
 

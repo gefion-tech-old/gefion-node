@@ -161,6 +161,11 @@ export type APIPropertyMetadata = {
      * Экземпляр класса свойства
      */
     property: APIProperty
+
+    /**
+     * Экземпляр статистики свойства
+     */
+    stats: APIPropertyStats
 }
 
 export type APIMetadata = {
