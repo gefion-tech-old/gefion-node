@@ -1,4 +1,6 @@
 import { getContainer } from '../../../inversify.config'
+import { PromiseName  } from './promise.types'
+import { SystemV1Name } from '../system-v1.modules'
 import { 
     VM_SYMBOL, 
     VMConfig, 
@@ -7,8 +9,6 @@ import {
 } from '../../../core/vm/vm.types'
 import { APIPropertyEvent } from '../../../core/vm/api-property/api-property.types'
 import { IVMService } from '../../../core/vm/vm.interface'
-import { PromiseName, TargetAPIProperty } from './promise.types'
-import { SystemV1Name } from '../system-v1.modules'
 import { addTestInVmConfig, TestAPIProperty } from '../../__helper/test-vm-config.helper'
 import path from 'path'
 import { unhandledRejection } from '../../../event-handlers'
@@ -382,6 +382,10 @@ describe('API Promise V1', () => {
         const [ error ] = (scriptInfo as any).errors
         expect(error).toBeInstanceOf(ScriptError)
         expect(error.error).toBeInstanceOf(APIPropertyError)
+        expect(error.error.targetApiProperty).toMatchObject({
+            name: PromiseName,
+            version: SystemV1Name
+        })
         expect(error.error.error).toBeInstanceOf(MyError)
 
         /**
@@ -483,11 +487,7 @@ describe('API Promise V1', () => {
         }
 
         const promiseStats = stats.find(property => {
-            /**
-             * Какого-то хуя TargetAPIProperty.version не инициализировано, там ебучий undefined
-             * вместо нужной константы. Я очень сильно подозреваю ебучий jest в этих косяках
-             */
-            return property.name === TargetAPIProperty.name && property.version === SystemV1Name
+            return property.name === PromiseName && property.version === SystemV1Name
         })
         expect(promiseStats).not.toBeUndefined()
 
@@ -623,11 +623,7 @@ describe('API Promise V1', () => {
         }
 
         const promiseStats = stats.find(property => {
-            /**
-             * Какого-то хуя TargetAPIProperty.version не инициализировано, там ебучий undefined
-             * вместо нужной константы. Я очень сильно подозреваю ебучий jest в этих косяках
-             */
-            return property.name === TargetAPIProperty.name && property.version === SystemV1Name
+            return property.name === PromiseName && property.version === SystemV1Name
         })
         expect(promiseStats).not.toBeUndefined()
 

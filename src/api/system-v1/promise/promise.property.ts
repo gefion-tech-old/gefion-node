@@ -1,6 +1,3 @@
-import { 
-    TargetAPIProperty
-} from './promise.types'
 import { APIProperty } from '../../../core/vm/api-property/api-property.classes'
 import { 
     VMPromise,
@@ -15,6 +12,8 @@ import {
     APIPropertyParamsEvent,
 } from '../../../core/vm/api-property/api-property.types'
 import { APIPropertyError } from '../../../core/vm/api-property/api-property.errors'
+import { PromiseName } from './promise.types'
+import { SystemV1Name } from '../system-v1.modules'
 
 /**
  * Цель: перехватывать все неперехваченные ошибки в промисах и
@@ -74,7 +73,10 @@ export class PromiseAPIProperty extends APIProperty {
                  * промисе
                  */
                 public callUnhandledRejection(reason: any) {
-                    events.error(new APIPropertyError(TargetAPIProperty, reason))
+                    events.error(new APIPropertyError({
+                        name: PromiseName,
+                        version: SystemV1Name
+                    }, reason))
                 }
 
                 public then<TResult1 = T, TResult2 = never>(

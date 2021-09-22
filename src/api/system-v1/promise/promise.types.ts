@@ -1,5 +1,3 @@
-import { SystemV1Name } from '../system-v1.modules'
-import { TargetApiProperty } from '../../../core/vm/api-property/api-property.types'
 import {
     PromiseAddOnFulfilledStatsSegment,
     PromiseAddOnRejectedStatsSegment,
@@ -9,11 +7,6 @@ import {
 } from './promise.classes'
 
 export const PromiseName = 'Promise'
-
-export const TargetAPIProperty: TargetApiProperty = {
-    name: PromiseName,
-    version: SystemV1Name
-}
 
 export type PromiseSegment = (
     PromiseAddOnFulfilledStatsSegment
