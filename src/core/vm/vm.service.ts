@@ -301,14 +301,14 @@ export class VMService implements IVMService {
             for (const api of metaScript.api) {
                 for (const metaProperty of api.properties) {
                     setSandboxProperty(
-                        await metaProperty.property.getProperty(),
+                        await metaProperty.property.getProperty(scriptId),
                         await metaProperty.factory.name(),
                         [config.namespace, api.version]
                     )
 
                     if (await metaProperty.factory.isGlobal()) {
                         setSandboxProperty(
-                            await metaProperty.property.getProperty(),
+                            await metaProperty.property.getProperty(scriptId),
                             await metaProperty.factory.name(),
                             []
                         )

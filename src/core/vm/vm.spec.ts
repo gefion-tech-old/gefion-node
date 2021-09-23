@@ -1165,4 +1165,59 @@ describe('Сервис виртуальной машины', () => {
         container.restore()
     })
 
+    it(`
+        При инициализации свойства в его функцию init передаётся идентификатор скрипта #cold
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        let saveScriptId: undefined | symbol
+
+        container.rebind(VM_SYMBOL.VMConfig)
+            .toDynamicValue(getDefaultVMConfig([
+                {
+                    version: 'v4',
+                    properties: [
+                        getAPIPropertyFactory({
+                            name: () => 'test1',
+                            isGlobal: () => true,
+                            stats: () => {
+                                return getAPIPropertyStats({
+                                    stats: () => ({}),
+                                    addStatsSegment: () => {}
+                                })
+                            },
+                            apiProperty: () => getAPIProperty({
+                                hasLink: () => false,
+                                init: (_, scriptId) => {
+                                    saveScriptId = scriptId
+
+                                    return {
+                                        name: 'test1'
+                                    }
+                                },
+                                linkCollector: () => {}
+                            })
+                        })
+                    ]
+                }
+            ]))
+
+        const vmService = container
+            .get<IVMService>(VM_SYMBOL.VMService)
+
+        const scriptRunParams = {
+            name: 'Название скрипта 1',
+            path: '/path/path/a1.js',
+            rootDir: '/path/path1',
+            apiProperties: ['test1'],
+        }
+
+        const scriptId = await vmService.run(scriptRunParams)
+
+        expect(scriptId).toBe(saveScriptId)
+
+        container.restore()
+    })
+
 })

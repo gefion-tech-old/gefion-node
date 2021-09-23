@@ -65,9 +65,9 @@ export abstract class APIProperty {
     /**
      * Получить инициализированное свойство этого класса
      */
-    public async getProperty(): Promise<Object> {
+    public async getProperty(scriptId: symbol): Promise<Object> {
         if (!this.property) {
-            this.property = await this.init()
+            this.property = await this.init(scriptId)
         }
 
         return this.property
@@ -77,8 +77,13 @@ export abstract class APIProperty {
      * Инициализировать необходимое значение свойства. Инициализировано оно
      * будет только один раз для одного экземпляра, так что об этом можно
      * не волноваться при реализации
+     * 
+     * @param scriptId: symbol - Идентификатор скрипта, который инициализирует свойство.
+     * Этот идентификатор необязательно явно использовать, более того, лучше этого не делать,
+     * возвращать из функции локальные и ни на что не влияющие копии объектов, а не привязываться
+     * к идентификатору. Однако, иногда без него не обойтись
      */
-    abstract init(): Promise<Object>
+    abstract init(scriptId: symbol): Promise<Object>
 
     /**
      * Есть ли в свойстве внешние ссылки
