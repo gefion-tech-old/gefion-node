@@ -116,7 +116,7 @@ export class VMService implements IVMService {
         for (const api of metaScript.api) {
             for (const metaProperty of api.properties) {
                 const propertyName = await metaProperty.factory.name()
-                
+
                 metaProperty.property.on(APIPropertyEvent.unlink, () => {
                     {
                         /**
@@ -361,7 +361,7 @@ export class VMService implements IVMService {
 
         for (const api of metaScript.api) {
             for (const metaProperty of api.properties) {
-                if (metaProperty.property.hasLink()) {
+                if (metaProperty.property.hasLink(scriptId)) {
                     return false
                 }
             }

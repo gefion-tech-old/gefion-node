@@ -1166,12 +1166,14 @@ describe('Сервис виртуальной машины', () => {
     })
 
     it(`
-        При инициализации свойства в его функцию init передаётся идентификатор скрипта #cold
+        При инициализации свойства в его функцию init передаётся идентификатор скрипта.
+        Также идентификатор скрипта передаётся при вызове функции hasLink #cold
     `, async () => {
         const container = await getContainer()
         container.snapshot()
 
-        let saveScriptId: undefined | symbol
+        let saveInitScriptId: undefined | symbol
+        let saveHasLinkScriptId: undefined | symbol
 
         container.rebind(VM_SYMBOL.VMConfig)
             .toDynamicValue(getDefaultVMConfig([
@@ -1188,9 +1190,13 @@ describe('Сервис виртуальной машины', () => {
                                 })
                             },
                             apiProperty: () => getAPIProperty({
-                                hasLink: () => false,
+                                hasLink: (_, scriptId) => {
+                                    saveHasLinkScriptId = scriptId
+
+                                    return false
+                                },
                                 init: (_, scriptId) => {
-                                    saveScriptId = scriptId
+                                    saveInitScriptId = scriptId
 
                                     return {
                                         name: 'test1'
@@ -1215,7 +1221,8 @@ describe('Сервис виртуальной машины', () => {
 
         const scriptId = await vmService.run(scriptRunParams)
 
-        expect(scriptId).toBe(saveScriptId)
+        expect(scriptId).toBe(saveInitScriptId)
+        expect(scriptId).toBe(saveHasLinkScriptId)
 
         container.restore()
     })

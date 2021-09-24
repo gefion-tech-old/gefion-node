@@ -87,8 +87,11 @@ export abstract class APIProperty {
 
     /**
      * Есть ли в свойстве внешние ссылки
+     * 
+     * @param scriptId: symbol - Идентификатор скрипта, которому принадлежит свойство. Может
+     * понадобиться на некоторых свойств, но предпочтительно избегать его
      */
-    abstract hasLink(): boolean
+    abstract hasLink(scriptId: symbol): boolean
 
     /**
      * Подписаться на генерируемые события свойства 
