@@ -39,7 +39,7 @@ afterAll(async () => {
     container.restore()
 })
 
-describe('API Promise V1', () => {
+describe('API Promise System V1', () => {
 
     it(`
         Промисы успешно внедряются и соответствуют оригинальному объекту #cold

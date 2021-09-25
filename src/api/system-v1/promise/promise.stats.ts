@@ -1,4 +1,3 @@
-import { injectable } from 'inversify'
 import { 
     APIPropertyStats
 } from '../../../core/vm/api-property/api-property.classes'
@@ -14,7 +13,6 @@ import {
     PromiseRemoveOnRejectedStatsSegment
 } from './promise.classes'
 
-injectable()
 export class PromiseStats extends APIPropertyStats {
 
     private __stats: PromiseStatsType = {
@@ -23,7 +21,7 @@ export class PromiseStats extends APIPropertyStats {
         onrejected: 0
     }
 
-    public stats() {
+    public stats(): PromiseStatsType {
         return this.__stats
     }
 
