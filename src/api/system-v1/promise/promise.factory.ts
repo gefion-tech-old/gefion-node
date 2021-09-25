@@ -1,8 +1,5 @@
 import { injectable } from 'inversify'
 import { IAPIPropertyFactory } from '../../../core/vm/api-property/api-property.interface'
-import {  
-    APIPropertyStats
-} from '../../../core/vm/api-property/api-property.classes'
 import { PromiseStats } from './promise.stats'
 import { PromiseAPIProperty } from './promise.property'
 import { PromiseName } from './promise.types'
@@ -18,7 +15,7 @@ export class PromiseFactory implements IAPIPropertyFactory {
         return true
     }
 
-    public async stats(): Promise<APIPropertyStats> {
+    public async stats(): Promise<PromiseStats> {
         return new PromiseStats()
     }
 

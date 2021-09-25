@@ -15,3 +15,10 @@ export class ScriptError extends VMError {
     }
 
 }
+
+export class ScriptIsNotStopped extends VMError {
+
+    public name = 'ScriptIsNotStopped'
+    public message = 'Была зафиксирована активность в уже остановленном скрипте'
+
+}

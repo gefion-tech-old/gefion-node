@@ -16,8 +16,10 @@ import { APIPropertyEvent } from './api-property/api-property.types'
 import { APIPropertyError } from './api-property/api-property.errors'
 import { APIPropertyStatsSegment } from './api-property/api-property.classes'
 import { EventEmitter } from 'events'
-import { ScriptError } from './vm.errors'
+import { ScriptError, ScriptIsNotStopped } from './vm.errors'
 import { IScriptStarterService } from './script-starter/script-starter.interface'
+import { getLoggerErrorFormat } from '../../utils/error-format'
+import { getAppLogger } from '../../utils/logger'
 
 @injectable()
 export class VMService implements IVMService {
@@ -118,11 +120,23 @@ export class VMService implements IVMService {
                 const propertyName = await metaProperty.factory.name()
 
                 metaProperty.property.on(APIPropertyEvent.unlink, () => {
+                    /**
+                     * Логировать случай, когда всплывает событие остановленного
+                     * скрипта
+                     */
+                     {
+                        const scriptInfo = this.info(scriptId)
+                        
+                        if (!scriptInfo || scriptInfo.dateEnd instanceof Date) {
+                            getAppLogger().error(getLoggerErrorFormat(new ScriptIsNotStopped), 'ScriptIsNotStopped')
+                        }
+                    }
+
+                    /**
+                     * Сгенерировать событие активности до возможного события
+                     * остановки скрипта
+                     */
                     {
-                        /**
-                         * Сгенерировать событие активности до возможного события
-                         * остановки скрипта
-                         */
                         {
                             const info: ScriptActivityInfo = {
                                 event: APIPropertyEvent.unlink,
@@ -149,6 +163,18 @@ export class VMService implements IVMService {
                 })
 
                 metaProperty.property.on(APIPropertyEvent.error, (error: APIPropertyError) => {
+                    /**
+                     * Логировать случай, когда всплывает событие остановленного
+                     * скрипта
+                     */
+                     {
+                        const scriptInfo = this.info(scriptId)
+                        
+                        if (!scriptInfo || scriptInfo.dateEnd instanceof Date) {
+                            getAppLogger().error(getLoggerErrorFormat(new ScriptIsNotStopped), 'ScriptIsNotStopped')
+                        }
+                    }
+
                     metaScript.eventEmitter.emit(
                         ScriptEvent.error,
                         new ScriptError(scriptId, error)
@@ -156,6 +182,18 @@ export class VMService implements IVMService {
                 })
 
                 metaProperty.property.on(APIPropertyEvent.stats, (segment: APIPropertyStatsSegment) => {
+                    /**
+                     * Логировать случай, когда всплывает событие остановленного
+                     * скрипта
+                     */
+                     {
+                        const scriptInfo = this.info(scriptId)
+                        
+                        if (!scriptInfo || scriptInfo.dateEnd instanceof Date) {
+                            getAppLogger().error(getLoggerErrorFormat(new ScriptIsNotStopped), 'ScriptIsNotStopped')
+                        }
+                    }
+                    
                     {
                         /**
                          * Обновление объекта статистиики
