@@ -1,0 +1,1 @@
+setTimeout('handler', 1000)

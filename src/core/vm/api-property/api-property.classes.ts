@@ -2,7 +2,8 @@ import { APIPropertyError } from './api-property.errors'
 import { 
     EventEmitters, 
     APIPropertyEvent, 
-    APIPropertyParamsEvent
+    APIPropertyParamsEvent,
+    CallParamsMapObject
 } from './api-property.types'
 import { EventEmitter } from 'events'
 
@@ -184,6 +185,22 @@ export class APIPropertyCallParams {
      */
     public getCallParams<T>(id: symbol): T | undefined {
         return this.callParams.get(id)
+    }
+
+    /**
+     * Получить все параметры вместе с ключами
+     */
+    public getAllCallParams<TValue>(): CallParamsMapObject<TValue>[] {
+        const values: CallParamsMapObject<TValue>[] = []
+        
+        for (const [key, value] of this.callParams.entries()) {
+            values.push({
+                key,
+                value
+            })
+        }
+
+        return values
     }
 
     /**

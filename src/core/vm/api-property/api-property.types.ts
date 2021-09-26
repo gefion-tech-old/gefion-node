@@ -71,3 +71,8 @@ export type TargetApiProperty = {
     name: string
     version: string
 }
+
+export type CallParamsMapObject<TValue> = {
+    key: symbol
+    value: TValue
+}
