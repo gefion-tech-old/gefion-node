@@ -65,7 +65,7 @@ describe('API ClearTimeout System V1', () => {
         container.restore()
     })
 
-    it('При попытке получить статистику свойства она возвращается пустой #cold', async () => {
+    it('При попытке получить статистику свойства возвращается пустой объект #cold', async () => {
         const container = await getContainer()
         container.snapshot()
 

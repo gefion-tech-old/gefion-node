@@ -2,9 +2,6 @@ import { injectable } from 'inversify'
 import { 
     IAPIPropertyFactory 
 } from '../../../../core/vm/api-property/api-property.interface'
-import {  
-    APIPropertyStats
-} from '../../../../core/vm/api-property/api-property.classes'
 import { ClearTimeoutName } from './clearTimeout.types'
 import { ClearTimeoutAPIProperty } from './clearTimeout.property'
 import { ClearTimeoutStats } from './clearTimeout.stats'
@@ -20,7 +17,7 @@ export class ClearTimeoutFactory implements IAPIPropertyFactory {
         return true
     }
 
-    public async stats(): Promise<APIPropertyStats> {
+    public async stats(): Promise<ClearTimeoutStats> {
         return new ClearTimeoutStats()
     }
 
