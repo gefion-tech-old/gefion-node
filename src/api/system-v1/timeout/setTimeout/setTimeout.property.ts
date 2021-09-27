@@ -21,8 +21,7 @@ import {
 
 /**
  * Естественное освобождение ссылок будет происходить из свойства
- * clearTimeout, которое должно будет вызвать зарегистрированную
- * в ../timers.ts функцию
+ * clearTimeout
  */
 export class SetTimeoutAPIProperty extends APIProperty {
 

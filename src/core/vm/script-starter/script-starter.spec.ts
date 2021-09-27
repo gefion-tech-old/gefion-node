@@ -72,11 +72,6 @@ describe('Сервис для запуска скриптов в виртуал�
             filename: path.join(__dirname, './__test/test2.js'),
             sandbox: {
                 Class3,
-                console: {
-                    log(...params: any) {
-                        console.log(...params)
-                    }
-                },
                 messages
             },
             rootDir: path.join(__dirname, './__test')
