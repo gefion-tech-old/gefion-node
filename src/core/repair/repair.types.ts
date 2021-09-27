@@ -31,9 +31,9 @@ export type RepairConfig = {
     /**
      * Список заданий
      */
-    repairJobs: RepairJob[],
+    readonly repairJobs: RepairJob[],
     /**
      * Как часто будут запускаться задания починки
      */
-    recurrence: Recurrence
+    readonly recurrence: Recurrence
 }

@@ -93,17 +93,17 @@ export type ScriptActivityInfo = {
     /**
      * Событие, которое спровоцировало активность
      */
-    event: Symbol
+    readonly event: Symbol
 
     /**
      * Если событие произошло в api свойстве, то указать его название и версию
      */
-    apiProperty?: TargetApiProperty
+    readonly apiProperty?: TargetApiProperty
 
     /**
      * Параметры, которые были пареданы в сработанное событие
      */
-    params?: any
+    readonly params?: any
 }
 
 export type ScriptID = symbol
@@ -114,98 +114,98 @@ export type VMConfig = {
      * будет продолжать храниться в памяти до явного удаления. По достижении
      * лимита информация о старых скриптах будет вытесняться.
      */
-    maxStoppedScripts: number
+    readonly maxStoppedScripts: number
 
     /**
      * Максимальное количество экземпляров ошибок, которые могут храниться в контексте
      * одного скрипта. По достижении лимита информация о старых ошибках будет вытесняться
      */
-    maxScriptErrors: number
+    readonly maxScriptErrors: number
 
     /**
      *  Пространство имён для api свойств
      */
-    namespace: string
+    readonly namespace: string
 
     /**
      * Все фабрики api свойств всех версий. Очень важен порядок массива. Вначале должны
      * обязательно быть самые ранние версии
      */
-    api: API[]
+    readonly api: API[]
 }
 
 export type API = {
     /**
      * Версия api
      */
-    version: string
+    readonly version: string
     
     /**
      * Список фабрик всех свойств api. Фабрики являются singleton,
      * это стоит учитывать
      */
-    properties: IAPIPropertyFactory[]
+    readonly properties: IAPIPropertyFactory[]
 }
 
 export type APIPropertyMetadata = {
     /**
      * Используемая фабрика
      */
-    factory: IAPIPropertyFactory
+    readonly factory: IAPIPropertyFactory
 
     /**
      * Экземпляр класса свойства
      */
-    property: APIProperty
+    readonly property: APIProperty
 
     /**
      * Экземпляр статистики свойства
      */
-    stats: APIPropertyStats
+    readonly stats: APIPropertyStats
 }
 
 export type APIMetadata = {
     /**
      * Версия api
      */
-    version: string
+    readonly version: string
 
     /**
      * Необходимые методанные по всем используемым свойствам
      */
-    properties: APIPropertyMetadata[]
+    readonly properties: APIPropertyMetadata[]
 }
 
 export type ScriptMetadata = {
     /**
      * Используемое скриптом api. Как и в конфигурации, порядок очень важен
      */
-    api: APIMetadata[]
+    readonly api: APIMetadata[]
 
     /**
      * Информация о скрипте
      */
-    info: ScriptInfo
+    readonly info: ScriptInfo
 
     /**
      * Используемый для скрипта генератор событий
      */
-    eventEmitter: EventEmitter
+    readonly eventEmitter: EventEmitter
 }
 
 export type ReadyAPIPropertyStats = {
     /**
      * Название API версии
      */
-    version: string
+    readonly version: string
 
     /**
      * Название API свойства
      */
-    name: string
+    readonly name: string
 
     /**
      * Готовая статистика по свойству
      */
-    stats: APIPropertyStats
+    readonly stats: APIPropertyStats
 }

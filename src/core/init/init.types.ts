@@ -5,7 +5,7 @@ export const INIT_SYMBOL = {
 }
 
 export type InitConfig = {
-    runners: InitRunner[]
+    readonly runners: InitRunner[]
 }
 
 export interface InitRunner {

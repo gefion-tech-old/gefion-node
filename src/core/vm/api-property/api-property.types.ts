@@ -54,25 +54,25 @@ export type EventEmitters = {
     /**
      * Генератор события unlink
      */
-    unlink: () => void
+    readonly unlink: () => void
 
     /**
      * Генератор события stats
      */
-    stats: (statsSegment: APIPropertyStatsSegment) => void
+    readonly stats: (statsSegment: APIPropertyStatsSegment) => void
 
     /**
      * Генератор события error
      */
-    error: (error: APIPropertyError) => void
+    readonly error: (error: APIPropertyError) => void
 }
 
 export type TargetApiProperty = {
-    name: string
-    version: string
+    readonly name: string
+    readonly version: string
 }
 
 export type CallParamsMapObject<TValue> = {
-    key: symbol
-    value: TValue
+    readonly key: symbol
+    readonly value: TValue
 }

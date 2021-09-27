@@ -19,11 +19,11 @@ export type SetTimeoutStatsType = {
 }
 
 export type ActiveTimersStatsSegment = {
-    timer: 1 | -1
+    readonly timer: 1 | -1
 }
 
 export type ErrorStatsSegment = {
-    error: 1 | -1
+    readonly error: 1 | -1
 }
 
 export type SetTimeoutSegment = (

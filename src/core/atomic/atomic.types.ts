@@ -10,5 +10,5 @@ export type AtomicConfig = {
      * Количество миллисекунд прошедших с момента установки блокировки,
      * чтобы блокировка считалась недействительной
      */
-    lockExpires: number
+    readonly lockExpires: number
 }

@@ -20,7 +20,7 @@ export type ErrorStatsSegment = {
     /**
      * Сколько ошибок прибавить к общей статистике
      */
-    error: 1
+    readonly error: 1
 }
 
 export type OnFulfilledStatsSegment = {
@@ -28,7 +28,7 @@ export type OnFulfilledStatsSegment = {
      * Сколько обработчиков успешного срабатывания промиса прибавить или убавить 
      * от общей статистики
      */
-    onfulfilled: 1 | -1
+    readonly onfulfilled: 1 | -1
 }
 
 export type OnRejectedStatsSegment = {
@@ -36,7 +36,7 @@ export type OnRejectedStatsSegment = {
      * Сколько обработчиков ошибки в промисе прибавить или убавить от общей
      * статистики
      */
-    onrejected: 1 | -1
+    readonly onrejected: 1 | -1
 }
 
 /**

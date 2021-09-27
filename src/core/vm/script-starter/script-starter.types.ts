@@ -2,17 +2,17 @@ export type FileRunOptions = {
     /**
      * Путь к файлу скрипта, который следует запустить
      */
-    filename: string
+    readonly filename: string
 
     /**
      * Глобальный объект песочницы, который будет доступен из запущенного
      * скрипта
      */
-    sandbox: object
+    readonly sandbox: object
 
     /**
      * Корневая директория скрипта внутри которой скрипт сможет импортировать
      * другие скрипты
      */
-    rootDir: string
+    readonly rootDir: string
 }

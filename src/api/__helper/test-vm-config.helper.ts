@@ -24,20 +24,14 @@ export const TestAPIProperty = {
  */
 export function addTestInVmConfig(testObject: any, vmConfig: VMConfig, config?: VMConfig): () => Promise<VMConfig> {
     return async function(): Promise<VMConfig> {
-        vmConfig.namespace = (
-            config?.namespace ?? vmConfig.namespace
-        )
-        vmConfig.maxStoppedScripts = (
-            config?.maxStoppedScripts ?? vmConfig.maxStoppedScripts
-        )
-        vmConfig.maxScriptErrors = (
-            config?.maxScriptErrors ?? vmConfig.maxScriptErrors
-        )
-        vmConfig.api = (
-            config?.api ?? vmConfig.api
-        )
+        const newConfig: VMConfig = {
+            namespace: config?.namespace ?? vmConfig.namespace,
+            maxStoppedScripts: config?.maxStoppedScripts ?? vmConfig.maxStoppedScripts,
+            maxScriptErrors: config?.maxScriptErrors ?? vmConfig.maxScriptErrors,
+            api: config?.api ?? vmConfig.api
+        }
 
-        vmConfig.api.push({
+        newConfig.api.push({
             version: TestAPIProperty.version,
             properties: [
                 getAPIPropertyFactory({
@@ -56,6 +50,6 @@ export function addTestInVmConfig(testObject: any, vmConfig: VMConfig, config?: 
             ]
         })
 
-        return vmConfig
+        return newConfig
     }
 }

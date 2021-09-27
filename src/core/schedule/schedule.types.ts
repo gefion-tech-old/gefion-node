@@ -27,7 +27,7 @@ export type JobStats = {
 }
 
 export type ScheduleConfig = {
-    jobs: ScheduleJob[]
+    readonly jobs: ScheduleJob[]
 }
 
 export interface ScheduleJob {
