@@ -1,0 +1,1 @@
+clearInterval(Symbol('IntervalId'))
