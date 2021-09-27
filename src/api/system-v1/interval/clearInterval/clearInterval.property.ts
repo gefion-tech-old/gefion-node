@@ -9,7 +9,7 @@ export class ClearIntervalAPIProperty extends APIProperty {
         return (intervalId: symbol): void => {
             /**
              * Вызываю событие ClearInterval для того, чтобы setInterval свойство
-             * смогло корректным образом на него среагировать. Очищать таймер также
+             * смогло корректным образом на него среагировать. Очищать интервал также
              * нужно будет через событие в свойстве setInterval
              */
             clearIntervalEvent.emit({

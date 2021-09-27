@@ -1,5 +1,5 @@
-import { ClearTimeoutModule } from './clearInterval/clearInterval.module'
+import { ClearIntervalModule } from './clearInterval/clearInterval.module'
 
 export const IntervalModules = [
-    ClearTimeoutModule
+    ClearIntervalModule
 ]

@@ -5,7 +5,7 @@ import {
 } from '../../../../core/vm/api-property/api-property.interface'
 import { ClearIntervalFactory } from './clearInterval.factory'
 
-export const ClearTimeoutModule = new AsyncContainerModule(async (bind: interfaces.Bind) => {
+export const ClearIntervalModule = new AsyncContainerModule(async (bind: interfaces.Bind) => {
     bind<IAPIPropertyFactory>(VM_SYMBOL.APIPropertyFactorySystemV1)
         .to(ClearIntervalFactory)
 })
