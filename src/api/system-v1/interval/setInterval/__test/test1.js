@@ -1,0 +1,1 @@
+setInterval('handler', 1000)
