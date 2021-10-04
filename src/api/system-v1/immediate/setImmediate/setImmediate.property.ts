@@ -102,7 +102,7 @@ export class SetImmediateAPIProperty extends APIProperty {
             const __handler = (...args: any[]): void => {
                 try {
                     handler(...args)
-                } catch(error: any) {
+                } catch(error) {
                     this.events.error(new APIPropertyError({
                         name: SetImmediateName,
                         version: SystemV1Name

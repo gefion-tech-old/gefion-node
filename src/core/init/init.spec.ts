@@ -101,8 +101,8 @@ describe('Модуль инициализации', () => {
             await expect(async () => {
                 try {
                     await initFunc
-                } catch(error: any) {
-                    throw error.error
+                } catch(error) {
+                    throw (error as any).error
                 }
             }).rejects.toBeInstanceOf(MyError)
         }
