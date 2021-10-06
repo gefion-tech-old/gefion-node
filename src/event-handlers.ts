@@ -1,5 +1,5 @@
 import { getLoggerErrorFormat } from './utils/error-format'
-import { VMPromise } from './api/system-v1/promise/promise.classes'
+import { VMPromise } from './api/vm/system-v1/promise/promise.classes'
 import { getAppLogger } from './utils/logger'
 
 
