@@ -27,3 +27,12 @@ export function getScheduleLogger(): pino.Logger {
         type: 'schedule'
     })
 }
+
+/**
+ * Получить экземплря логгера для http сервера
+ */
+export function getHttpLogger(): pino.Logger {
+    return getAppLogger().child({
+        type: 'http'
+    })
+}

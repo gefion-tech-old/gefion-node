@@ -4,6 +4,7 @@ import { RepairModule } from './repair/repair.module'
 import { ScheduleModule } from './schedule/schedule.module'
 import { TypeOrmModule } from './typeorm/typeorm.module'
 import { VMModule } from './vm/vm.module'
+import { FastifyModule } from './fastify/fastify.module'
 
 export const CoreModules = [
     AtomicModule,
@@ -11,5 +12,6 @@ export const CoreModules = [
     RepairModule,
     ScheduleModule,
     TypeOrmModule,
-    VMModule
+    VMModule,
+    FastifyModule
 ]
