@@ -66,6 +66,7 @@
     "dateformat": "^4.5.1",
     "error-to-json": "^2.0.0",
     "fastify": "^3.22.0",
+    "got": "^11.8.2",
     "inversify": "^5.1.1",
     "node-schedule": "^2.0.0",
     "pino": "^6.12.0",

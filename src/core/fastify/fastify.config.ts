@@ -7,8 +7,9 @@ export async function getFastifyConfig(context: interfaces.Context): Promise<Fas
 
     let plugins: FastifyPluginAsync[] = []
     try {
-        plugins = container
-            .getAll<FastifyPluginAsync>(FASTIFY_SYMBOL.FastifyPlugin)
+        plugins = await Promise.all(
+            container.getAll<Promise<FastifyPluginAsync>>(FASTIFY_SYMBOL.FastifyPlugin)
+        )
     } catch {}
 
     return {

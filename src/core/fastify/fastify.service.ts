@@ -5,6 +5,10 @@ import fastify from 'fastify'
 import { FastifyConfig, FASTIFY_SYMBOL } from './fastify.types'
 import uniqid from 'uniqid'
 import { getHttpLogger } from '../../utils/logger'
+import { 
+    getLoggerErrorFormat,
+    getHttpErrorFormat
+} from '../../utils/error-format'
 
 @injectable()
 export class FastifyService implements IFastifyService {
@@ -46,8 +50,23 @@ export class FastifyService implements IFastifyService {
          * Запуск всех плагинов
          */
         for (const plugin of config.plugins) {
-            instance.register(plugin)
+            instance.register(plugin, {
+                prefix: '/api'
+            })
         }
+
+        /**
+         * Устанавливаю обработчик ошибок
+         */
+        instance.setErrorHandler(async function(error, request, reply): Promise<any> {
+            if (reply.statusCode >= 500) {
+                request.log.error(getLoggerErrorFormat(error), 'setErrorHandler')
+                return getHttpErrorFormat(error)
+            } else {
+                request.log.info(getLoggerErrorFormat(error), 'setErrorHandler')
+                return error
+            }
+        })
 
         /**
          * Запуск сервера. Все ошибки обрабатываются уровнем выше

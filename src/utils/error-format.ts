@@ -35,3 +35,26 @@ export function getLoggerErrorFormat(error: any) {
         error: getSerializableErrorFormat(error)
     }
 }
+
+/**
+ * Завернуть и сериализовать сырую ошибку в корректном для http ответа 
+ * формате
+ */
+export function getHttpErrorFormat(error: any) {
+    const removeAllStackFields = (object: any) => {
+        delete object.stack
+
+        for (const key in object) {
+            if (typeof object[key] === 'object') {
+                removeAllStackFields(object[key])
+            }
+        }
+    }
+
+    const formattedError = getSerializableErrorFormat(error)
+    removeAllStackFields(formattedError)
+
+    return {
+        error: formattedError
+    }
+}
