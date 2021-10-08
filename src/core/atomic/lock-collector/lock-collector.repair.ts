@@ -12,7 +12,7 @@ export class LockCollectorRepair implements RepairJob {
     ) {}
 
     public name(): string {
-        return 'LockCollectorRepair'
+        return 'Atomic:LockCollectorRepair'
     }
 
     public async test(): Promise<boolean> {
