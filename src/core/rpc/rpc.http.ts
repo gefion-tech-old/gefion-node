@@ -85,7 +85,7 @@ export async function getRpcHttpPlugin(context: interfaces.Context): Promise<Fas
                     }
                 }
             },
-            handler: async function(request) {
+            handler: async function(request): Promise<{}> {
                 const storeService = container
                     .get<IStoreService>(RPC_SYMBOL.RPCStoreService)
 
@@ -94,6 +94,8 @@ export async function getRpcHttpPlugin(context: interfaces.Context): Promise<Fas
                 }
 
                 await storeService.sync()
+
+                return {}
             }
         })
     }
