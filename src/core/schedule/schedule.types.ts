@@ -8,7 +8,8 @@ export const SCHEDULE_SYMBOL = {
     ScheduleService: Symbol('ScheduleService'),
     ScheduleConfig: Symbol('ScheduleConfig'),
     ScheduleJob: Symbol('ScheduleJob'),
-    JobRecorderService: Symbol('JobRecorderService')
+    JobRecorderService: Symbol('JobRecorderService'),
+    JobRecorderInit: Symbol('JobRecorderInit')
 }
 
 export type Recurrence = RecurrenceRule | RecurrenceSpecDateRange | RecurrenceSpecObjLit | Date | number

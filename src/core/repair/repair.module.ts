@@ -21,4 +21,5 @@ export const RepairModule = new AsyncContainerModule(async (bind: interfaces.Bin
 
     bind<InitRunner>(INIT_SYMBOL.InitRunner)
         .to(RepairInit)
+        .whenTargetNamed(REPAIR_TYPES.RepairInit)
 })

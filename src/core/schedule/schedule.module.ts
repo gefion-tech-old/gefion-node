@@ -23,4 +23,5 @@ export const ScheduleModule = new AsyncContainerModule(async (bind: interfaces.B
 
     bind<InitRunner>(INIT_SYMBOL.InitRunner)
         .to(InitJobRecorder)
+        .whenTargetNamed(SCHEDULE_SYMBOL.JobRecorderInit)
 })

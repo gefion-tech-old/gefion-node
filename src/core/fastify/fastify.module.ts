@@ -17,4 +17,5 @@ export const FastifyModule = new AsyncContainerModule(async (bind: interfaces.Bi
 
     bind<InitRunner>(INIT_SYMBOL.InitRunner)
         .to(InitFastify)
+        .whenTargetNamed(FASTIFY_SYMBOL.FastifyInit)
 })
