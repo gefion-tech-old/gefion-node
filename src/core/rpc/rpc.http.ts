@@ -88,7 +88,7 @@ export async function getRpcHttpPlugin(context: interfaces.Context): Promise<Fas
             handler: async function(request): Promise<{}> {
                 const storeService = container
                     .get<IStoreService>(RPC_SYMBOL.RPCStoreService)
-
+                
                 if (request.body.appId !== await storeService.getAppId()) {
                     throw new DifferentAppIdsError()
                 }

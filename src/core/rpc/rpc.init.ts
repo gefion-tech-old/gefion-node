@@ -20,7 +20,7 @@ export class RPCInit implements InitRunner {
         const { appId, ports } = await this.storeService.sync()
 
         /**
-         * Запрос на синхронизацию указанного экземпляра. Все ошибки игнорировать,
+         * Запрос на синхронизацию указанного экземпляра. Все http ошибки игнорировать,
          * их логирует сам целевой экземпляр
          */
         const syncRequest = async (port: number): Promise<void> => {
@@ -32,7 +32,11 @@ export class RPCInit implements InitRunner {
                         appId: appId
                     }
                 })
-            } catch {}
+            } catch(error) {
+                if (!(error instanceof got.HTTPError)) {
+                    throw error
+                }
+            }
         }
 
         await Promise.all(ports.map(port => syncRequest(port)))
