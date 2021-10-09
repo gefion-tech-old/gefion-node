@@ -21,6 +21,6 @@ export interface IRPCService {
     /**
      * Вызвать указанный метод локально в текущей ноде
      */
-    localCall(method: string, params: any[]): any
+    localCall(method: string, params: any[]): Promise<any>
     
 }

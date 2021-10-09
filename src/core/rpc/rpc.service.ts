@@ -94,7 +94,7 @@ export class RPCService implements IRPCService {
         return responses
     }
 
-    public localCall(method: string, params: any[]): any {
+    public async localCall(method: string, params: any[]): Promise<any> {
         const handler = this.methods.get(method)
 
         if (!handler) {
@@ -102,7 +102,7 @@ export class RPCService implements IRPCService {
         }
 
         try {
-            return handler(...params)
+            return await handler(...params)
         } catch(error) {
             throw new MethodLocalCallError(method, error)
         }

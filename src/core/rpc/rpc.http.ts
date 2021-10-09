@@ -52,7 +52,7 @@ export async function getRpcHttpPlugin(context: interfaces.Context): Promise<Fas
                 }
 
                 try {
-                    response.result = rpcService.localCall(request.body.method, request.body.params)
+                    response.result = await rpcService.localCall(request.body.method, request.body.params)
                 } catch(error) {
                     /**
                      * Если ошибка не является экземпляром класса ErrorInMethod, то это неожиданная 

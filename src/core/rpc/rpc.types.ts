@@ -5,7 +5,7 @@ export const RPC_SYMBOL = {
     RPCInit: Symbol('RPCInit')
 }
 
-export type RPCHandler = (...params: any[]) => any
+export type RPCHandler = (...params: any[]) => Promise<any>
 
 export type RPCRequestHttpType = {
     method: string
