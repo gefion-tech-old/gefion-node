@@ -24,18 +24,6 @@ export class MoreThenOneHandlerError extends RPCError {
 
 }
 
-export class MethodLocalCallError extends RPCError {
-
-    public name = 'MethodLocalCallError'
-    public message: string
-
-    public constructor(method: string, public error: any) {
-        super()
-        this.message = 'При вызове локального метода ' + method + ' произошла какая-то ошибка'
-    }
-
-}
-
 export class DifferentAppIdsError extends RPCError {
 
     public name = 'DifferentAppIdsError'

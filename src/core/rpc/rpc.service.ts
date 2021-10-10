@@ -7,8 +7,7 @@ import {
 } from './rpc.types'
 import {
     MoreThenOneHandlerError,
-    MethodDoesNotExistsError,
-    MethodLocalCallError
+    MethodDoesNotExistsError
 } from './rpc.errors'
 import { IStoreService } from './store/store.interface'
 import got from 'got'
@@ -55,7 +54,8 @@ export class RPCService implements IRPCService {
                 /**
                  * Если ошибка является неожиданной ошибкой при попытке вызвать обработчик
                  * rpc, то это частный случай, а экземпляр приложения рабочий. Эту ошибку нужно
-                 * игнорировать. Она логируется на целевом экземпляре приложения
+                 * игнорировать. Она логируется на целевом экземпляре приложения и ничего не говорит
+                 * о работоспособности приложения
                  */
                 if (error instanceof got.HTTPError) {
                     if (error.response.statusCode >= 500) {
@@ -101,11 +101,7 @@ export class RPCService implements IRPCService {
             throw new MethodDoesNotExistsError(method)
         }
 
-        try {
-            return await handler(...params)
-        } catch(error) {
-            throw new MethodLocalCallError(method, error)
-        }
+        return await handler(...params)
     }
 
 }
