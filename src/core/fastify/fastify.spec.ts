@@ -61,7 +61,7 @@ describe('Модуль Fastify', () => {
         const fastifyService = container
             .get<IFastifyService>(FASTIFY_SYMBOL.FastifyService)
 
-        expect(fastifyService.fastify()).rejects.toBeInstanceOf(MyError)
+        await expect(fastifyService.fastify()).rejects.toBeInstanceOf(MyError)
 
         container.restore()
     })
