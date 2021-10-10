@@ -2,7 +2,8 @@ export const RPC_SYMBOL = {
     RPCService: Symbol('RPCService'),
     RPCInfoEntity: Symbol('RPCInfoEntity'),
     RPCStoreService: Symbol('RPCStoreService'),
-    RPCInit: Symbol('RPCInit')
+    RPCInit: Symbol('RPCInit'),
+    RPCRequestService: Symbol('RPCRequestService')
 }
 
 export type RPCHandler = (...params: any[]) => Promise<any>
