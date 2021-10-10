@@ -92,7 +92,7 @@ describe('StoreService в RPCModule', () => {
     
     it(`
         Синхронизация работает корректно и после её запуска возвращаются правильные порты и идентификатор
-        приложения.
+        приложения
     `, async () => {
         const container = await getContainer()
         container.snapshot()
