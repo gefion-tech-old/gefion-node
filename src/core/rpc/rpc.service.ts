@@ -10,7 +10,7 @@ import {
     MethodDoesNotExistsError
 } from './rpc.errors'
 import { IStoreService } from './store/store.interface'
-import got from 'got'
+import { IRequestService } from './request/request.interface'
 
 @injectable()
 export class RPCService implements IRPCService {
@@ -19,7 +19,10 @@ export class RPCService implements IRPCService {
 
     public constructor(
         @inject(RPC_SYMBOL.RPCStoreService)
-        private storeService: IStoreService
+        private storeService: IStoreService,
+
+        @inject(RPC_SYMBOL.RPCRequestService)
+        private requestService: IRequestService
     ) {}
 
     public method(name: string, handler: RPCHandler): void {
@@ -36,46 +39,22 @@ export class RPCService implements IRPCService {
         }
 
         /**
-         * Сделать запросы на указанные экземпляры. Предполагается, что все они
-         * находятся на одной машине.
+         * Сделать запросы на указанные экземпляры. Удалить порт экземпляра, если в результате запроса
+         * произошла какая-либо ошибка, которую не проигнорировал сервис запроса
          */
         const rpcRequest = async (port: number): Promise<RPCResponseHttpType | undefined> => {
-            const url = `http://localhost:${port}/api/v1/rpc`
-            
             try {
-                return await got.post<RPCResponseHttpType>(url, {
-                    json: {
-                        method: method,
-                        params: params,
-                        appId: await this.storeService.getAppId()
-                    }
-                }).json()
-            } catch(error) {
-                /**
-                 * Если ошибка является неожиданной ошибкой при попытке вызвать обработчик
-                 * rpc, то это частный случай, а экземпляр приложения рабочий. Эту ошибку нужно
-                 * игнорировать. Она логируется на целевом экземпляре приложения и ничего не говорит
-                 * о работоспособности приложения
-                 */
-                if (error instanceof got.HTTPError) {
-                    if (error.response.statusCode >= 500) {
-                        const remoteError: {
-                            error: {
-                                name: string
-                                message: string
-                            }
-                        } = JSON.parse(error.response.body as string)
-
-                        if (remoteError.error.name === 'UnexceptedRPCHandlerError') {
-                            return
-                        }
-                    }
-                }
-
+                return await this.requestService.rpc({
+                    appId: await this.storeService.getAppId(),
+                    method: method,
+                    params: params,
+                    port: port
+                })
+            } catch {
                 this.storeService.removePort(port)
             }
 
-            return      
+            return
         }
 
         /**

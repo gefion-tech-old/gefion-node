@@ -2,7 +2,7 @@ import { injectable, inject } from 'inversify'
 import { InitRunner } from '../init/init.types'
 import { RPC_SYMBOL } from './rpc.types'
 import { IStoreService } from './store/store.interface'
-import got from 'got'
+import { IRequestService } from './request/request.interface'
 
 /**
  * Инициализировать экземпляр, а после уведомлять все запущенные экземпляры о
@@ -13,33 +13,21 @@ export class RPCInit implements InitRunner {
 
     public constructor(
         @inject(RPC_SYMBOL.RPCStoreService)
-        private storeService: IStoreService
+        private storeService: IStoreService,
+
+        @inject(RPC_SYMBOL.RPCRequestService)
+        private requestService: IRequestService
     ) {}
 
     public async run(): Promise<void> {
         const { appId, ports } = await this.storeService.sync()
 
-        /**
-         * Запрос на синхронизацию указанного экземпляра. Все http ошибки игнорировать,
-         * их логирует сам целевой экземпляр
-         */
-        const syncRequest = async (port: number): Promise<void> => {
-            const remote = `http://localhost:${port}/api/v1/rpc/sync`
-
-            try {
-                await got.post(remote, {
-                    json: {
-                        appId: appId
-                    }
-                })
-            } catch(error) {
-                if (!(error instanceof got.HTTPError)) {
-                    throw error
-                }
-            }
-        }
-
-        await Promise.all(ports.map(port => syncRequest(port)))
+        await Promise.all(ports.map(port => {
+            return this.requestService.sync({
+                port: port,
+                appId: appId
+            })
+        }))
     }
 
 }
