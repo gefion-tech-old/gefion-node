@@ -46,7 +46,7 @@ export class ErrorInMethod extends RPCError {
 
 export class UnexceptedRPCHandlerError extends RPCError {
 
-    public name = 'UnexceptedRPCError'
+    public name = 'UnexceptedRPCHandlerError'
     public message = 'Неожиданная ошибка при попытке вызывать обработчик rpc метода'
 
     public constructor(

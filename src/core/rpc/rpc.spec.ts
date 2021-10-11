@@ -156,7 +156,7 @@ describe('RPCModule', () => {
             expect(response.statusCode).toBe(500)
             expect(response.json()).toMatchObject({
                 error: {
-                    name: 'UnexceptedRPCError',
+                    name: 'UnexceptedRPCHandlerError',
                     error: {
                         name: new MyError().name,
                         message: new MyError().message
@@ -204,7 +204,7 @@ describe('RPCModule', () => {
             expect(response.statusCode).toBe(500)
             expect(response.json()).toMatchObject({
                 error: {
-                    name: 'UnexceptedRPCError',
+                    name: 'UnexceptedRPCHandlerError',
                     error: {
                         name: 'MethodDoesNotExistsError'
                     }
