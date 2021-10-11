@@ -2,7 +2,8 @@ import { injectable } from 'inversify'
 import { IRequestService } from './request.interface'
 import { SyncOptions, RPCOptions } from './request.types'
 import { RPCResponseHttpType } from '../rpc.types'
-import got from 'got'
+import { HTTPError } from 'got'
+import { getDefaultGot } from '../../../utils/got'
 
 @injectable()
 export class RequestService implements IRequestService {
@@ -14,13 +15,18 @@ export class RequestService implements IRequestService {
          * Все http ошибки игнорировать, потому что их логирует сам экземпляр
          */
         try {
-            await got.post(remote, {
+            await getDefaultGot().post(remote, {
                 json: {
                     appId: options.appId
+                },
+                context: {
+                    meta: {
+                        id: 'RPCModule:RequestService:sync'
+                    }
                 }
             })
         } catch(error) {
-            if (!(error instanceof got.HTTPError)) {
+            if (!(error instanceof HTTPError)) {
                 throw error
             }
         }
@@ -36,15 +42,20 @@ export class RequestService implements IRequestService {
          * о работоспособности приложения
          */
         try {
-            return await got.post<RPCResponseHttpType>(url, {
+            return await getDefaultGot().post<RPCResponseHttpType>(url, {
                 json: {
                     method: options.method,
                     params: options.params,
                     appId: options.appId
+                },
+                context: {
+                    meta: {
+                        id: 'RPCModule:RequestService:rpc'
+                    }
                 }
             }).json()
         } catch(error) {
-            if (error instanceof got.HTTPError) {
+            if (error instanceof HTTPError) {
                 if (error.response.statusCode >= 500) {
                     const remoteError: {
                         error: {
