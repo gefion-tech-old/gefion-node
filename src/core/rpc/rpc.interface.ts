@@ -13,8 +13,8 @@ export interface IRPCService {
     method(name: string, handler: RPCHandler): void
 
     /**
-     * Вызвать указанный удалённый метод на всех экземплярах приложения
-     * и вернуть массив ответов с каждого экземпляра.
+     * Вызвать указанный удалённый метод на всех экземплярах приложения за исключением
+     * текущего и вернуть массив ответов с каждого экземпляра.
      */
     call(method: string, params: any[]): Promise<RPCResponseHttpType[]>
 
