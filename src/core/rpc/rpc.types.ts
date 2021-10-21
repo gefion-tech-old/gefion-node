@@ -3,7 +3,9 @@ export const RPC_SYMBOL = {
     RPCInfoEntity: Symbol('RPCInfoEntity'),
     RPCStoreService: Symbol('RPCStoreService'),
     RPCInit: Symbol('RPCInit'),
-    RPCRequestService: Symbol('RPCRequestService')
+    RPCRequestService: Symbol('RPCRequestService'),
+    RPCMethod: Symbol('RPCMethod'),
+    RPCConfig: Symbol('RPCConfig')
 }
 
 export type RPCHandler = (...params: any[]) => Promise<any>
@@ -21,4 +23,18 @@ export type RPCResponseHttpType = {
 
 export type RPCSyncRequest = {
     appId: string
+}
+
+export interface IRPCMethod {
+
+    /**
+     * Название RPC метода
+     */
+    name(): string
+
+    /**
+     * Обработчик RPC метода 
+     */
+    handler: RPCHandler
+
 }

@@ -13,7 +13,8 @@ import {
 } from './rpc.errors'
 import { InitRunner, INIT_SYMBOL } from '../init/init.types'
 import { IRequestService } from './request/request.interface'
-import { getRequestService } from './__mock/RequestService'
+import { getRequestService } from './__mock/RequestService.mock'
+import { getRPCMethod } from './__mock/RPCMethod.mock'
 
 beforeAll(async () => {
     const container = await getContainer()
@@ -637,6 +638,41 @@ describe('RPCModule', () => {
             container.restore()
         })
 
+    })
+
+    it(`
+        Регистрация RPC метода через контейнер в инициализационном классе проходит корректно
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        const rpcFn = jest.fn()
+
+        container.bind(RPC_SYMBOL.RPCMethod)
+            .to(getRPCMethod({
+                name: () => 'method',
+                handler: async () => {
+                    rpcFn()
+                }
+            }))
+
+        const initRpc = container
+            .getNamed<InitRunner>(INIT_SYMBOL.InitRunner, RPC_SYMBOL.RPCInit)
+
+        await initRpc.run()
+
+        const rpcService = container
+            .get<IRPCService>(RPC_SYMBOL.RPCService)
+        const fastifyService = container
+            .get<IFastifyService>(FASTIFY_SYMBOL.FastifyService)
+        const fastifyInstanse = await fastifyService.fastify()
+
+        await rpcService.localCall('method', [true])
+
+        expect(rpcFn).toBeCalledTimes(1)
+
+        fastifyInstanse.close()
+        container.restore()
     })
 
 })
