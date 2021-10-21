@@ -1,9 +1,9 @@
 import { 
     AssociateOptions,
     UnAssociateOptions
-} from './block.types'
+} from './version.types'
 
-export interface IBlockService {
+export interface IVersionService {
 
     /**
      * Ассоциировать указанный путь к папке с блоком определённой версии. Можно

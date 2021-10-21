@@ -5,13 +5,16 @@ import {
     Column, 
     Index, 
     Unique, 
-    CreateDateColumn 
+    CreateDateColumn,
+    UpdateDateColumn,
+    OneToMany
 } from 'typeorm'
+import { BlockInstance } from './block-instance.entity'
 
 @injectable()
 @Entity()
 @Unique(['name', 'version'])
-export class Block {
+export class BlockVersion {
 
     @PrimaryGeneratedColumn()
     id?: number
@@ -37,5 +40,16 @@ export class Block {
         nullable: false
     })
     createdAt?: Date
+
+    @UpdateDateColumn({
+        nullable: false
+    })
+    updatedAt?: Date
+
+    @OneToMany(() => BlockInstance, instance => instance.blockVersion, {
+        onDelete: 'RESTRICT',
+
+    })
+    instances: BlockInstance[]
 
 }
