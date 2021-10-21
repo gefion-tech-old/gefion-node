@@ -14,6 +14,8 @@ import { INIT_SYMBOL, InitRunner } from '../init/init.types'
 import { RPCInit } from './rpc.init'
 import { IRequestService } from './request/request.interface'
 import { RequestService } from './request/request.service'
+import { REPAIR_TYPES, RepairJob } from '../repair/repair.types'
+import { StoreRepair } from './store/store.repair'
 
 export const RPCModule = new AsyncContainerModule(async (bind: interfaces.Bind) => {
     bind<IStoreService>(RPC_SYMBOL.RPCStoreService)
@@ -33,6 +35,10 @@ export const RPCModule = new AsyncContainerModule(async (bind: interfaces.Bind) 
     bind<InitRunner>(INIT_SYMBOL.InitRunner)
         .to(RPCInit)
         .whenTargetNamed(RPC_SYMBOL.RPCInit)
+
+    bind<RepairJob>(REPAIR_TYPES.RepairJob)
+        .to(StoreRepair)
+        .whenTargetNamed(RPC_SYMBOL.RPCStoreRepair)
 
     // Сущности
     bind<EntitySchema<RPCInfo>>(TYPEORM_SYMBOL.TypeOrmAppEntity)

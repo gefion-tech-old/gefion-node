@@ -2,6 +2,7 @@ export const RPC_SYMBOL = {
     RPCService: Symbol('RPCService'),
     RPCInfoEntity: Symbol('RPCInfoEntity'),
     RPCStoreService: Symbol('RPCStoreService'),
+    RPCStoreRepair: Symbol('RPCStoreRepair'),
     RPCInit: Symbol('RPCInit'),
     RPCRequestService: Symbol('RPCRequestService'),
     RPCMethod: Symbol('RPCMethod'),

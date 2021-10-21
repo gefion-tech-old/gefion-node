@@ -18,6 +18,7 @@ export const AtomicModule = new AsyncContainerModule(async (bind: interfaces.Bin
 
     bind<RepairJob>(REPAIR_TYPES.RepairJob)
         .to(LockCollectorRepair)
+        .whenTargetNamed(ATOMIC_SYMBOL.LockCollectorRepair)
     
     bind<ILockCollectorService>(ATOMIC_SYMBOL.LockCollectorService)
         .to(LockCollectorService)
