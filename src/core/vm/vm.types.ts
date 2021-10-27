@@ -65,6 +65,11 @@ export type ScriptRun = {
      * должны быть доступны в запущенном скрипте
      */
     readonly apiProperties: string[]
+
+    /**
+     * Необязательный контекст запускаемого скрипта
+     */
+    readonly context?: any
 }
 
 export type ScriptInfo = {
