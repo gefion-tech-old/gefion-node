@@ -52,4 +52,6 @@ export class BlockVersion {
     })
     instances: BlockInstance[]
 
+    // TODO: Добавить список тегов
+
 }

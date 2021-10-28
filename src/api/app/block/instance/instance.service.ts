@@ -6,7 +6,7 @@ import {
 } from './instance.types'
 import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
 import { Repository, Connection } from 'typeorm'
-import { BlockInstance } from '../entities/block-instance.entity'
+import { BlockInstance } from '../../entities/block-instance.entity'
 import { ScriptID } from '../../../../core/vm/vm.types'
 import { Version } from '../version/version.types'
 import { 
@@ -15,7 +15,7 @@ import {
     BlockVersionIndexFileNotFound,
     NotExistBlockVersionInstance
 } from './instance.error'
-import { BlockVersion } from '../entities/block-version.entity'
+import { BlockVersion } from '../../entities/block-version.entity'
 import { IVMService } from '../../../../core/vm/vm.interface'
 import { VM_SYMBOL } from '../../../../core/vm/vm.types'
 import path from 'path'

@@ -4,7 +4,7 @@ import { BLOCK_SYMBOL } from '../block.types'
 import { IInstanceService } from './instance.interface'
 import { Connection, Repository, Not, In } from 'typeorm'
 import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
-import { BlockInstance } from '../entities/block-instance.entity'
+import { BlockInstance } from '../../entities/block-instance.entity'
 
 /**
  * Периодически синхронизировать созданные экземпляры версии блока с фактически
