@@ -33,7 +33,7 @@ export class RPCService implements IRPCService {
         this.methods.set(name, handler)
     }
 
-    public async call(method: string, params: any[]): Promise<RPCResponseHttpType[]> {
+    public async call<TResult = any, TError = any>(method: string, params: any[]): Promise<RPCResponseHttpType<TResult, TError>[]> {
         if (!this.methods.has(method)) {
             throw new MethodDoesNotExistsError(method)
         }
@@ -42,7 +42,7 @@ export class RPCService implements IRPCService {
          * Сделать запросы на указанные экземпляры. Удалить порт экземпляра, если в результате запроса
          * произошла какая-либо ошибка, которую не проигнорировал сервис запроса
          */
-        const rpcRequest = async (port: number): Promise<RPCResponseHttpType | undefined> => {
+        const rpcRequest = async (port: number): Promise<RPCResponseHttpType<TResult, TError> | undefined> => {
             try {
                 return await this.requestService.rpc({
                     appId: await this.storeService.getAppId(),
@@ -60,12 +60,12 @@ export class RPCService implements IRPCService {
         /**
          * Получить список ответов в результате выполнения rpc запросов
          */
-        const responses = await (async (): Promise<RPCResponseHttpType[]> => {
+        const responses = await (async (): Promise<RPCResponseHttpType<TResult, TError>[]> => {
             const ports = await this.storeService.getPorts()
             
             return (await Promise.all(
                 ports.map(port => rpcRequest(port))
-            )).filter((response): response is RPCResponseHttpType => {
+            )).filter((response): response is RPCResponseHttpType<TResult, TError> => {
                 return Boolean(response)
             })
         })()

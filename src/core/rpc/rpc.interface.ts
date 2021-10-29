@@ -16,7 +16,7 @@ export interface IRPCService {
      * Вызвать указанный удалённый метод на всех экземплярах приложения за исключением
      * текущего и вернуть массив ответов с каждого экземпляра.
      */
-    call(method: string, params: any[]): Promise<RPCResponseHttpType[]>
+    call<TResult = any, TError = any>(method: string, params: any[]): Promise<RPCResponseHttpType<TResult, TError>[]>
 
     /**
      * Вызвать указанный метод локально в текущей ноде

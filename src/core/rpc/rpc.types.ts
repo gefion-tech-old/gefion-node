@@ -17,9 +17,9 @@ export type RPCRequestHttpType = {
     appId: string
 }
 
-export type RPCResponseHttpType = {
-    result: any
-    error: any
+export type RPCResponseHttpType<TResult = any, TError = any> = {
+    result: TResult
+    error: TError
 }
 
 export type RPCSyncRequest = {
