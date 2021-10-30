@@ -4,7 +4,6 @@ import { VersionService } from './version/version.service'
 import { BLOCK_SYMBOL } from './block.types'
 import { BlockVersion } from '../entities/block-version.entity'
 import { TYPEORM_SYMBOL } from '../../../core/typeorm/typeorm.types'
-import { EntitySchema } from 'typeorm'
 import { BlockInstance } from '../entities/block-instance.entity'
 import { IInstanceService } from './instance/instance.interface'
 import { InstanceService } from './instance/instance.service'
@@ -28,7 +27,7 @@ export const BlockModule = new AsyncContainerModule(async (bind: interfaces.Bind
     bind<IVersionService>(BLOCK_SYMBOL.BlockVersionService)
         .to(VersionService)
 
-    bind<EntitySchema<BlockVersion>>(TYPEORM_SYMBOL.TypeOrmAppEntity)
+    bind<Function>(TYPEORM_SYMBOL.TypeOrmAppEntity)
         .toConstructor(BlockVersion)
         .whenTargetNamed(BLOCK_SYMBOL.BlockVersionEntity)
     
@@ -39,7 +38,7 @@ export const BlockModule = new AsyncContainerModule(async (bind: interfaces.Bind
         .to(InstanceService)
         .inSingletonScope()
     
-    bind<EntitySchema<BlockInstance>>(TYPEORM_SYMBOL.TypeOrmAppEntity)
+    bind<Function>(TYPEORM_SYMBOL.TypeOrmAppEntity)
         .toConstructor(BlockInstance)
         .whenTargetNamed(BLOCK_SYMBOL.BlockInstanceEntity)
 

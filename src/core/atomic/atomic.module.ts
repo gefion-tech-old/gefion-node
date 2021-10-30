@@ -1,6 +1,5 @@
 import { AsyncContainerModule, interfaces } from 'inversify'
 import { TYPEORM_SYMBOL } from '../typeorm/typeorm.types'
-import { EntitySchema } from 'typeorm'
 import { Atomic } from './entities/atomic.entity'
 import { ATOMIC_SYMBOL, AtomicConfig } from './atomic.types'
 import { IAtomicService } from './atomic.interface'
@@ -27,7 +26,7 @@ export const AtomicModule = new AsyncContainerModule(async (bind: interfaces.Bin
         .to(AtomicService)
 
     // Сущности
-    bind<EntitySchema<Atomic>>(TYPEORM_SYMBOL.TypeOrmAppEntity)
+    bind<Function>(TYPEORM_SYMBOL.TypeOrmAppEntity)
         .toConstructor(Atomic)
         .whenTargetNamed(ATOMIC_SYMBOL.AtomicEntity)
 })

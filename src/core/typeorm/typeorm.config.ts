@@ -1,14 +1,14 @@
 import { interfaces } from 'inversify'
 import { TYPEORM_SYMBOL } from './typeorm.types'
-import { EntitySchema, ConnectionOptions } from 'typeorm'
+import { ConnectionOptions } from 'typeorm'
 import { getTestEntities } from '../../utils/test-entities'
 
 export async function getConfigAppTypeormConnection(context: interfaces.Context): Promise<ConnectionOptions> {
     const container = context.container
 
-    let entities: EntitySchema<any>[] = []
+    let entities: Function[] = []
     try {
-        entities = container.getAll<EntitySchema<any>>(TYPEORM_SYMBOL.TypeOrmAppEntity)
+        entities = container.getAll<Function>(TYPEORM_SYMBOL.TypeOrmAppEntity)
     } catch {}
 
     return {
@@ -25,9 +25,9 @@ export async function getConfigAppTypeormConnection(context: interfaces.Context)
 export async function getConfigTestConnection(context: interfaces.Context): Promise<ConnectionOptions> {
     const container = context.container
     
-    let entities: EntitySchema<any>[] = []
+    let entities: Function[] = []
     try {
-        entities = container.getAll<EntitySchema<any>>(TYPEORM_SYMBOL.TypeOrmAppEntity)
+        entities = container.getAll<Function>(TYPEORM_SYMBOL.TypeOrmAppEntity)
     } catch {}
 
     return {
