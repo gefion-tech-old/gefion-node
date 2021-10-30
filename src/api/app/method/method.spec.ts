@@ -16,6 +16,8 @@ import {
 import { TYPEORM_SYMBOL } from '../../../core/typeorm/typeorm.types'
 import { Method } from '../entities/method.entity'
 import { addTestEntity } from '../../../utils/test-entities'
+import { getRPCService } from '../../../core/rpc/__mock/RPCService.mock'
+import { RPC_SYMBOL } from '../../../core/rpc/rpc.types'
 
 /**
  * Добавление тестовой сущности
@@ -282,17 +284,138 @@ describe('MethodService в MethodModule', () => {
         container.restore()
     })  
         
-    it.todo(`
+    it(`
         Неконсисентный метод корректно выявляется
-    `)
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
 
-    it.todo(`
-        Консистентный метод корректно выявляется
-    `)
+        container.rebind(RPC_SYMBOL.RPCService)
+            .to(getRPCService({
+                call: async () => {
+                    return [
+                        {
+                            result: false,
+                            error: null
+                        },
+                        {
+                            result: false,
+                            error: null
+                        }
+                    ]
+                },
+                localCall: async () => {},
+                method: async () => {}
+            }))
+            .inSingletonScope()
 
-    it.todo(`
+        const methodService = container
+            .get<IMethodService>(METHOD_SYMBOL.MethodService)
+
+        const method1 = {
+            namespace: 'namespace',
+            type: 'type',
+            name: 'name1'
+        }
+
+        await methodService.method({
+            ...method1,
+            handler: () => {}
+        })
+
+        await expect(methodService.isConsistent(method1))
+            .resolves
+            .toBe(false)
+
+        container.restore()
+    })
+
+    it(`
+        Консистентный метод корректно выполняется
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        container.rebind(RPC_SYMBOL.RPCService)
+            .to(getRPCService({
+                call: async () => {
+                    return [
+                        {
+                            result: true,
+                            error: null
+                        },
+                        {
+                            result: true,
+                            error: null
+                        }
+                    ]
+                },
+                localCall: async () => {},
+                method: async () => {}
+            }))
+            .inSingletonScope()
+
+        const methodService = container
+            .get<IMethodService>(METHOD_SYMBOL.MethodService)
+
+        const method1 = {
+            namespace: 'namespace',
+            type: 'type',
+            name: 'name1'
+        }
+
+        await methodService.method({
+            ...method1,
+            handler: () => {}
+        })
+
+        await expect(methodService.isConsistent(method1))
+            .resolves
+            .toBe(true)
+
+        container.restore()
+    })
+
+    it(`
         Проверка на консистентность метода возвращает undefined, если метод недоступен
         на всех репликах приложения
-    `)
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        container.rebind(RPC_SYMBOL.RPCService)
+            .to(getRPCService({
+                call: async () => {
+                    return [
+                        {
+                            result: false,
+                            error: null
+                        },
+                        {
+                            result: false,
+                            error: null
+                        }
+                    ]
+                },
+                localCall: async () => {},
+                method: async () => {}
+            }))
+            .inSingletonScope()
+
+        const methodService = container
+            .get<IMethodService>(METHOD_SYMBOL.MethodService)
+
+        const method1 = {
+            namespace: 'namespace',
+            type: 'type',
+            name: 'name1'
+        }
+
+        await expect(methodService.isConsistent(method1))
+            .resolves
+            .toBeUndefined()
+
+        container.restore()
+    })
 
 })
