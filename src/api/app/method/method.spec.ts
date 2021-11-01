@@ -261,9 +261,18 @@ describe('MethodService в MethodModule', () => {
             type: 'type',
             name: 'name1'
         }
+        const method2 = {
+            namespace: 'namespace',
+            type: 'type',
+            name: 'name2'
+        }
 
         await methodService.method({
             ...method1,
+            handler: () => {}
+        })
+        await methodService.method({
+            ...method2,
             handler: () => {}
         })
 
@@ -280,6 +289,12 @@ describe('MethodService в MethodModule', () => {
         await expect(methodService.removeNamespace('namespace'))
             .rejects
             .toBeInstanceOf(MethodUsedError)
+        await expect(methodService.isMethod(method1))
+            .resolves
+            .toBe(true)
+        await expect(methodService.isMethod(method2))
+            .resolves
+            .toBe(true)
 
         container.restore()
     })  
