@@ -418,4 +418,98 @@ describe('MethodService в MethodModule', () => {
         container.restore()
     })
 
+    it(`
+        Попытка удалить конкретный метод приводит к исключению,
+        если к методу привязан внешний ресурс через связи БД
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        const testRepository = await container
+            .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            .then(connection => {
+                return connection.getRepository(Test)
+            })
+        const methodRepository = await container
+            .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            .then(connection => {
+                return connection.getRepository(Method)
+            })
+        const methodService = container
+            .get<IMethodService>(METHOD_SYMBOL.MethodService)
+
+        const method1 = {
+            namespace: 'namespace',
+            type: 'type',
+            name: 'name1'
+        }
+
+        await methodService.method({
+            ...method1,
+            handler: () => {}
+        })
+
+        const methodObject = await methodRepository.findOne(method1)
+
+        if (!methodObject) {
+            throw new Error('Этой ошибки не должно быть')
+        }
+
+        await testRepository.save({
+            method: methodObject
+        })
+
+        await expect(methodService.removeMethod(method1))
+            .rejects
+            .toBeInstanceOf(MethodUsedError)
+
+        container.restore()
+    })
+
+    it(`
+        Удаление конкретного метода проходит корректно
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        const methodService = container
+            .get<IMethodService>(METHOD_SYMBOL.MethodService)
+        
+        const method1 = {
+            namespace: 'namespace',
+            type: 'type',
+            name: 'name1'
+        }
+        const method2 = {
+            namespace: 'namespace',
+            type: 'type',
+            name: 'name2'
+        }
+
+        await methodService.method({
+            ...method1,
+            handler: () => {}
+        })
+        await methodService.method({
+            ...method2,
+            handler: () => {}
+        })
+
+        await expect(methodService.removeMethod(method1))
+            .resolves
+            .toBeUndefined()
+
+        await expect(methodService.isMethod(method1))
+            .resolves
+            .toBe(false)
+        await expect(methodService.isMethod(method2))
+            .resolves
+            .toBe(true)
+
+        expect(methodService.isAvailable(method1)).toBe(false)
+        expect(methodService.isAvailable(method2)).toBe(true)
+
+        container.restore()        
+    })
+
 })

@@ -149,9 +149,33 @@ export class MethodService implements IMethodService {
             if ((error as any)?.driverError?.code === 'SQLITE_CONSTRAINT_FOREIGNKEY') {
                 throw new MethodUsedError
             }
+
+            throw error
         }
 
         this.namespaces.delete(namespace)
+    }
+
+    public async removeMethod(method: Method): Promise<void> {
+        const methodRepository = await this.methodRepository
+
+        try {
+            await methodRepository.delete(method)
+        } catch(error) {
+            if ((error as any)?.driverError?.code === 'SQLITE_CONSTRAINT_FOREIGNKEY') {
+                throw new MethodUsedError
+            }
+
+            throw error
+        }
+
+        const namespace = this.namespaces.get(method.namespace)
+        if (namespace) {
+            const type = namespace.get(method.type)
+            if (type) {
+                type.delete(method.name)
+            }
+        }
     }
 
     public async isConsistent(method: Method): Promise<boolean | undefined> {

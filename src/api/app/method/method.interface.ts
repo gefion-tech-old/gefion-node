@@ -19,6 +19,11 @@ export interface IMethodService {
     removeNamespace(namespace: string): Promise<void>
 
     /**
+     * Попытаться удалить конкретный метод
+     */
+    removeMethod(method: Method): Promise<void>
+
+    /**
      * Вызвать указанный метод, если он существует и доступен
      */
     call(options: CallOptions): any
