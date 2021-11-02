@@ -92,16 +92,19 @@ describe('MethodService в MethodModule', () => {
             }
         })
 
-        await expect(methodService.isMethod(method1))
+        await expect(methodService.getMethodId(method1))
             .resolves
-            .toBe(true)
-        await expect(methodService.isMethod(method2))
+            .toBeDefined()
+        await expect(methodService.getMethodId(method1))
             .resolves
-            .toBe(true)
-        await expect(methodService.isMethod({
+            .toBeGreaterThan(0)
+        await expect(methodService.getMethodId(method2))
+            .resolves
+            .toBeDefined()
+        await expect(methodService.getMethodId({
             ...method2,
             name: 'name3'
-        })).resolves.toBe(false)
+        })).resolves.toBeUndefined()
 
         expect(methodService.isAvailable(method1)).toBe(true)
         expect(methodService.isAvailable(method2)).toBe(true)
@@ -223,12 +226,12 @@ describe('MethodService в MethodModule', () => {
             .resolves
             .toBeUndefined()
 
-        await expect(methodService.isMethod(method1))
+        await expect(methodService.getMethodId(method1))
             .resolves
-            .toBe(false)
-        await expect(methodService.isMethod(method2))
+            .toBeUndefined()
+        await expect(methodService.getMethodId(method2))
             .resolves
-            .toBe(false)
+            .toBeUndefined()
 
         expect(methodService.isAvailable(method1)).toBe(false)
         expect(methodService.isAvailable(method2)).toBe(false)
@@ -289,12 +292,12 @@ describe('MethodService в MethodModule', () => {
         await expect(methodService.removeNamespace('namespace'))
             .rejects
             .toBeInstanceOf(MethodUsedError)
-        await expect(methodService.isMethod(method1))
+        await expect(methodService.getMethodId(method1))
             .resolves
-            .toBe(true)
-        await expect(methodService.isMethod(method2))
+            .toBeDefined()
+        await expect(methodService.getMethodId(method2))
             .resolves
-            .toBe(true)
+            .toBeDefined()
 
         container.restore()
     })  
@@ -514,12 +517,12 @@ describe('MethodService в MethodModule', () => {
             .resolves
             .toBeUndefined()
 
-        await expect(methodService.isMethod(method1))
+        await expect(methodService.getMethodId(method1))
             .resolves
-            .toBe(false)
-        await expect(methodService.isMethod(method2))
+            .toBeUndefined()
+        await expect(methodService.getMethodId(method2))
             .resolves
-            .toBe(true)
+            .toBeDefined()
 
         expect(methodService.isAvailable(method1)).toBe(false)
         expect(methodService.isAvailable(method2)).toBe(true)

@@ -4,6 +4,8 @@ export const METHOD_SYMBOL = {
     MethodIsAvailableRPC: Symbol('MethodIsAvailableRPC')
 }
 
+export type MethodId = number
+
 export interface Method {
     /**
      * Название метода

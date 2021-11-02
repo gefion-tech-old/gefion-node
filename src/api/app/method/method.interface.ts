@@ -1,7 +1,8 @@
 import { 
     MethodOptions,
     Method,
-    CallOptions
+    CallOptions,
+    MethodId
 } from './method.types'
 
 /**
@@ -46,8 +47,8 @@ export interface IMethodService {
     isConsistent(method: Method): Promise<boolean | undefined>
 
     /**
-     * Проверить, что метод существует в базе данных
+     * Вернуть идентификатор указанного метода, если он существует
      */
-    isMethod(method: Method): Promise<boolean>
+    getMethodId(method: Method): Promise<MethodId | undefined>
 
 }
