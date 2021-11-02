@@ -14,10 +14,10 @@ import {
     Connection
 } from 'typeorm'
 import { TYPEORM_SYMBOL } from '../../../core/typeorm/typeorm.types'
-import { Method } from '../entities/method.entity'
 import { addTestEntity } from '../../../utils/test-entities'
 import { getRPCService } from '../../../core/rpc/__mock/RPCService.mock'
 import { RPC_SYMBOL } from '../../../core/rpc/rpc.types'
+import { Method } from '../entities/method.entity'
 
 /**
  * Добавление тестовой сущности
@@ -92,16 +92,16 @@ describe('MethodService в MethodModule', () => {
             }
         })
 
-        await expect(methodService.getMethod(method1))
+        await expect(methodService.getMethodId(method1))
             .resolves
             .toBeDefined()
-        await expect(methodService.getMethod(method1))
+        await expect(methodService.getMethodId(method1))
             .resolves
-            .toBeInstanceOf(Method)
-        await expect(methodService.getMethod(method2))
+            .toBeGreaterThan(0)
+        await expect(methodService.getMethodId(method2))
             .resolves
             .toBeDefined()
-        await expect(methodService.getMethod({
+        await expect(methodService.getMethodId({
             ...method2,
             name: 'name3'
         })).resolves.toBeUndefined()
@@ -226,10 +226,10 @@ describe('MethodService в MethodModule', () => {
             .resolves
             .toBeUndefined()
 
-        await expect(methodService.getMethod(method1))
+        await expect(methodService.getMethodId(method1))
             .resolves
             .toBeUndefined()
-        await expect(methodService.getMethod(method2))
+        await expect(methodService.getMethodId(method2))
             .resolves
             .toBeUndefined()
 
@@ -292,10 +292,10 @@ describe('MethodService в MethodModule', () => {
         await expect(methodService.removeNamespace('namespace'))
             .rejects
             .toBeInstanceOf(MethodUsedError)
-        await expect(methodService.getMethod(method1))
+        await expect(methodService.getMethodId(method1))
             .resolves
             .toBeDefined()
-        await expect(methodService.getMethod(method2))
+        await expect(methodService.getMethodId(method2))
             .resolves
             .toBeDefined()
 
@@ -517,10 +517,10 @@ describe('MethodService в MethodModule', () => {
             .resolves
             .toBeUndefined()
 
-        await expect(methodService.getMethod(method1))
+        await expect(methodService.getMethodId(method1))
             .resolves
             .toBeUndefined()
-        await expect(methodService.getMethod(method2))
+        await expect(methodService.getMethodId(method2))
             .resolves
             .toBeDefined()
 

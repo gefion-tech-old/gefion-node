@@ -6,7 +6,8 @@ import {
     Namespaces,
     MethodHandler,
     CallOptions,
-    RPCMethodsMethodService
+    RPCMethodsMethodService,
+    MethodId
 } from './method.types'
 import { Repository, Connection } from 'typeorm'
 import { TYPEORM_SYMBOL } from '../../../core/typeorm/typeorm.types'
@@ -119,15 +120,16 @@ export class MethodService implements IMethodService {
         return Boolean(this.getMethodHandler(method))
     }
 
-    public async getMethod(method: Method): Promise<MethodEntity | undefined> {
+    public async getMethodId(method: Method): Promise<MethodId | undefined> {
         const methodRepository = await this.methodRepository
-        return await methodRepository.findOne({
+        const methodEntity = await methodRepository.findOne({
             where: {
                 namespace: method.namespace,
                 type: method.type,
                 name: method.name
             }
         })
+        return methodEntity?.id
     }
 
     public call(options: CallOptions): any {

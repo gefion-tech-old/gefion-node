@@ -1,9 +1,9 @@
 import { 
     MethodOptions,
     Method,
-    CallOptions
+    CallOptions,
+    MethodId
 } from './method.types'
-import { Method as MethodEntity } from '../entities/method.entity'
 
 /**
  * Все внешние ресурсы с которыми связан метод при своем особождении должны
@@ -47,8 +47,8 @@ export interface IMethodService {
     isConsistent(method: Method): Promise<boolean | undefined>
 
     /**
-     * Вернуть сущность указанного метода, если он существует
+     * Вернуть идентификато указанного метода, если он существует
      */
-    getMethod(method: Method): Promise<MethodEntity | undefined>
+    getMethodId(method: Method): Promise<MethodId | undefined>
 
 }
