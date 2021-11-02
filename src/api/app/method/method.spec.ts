@@ -92,16 +92,16 @@ describe('MethodService в MethodModule', () => {
             }
         })
 
-        await expect(methodService.getMethodId(method1))
+        await expect(methodService.getMethod(method1))
             .resolves
             .toBeDefined()
-        await expect(methodService.getMethodId(method1))
+        await expect(methodService.getMethod(method1))
             .resolves
-            .toBeGreaterThan(0)
-        await expect(methodService.getMethodId(method2))
+            .toBeInstanceOf(Method)
+        await expect(methodService.getMethod(method2))
             .resolves
             .toBeDefined()
-        await expect(methodService.getMethodId({
+        await expect(methodService.getMethod({
             ...method2,
             name: 'name3'
         })).resolves.toBeUndefined()
@@ -226,10 +226,10 @@ describe('MethodService в MethodModule', () => {
             .resolves
             .toBeUndefined()
 
-        await expect(methodService.getMethodId(method1))
+        await expect(methodService.getMethod(method1))
             .resolves
             .toBeUndefined()
-        await expect(methodService.getMethodId(method2))
+        await expect(methodService.getMethod(method2))
             .resolves
             .toBeUndefined()
 
@@ -292,10 +292,10 @@ describe('MethodService в MethodModule', () => {
         await expect(methodService.removeNamespace('namespace'))
             .rejects
             .toBeInstanceOf(MethodUsedError)
-        await expect(methodService.getMethodId(method1))
+        await expect(methodService.getMethod(method1))
             .resolves
             .toBeDefined()
-        await expect(methodService.getMethodId(method2))
+        await expect(methodService.getMethod(method2))
             .resolves
             .toBeDefined()
 
@@ -517,10 +517,10 @@ describe('MethodService в MethodModule', () => {
             .resolves
             .toBeUndefined()
 
-        await expect(methodService.getMethodId(method1))
+        await expect(methodService.getMethod(method1))
             .resolves
             .toBeUndefined()
-        await expect(methodService.getMethodId(method2))
+        await expect(methodService.getMethod(method2))
             .resolves
             .toBeDefined()
 
