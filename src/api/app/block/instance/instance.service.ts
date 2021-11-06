@@ -24,7 +24,7 @@ import { pathExists } from 'fs-extra'
 @injectable()
 export class InstanceService implements IInstanceService {
 
-    private instanceRepostory: Promise<Repository<BlockInstance>>
+    private instanceRepository: Promise<Repository<BlockInstance>>
     private versionRepository: Promise<Repository<BlockVersion>>
     private scriptIds = new Map<InstanceId, ScriptID>()
 
@@ -35,7 +35,7 @@ export class InstanceService implements IInstanceService {
         @inject(VM_SYMBOL.VMService)
         private vmService: IVMService
     ) {
-        this.instanceRepostory = connection
+        this.instanceRepository = connection
             .then(connection => {
                 return connection.getRepository(BlockInstance)
             })
@@ -48,12 +48,12 @@ export class InstanceService implements IInstanceService {
 
     public async create(versionInfo: Version): Promise<InstanceId> {
         const versionRepository = await this.versionRepository
-        const instanceRepository = await this.instanceRepostory
+        const instanceRepository = await this.instanceRepository
 
         /**
          * Получить указанный экземпляр версии блока
          */
-         const version = await (async () => {
+        const version = await (async () => {
             const version = await versionRepository.findOne(versionInfo)
 
             if (!version) {
@@ -69,13 +69,11 @@ export class InstanceService implements IInstanceService {
          */
          const instanceId = await (async () => {
             try {
-                const instance = await instanceRepository.save({
+                const instanceEntity = await instanceRepository.save({
                     blockVersion: version
-                }) as {
-                    id: number
-                } & BlockInstance
+                })
 
-                return instance.id
+                return instanceEntity.id
             } catch(error) {
                 if ((error as any)?.driverError?.code === 'SQLITE_CONSTRAINT_NOTNULL') {
                     if ((error as any)?.driverError?.message === 'NOT NULL constraint failed: block_instance.blockVersionId') {
@@ -91,7 +89,7 @@ export class InstanceService implements IInstanceService {
     }
 
     public async start(instanceId: InstanceId): Promise<void> {
-        const instanceRepository = await this.instanceRepostory
+        const instanceRepository = await this.instanceRepository
 
         /**
          * Ничего не делать, если указанный экземпляр уже был запущен
@@ -168,7 +166,7 @@ export class InstanceService implements IInstanceService {
     }
 
     public async remove(instanceId: InstanceId): Promise<void> {
-        const instanceRepository = await this.instanceRepostory
+        const instanceRepository = await this.instanceRepository
 
         /**
          * Остановить и удалить уже запущенный скрипт экземпляра версии,

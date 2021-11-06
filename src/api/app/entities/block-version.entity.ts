@@ -2,8 +2,7 @@ import { injectable } from 'inversify'
 import { 
     Entity, 
     PrimaryGeneratedColumn, 
-    Column, 
-    Index, 
+    Column,
     Unique, 
     CreateDateColumn,
     UpdateDateColumn,
@@ -17,18 +16,16 @@ import { BlockInstance } from './block-instance.entity'
 export class BlockVersion {
 
     @PrimaryGeneratedColumn()
-    id?: number
+    id: number
 
     @Column({
         nullable: false
     })
-    @Index()
     name: string
 
     @Column({
         nullable: false
     })
-    @Index()
     version: string
 
     @Column({
@@ -39,19 +36,16 @@ export class BlockVersion {
     @CreateDateColumn({
         nullable: false
     })
-    createdAt?: Date
+    createdAt: Date
 
     @UpdateDateColumn({
         nullable: false
     })
-    updatedAt?: Date
+    updatedAt: Date
 
-    @OneToMany(() => BlockInstance, instance => instance.blockVersion, {
-        onDelete: 'RESTRICT',
-
-    })
+    @OneToMany(() => BlockInstance, instance => instance.blockVersion)
     instances: BlockInstance[]
 
-    // TODO: Добавить список тегов
+    // TODO: Добавить список тегов 
 
 }

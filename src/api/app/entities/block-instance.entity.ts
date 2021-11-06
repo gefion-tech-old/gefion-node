@@ -13,17 +13,17 @@ import { BlockVersion } from './block-version.entity'
 export class BlockInstance {
 
     @PrimaryGeneratedColumn()
-    id?: number
+    id: number
 
     @CreateDateColumn({
         nullable: false
     })
-    createdAt?: Date
+    createdAt: Date
 
     @UpdateDateColumn({
         nullable: false
     })
-    updatedAt?: Date
+    updatedAt: Date
 
     @ManyToOne(() => BlockVersion, version => version.instances, {
         nullable: false
