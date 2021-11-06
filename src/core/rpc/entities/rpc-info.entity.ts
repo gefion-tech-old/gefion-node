@@ -1,11 +1,11 @@
 import { injectable } from 'inversify'
-import { Entity, PrimaryColumn, Column } from 'typeorm'
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm'
 
 @injectable()
 @Entity()
 export class RPCInfo {
 
-    @PrimaryColumn()
+    @PrimaryGeneratedColumn()
     id: number
 
     @Column({
