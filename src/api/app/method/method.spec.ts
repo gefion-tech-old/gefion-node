@@ -4,7 +4,8 @@ import { METHOD_SYMBOL } from './method.types'
 import {
     HandlerAlreadyAttached,
     MethodNotAvailable,
-    MethodUsedError
+    MethodUsedError,
+    EntityManagerWithoutTransaction
 } from './method.errors'
 import { 
     Entity, 
@@ -528,6 +529,213 @@ describe('MethodService в MethodModule', () => {
         expect(methodService.isAvailable(method2)).toBe(true)
 
         container.restore()        
+    })
+
+    it(`
+        Удаление массива переданных методов, при условии, что с ними не связан внешний ключ, происходит
+        корректно
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        const testRepository = await container
+            .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            .then(connection => {
+                return connection.getRepository(Test)
+            })
+        const methodRepository = await container
+            .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            .then(connection => {
+                return connection.getRepository(Method)
+            })
+        const methodService = container
+            .get<IMethodService>(METHOD_SYMBOL.MethodService)
+
+        const method1 = {
+            namespace: 'namespace',
+            type: 'type',
+            name: 'name1'
+        }
+        const method2 = {
+            namespace: 'namespace',
+            type: 'type',
+            name: 'name2'
+        }
+        const method3 = {
+            namespace: 'namespace2',
+            type: 'type',
+            name: 'name'
+        }
+
+        await methodService.method({
+            ...method1,
+            handler: () => {}
+        })
+        await methodService.method({
+            ...method2,
+            handler: () => {}
+        })
+        await methodService.method({
+            ...method3,
+            handler: () => {}
+        })
+
+        const method1Entity = await methodRepository.findOne(method1)
+
+        if (!method1Entity) {
+            throw new Error('Этой ошибки не должно быть')
+        }
+
+        await testRepository.save({
+            method: method1Entity
+        })
+
+        await expect(methodService.removeMethods([
+            method1, method2, method3
+        ])).resolves.toBeUndefined()
+
+        await expect(methodService.getMethodId(method1))
+            .resolves
+            .toBeDefined()
+        await expect(methodService.getMethodId(method2))
+            .resolves
+            .toBeUndefined()
+        await expect(methodService.getMethodId(method3))
+            .resolves
+            .toBeUndefined()
+
+        expect(methodService.isAvailable(method1)).toBe(true)
+        expect(methodService.isAvailable(method2)).toBe(false)
+        expect(methodService.isAvailable(method3)).toBe(false)
+
+        container.restore()
+    })
+
+    it(`
+        Попытка удалить массив методов завершается исключением, если в качестве менеджера
+        с транзакцией передать менеджер без транзакции или с завершённой транзакцией
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        const connection = await container
+            .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+        const methodService = container
+            .get<IMethodService>(METHOD_SYMBOL.MethodService)
+
+        await expect(methodService.removeMethods([], connection.manager))
+            .rejects
+            .toBeInstanceOf(EntityManagerWithoutTransaction)
+
+        container.restore()
+    })
+
+    it(`
+        Удаление массива переданных методов корректно происходит внутри транзакции и
+        сбои корректно откатываются
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        const connection = await container
+            .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+        const methodService = container
+            .get<IMethodService>(METHOD_SYMBOL.MethodService)
+        const testRepository = connection.getRepository(Test)
+        const methodRepository = connection.getRepository(Method)
+
+        const method1 = {
+            namespace: 'namespace',
+            type: 'type',
+            name: 'name1'
+        }
+        const method2 = {
+            namespace: 'namespace',
+            type: 'type',
+            name: 'name2'
+        }
+        const method3 = {
+            namespace: 'namespace2',
+            type: 'type',
+            name: 'name'
+        }
+
+        await methodService.method({
+            ...method1,
+            handler: () => {}
+        })
+        await methodService.method({
+            ...method2,
+            handler: () => {}
+        })
+        await methodService.method({
+            ...method3,
+            handler: () => {}
+        })
+
+        const method1Entity = await methodRepository.findOne(method1)
+
+        if (!method1Entity) {
+            throw new Error('Этой ошибки не должно быть')
+        }
+
+        await testRepository.save({
+            method: method1Entity
+        })
+
+        await connection.transaction(async transactionEntityManager => {
+            await expect(methodService.removeMethods([
+                method1, method2, method3
+            ], transactionEntityManager)).resolves.toBeUndefined()
+        })
+
+        await expect(methodService.getMethodId(method1))
+            .resolves
+            .toBeDefined()
+        await expect(methodService.getMethodId(method2))
+            .resolves
+            .toBeUndefined()
+        await expect(methodService.getMethodId(method3))
+            .resolves
+            .toBeUndefined()
+
+        expect(methodService.isAvailable(method1)).toBe(true)
+        expect(methodService.isAvailable(method2)).toBe(false)
+        expect(methodService.isAvailable(method3)).toBe(false)
+
+        await methodService.method({
+            ...method2,
+            handler: () => {}
+        })
+        await methodService.method({
+            ...method3,
+            handler: () => {}
+        })
+
+        try {
+            await connection.transaction(async transactionEntityManager => {
+                await expect(methodService.removeMethods([
+                    method1, method2, method3
+                ], transactionEntityManager)).resolves.toBeUndefined()
+                throw new Error
+            })
+        } catch {}
+
+        await expect(methodService.getMethodId(method1))
+            .resolves
+            .toBeDefined()
+        await expect(methodService.getMethodId(method2))
+            .resolves
+            .toBeDefined()
+        await expect(methodService.getMethodId(method3))
+            .resolves
+            .toBeDefined()
+
+        expect(methodService.isAvailable(method1)).toBe(true)
+        expect(methodService.isAvailable(method2)).toBe(false)
+        expect(methodService.isAvailable(method3)).toBe(false)
+
+        container.restore()
     })
 
 })

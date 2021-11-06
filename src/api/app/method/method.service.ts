@@ -9,21 +9,24 @@ import {
     RPCMethodsMethodService,
     MethodId
 } from './method.types'
-import { Repository, Connection } from 'typeorm'
+import { Repository, Connection, EntityManager } from 'typeorm'
 import { TYPEORM_SYMBOL } from '../../../core/typeorm/typeorm.types'
 import { Method as MethodEntity } from '../entities/method.entity'
 import { 
     HandlerAlreadyAttached,
     MethodNotAvailable,
-    MethodUsedError
+    MethodUsedError,
+    EntityManagerWithoutTransaction
 } from './method.errors'
 import { RPC_SYMBOL } from '../../../core/rpc/rpc.types'
 import { IRPCService } from '../../../core/rpc/rpc.interface'
+import uniqid from 'uniqid'
 
 @injectable()
 export class MethodService implements IMethodService {
 
     private methodRepository: Promise<Repository<MethodEntity>>
+    private connection: Promise<Connection>
     private namespaces: Namespaces = new Map
 
     public constructor(
@@ -33,6 +36,7 @@ export class MethodService implements IMethodService {
         @inject(RPC_SYMBOL.RPCService)
         private rpcService: IRPCService
     ) {
+        this.connection = connection
         this.methodRepository = connection
             .then(connection => {
                 return connection.getRepository(MethodEntity)
@@ -183,6 +187,60 @@ export class MethodService implements IMethodService {
             if (type) {
                 type.delete(method.name)
             }
+        }
+    }
+
+    public async removeMethods(methods: Method[], transactionEntityManager?: EntityManager): Promise<void> {
+        if (transactionEntityManager) {
+            if (transactionEntityManager.queryRunner?.isTransactionActive !== true) {
+                throw new EntityManagerWithoutTransaction
+            }
+        }
+
+        /**
+         * Фактическая функция для удаления методов с помощью переданного менеджера.
+         * Игнорировать ошибки внешнего ключа
+         */
+        const removeMethods = async (entityManager: EntityManager) => {
+            const methodRepository = entityManager.getRepository(MethodEntity)
+            const salt = uniqid()
+
+            for (const [index, method] of methods.entries()) {
+                const savepoint = `${salt}${index}`
+                try {
+                    await entityManager.query(`SAVEPOINT "${savepoint}"`)
+                    await methodRepository.delete(method)
+                } catch(error) {
+                    if ((error as any)?.driverError?.code === 'SQLITE_CONSTRAINT_FOREIGNKEY') {
+                        await entityManager.query(`ROLLBACK TO SAVEPOINT "${savepoint}"`)
+                        continue
+                    }
+    
+                    throw error
+                }
+    
+                const namespace = this.namespaces.get(method.namespace)
+                if (namespace) {
+                    const type = namespace.get(method.type)
+                    if (type) {
+                        type.delete(method.name)
+                    }
+                }
+            }
+        }
+
+        /**
+         * Фактическое удаление методов с помощью транзакционного менеджера
+         */
+        if (transactionEntityManager) {
+            await removeMethods(transactionEntityManager)
+        } else {
+            const connection = await this.connection
+            const manager = connection.manager
+
+            await manager.transaction(async transactionEntityManager => {
+                await removeMethods(transactionEntityManager)
+            })
         }
     }
 

@@ -4,6 +4,7 @@ import {
     CallOptions,
     MethodId
 } from './method.types'
+import { EntityManager } from 'typeorm'
 
 /**
  * Все внешние ресурсы с которыми связан метод при своем особождении должны
@@ -29,6 +30,14 @@ export interface IMethodService {
      * Попытаться удалить конкретный метод
      */
     removeMethod(method: Method): Promise<void>
+
+    /**
+     * Удалить все указанные методы, если на них не ссылается никаких внешних
+     * ключей и нет исключений связанных с этим. Если транзакция откатывается в результате внешней
+     * ошибки, то не стоит забывать, что внутренний обработчик все равно будет удалён и метод будет
+     * зарегистрирован, но не доступен
+     */
+    removeMethods(methods: Method[], transactionEntityManager?: EntityManager): Promise<void>
 
     /**
      * Вызвать указанный метод, если он существует и доступен

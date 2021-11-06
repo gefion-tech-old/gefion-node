@@ -35,3 +35,10 @@ export class MethodUsedError extends MethodError {
     public message = 'Попытка удалить метод, к которому привязаны важные ресурсы'
 
 }
+
+export class EntityManagerWithoutTransaction extends MethodError {
+
+    public name = 'EntityManagerWithoutTransaction'
+    public message = 'Менеджер сущности не содержит обязательную транзакцию'
+
+}
