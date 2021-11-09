@@ -158,11 +158,14 @@ export class MethodService implements IMethodService {
                 namespace: namespace
             })
         } catch(error) {
-            if ((error as any)?.driverError?.code === 'SQLITE_CONSTRAINT_FOREIGNKEY') {
-                throw new MethodUsedError
+            switch ((error as any)?.driverError?.code) {
+                case 'SQLITE_CONSTRAINT_FOREIGNKEY':
+                    throw new MethodUsedError
+                case 'SQLITE_CONSTRAINT_TRIGGER':
+                    throw new MethodUsedError
+                default:
+                    throw error
             }
-
-            throw error
         }
 
         this.namespaces.delete(namespace)

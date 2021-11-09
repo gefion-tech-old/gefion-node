@@ -36,7 +36,19 @@ class Test {
     method: Method
 
 }
+@Entity()
+class Test2 {
+    @PrimaryGeneratedColumn()
+    id: number
+
+    @OneToOne(() => Method, {
+        onDelete: 'RESTRICT'
+    })
+    @JoinColumn()
+    method: Method
+}
 addTestEntity(Test)
+addTestEntity(Test2)
 /**
  * -----
  */
@@ -252,6 +264,11 @@ describe('MethodService в MethodModule', () => {
             .then(connection => {
                 return connection.getRepository(Test)
             })
+        const test2Repository = await container
+            .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            .then(connection => {
+                return connection.getRepository(Test2)
+            })
         const methodRepository = await container
             .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
             .then(connection => {
@@ -287,6 +304,22 @@ describe('MethodService в MethodModule', () => {
         }
 
         await testRepository.save({
+            method: methodObject
+        })
+
+        await expect(methodService.removeNamespace('namespace'))
+            .rejects
+            .toBeInstanceOf(MethodUsedError)
+        await expect(methodService.getMethodId(method1))
+            .resolves
+            .toBeDefined()
+        await expect(methodService.getMethodId(method2))
+            .resolves
+            .toBeDefined()
+
+        await testRepository.clear()
+
+        await test2Repository.save({
             method: methodObject
         })
 

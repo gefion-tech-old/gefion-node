@@ -141,9 +141,6 @@ describe('API SetInterval System V1', () => {
         
         const intervalFn = jest.fn()
         const testObject = {
-            log: (params: any[]) => {
-                console.log(...params)
-            },
             intervalFn: () => {
                 intervalFn()
             }
