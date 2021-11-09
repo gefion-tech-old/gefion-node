@@ -174,11 +174,14 @@ export class MethodService implements IMethodService {
         try {
             await methodRepository.delete(method)
         } catch(error) {
-            if ((error as any)?.driverError?.code === 'SQLITE_CONSTRAINT_FOREIGNKEY') {
-                throw new MethodUsedError
+            switch ((error as any)?.driverError?.code) {
+                case 'SQLITE_CONSTRAINT_FOREIGNKEY':
+                    throw new MethodUsedError
+                case 'SQLITE_CONSTRAINT_TRIGGER':
+                    throw new MethodUsedError
+                default:
+                    throw error
             }
-
-            throw error
         }
 
         const namespace = this.namespaces.get(method.namespace)
@@ -211,7 +214,10 @@ export class MethodService implements IMethodService {
                     await entityManager.query(`SAVEPOINT "${savepoint}"`)
                     await methodRepository.delete(method)
                 } catch(error) {
-                    if ((error as any)?.driverError?.code === 'SQLITE_CONSTRAINT_FOREIGNKEY') {
+                    if (
+                        (error as any)?.driverError?.code === 'SQLITE_CONSTRAINT_FOREIGNKEY'
+                        || (error as any)?.driverError?.code === 'SQLITE_CONSTRAINT_TRIGGER'
+                    ) {
                         await entityManager.query(`ROLLBACK TO SAVEPOINT "${savepoint}"`)
                         continue
                     }
