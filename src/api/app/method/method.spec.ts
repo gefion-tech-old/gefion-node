@@ -4,9 +4,11 @@ import { METHOD_SYMBOL } from './method.types'
 import {
     HandlerAlreadyAttached,
     MethodNotAvailable,
-    MethodUsedError,
-    EntityManagerWithoutTransaction
+    MethodUsedError
 } from './method.errors'
+import {
+    EntityManagerWithoutTransaction
+} from '../../../core/typeorm/typeorm.errors'
 import { 
     Entity, 
     OneToOne, 

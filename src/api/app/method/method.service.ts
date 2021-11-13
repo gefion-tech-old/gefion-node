@@ -15,12 +15,12 @@ import { Method as MethodEntity } from '../entities/method.entity'
 import { 
     HandlerAlreadyAttached,
     MethodNotAvailable,
-    MethodUsedError,
-    EntityManagerWithoutTransaction
+    MethodUsedError
 } from './method.errors'
 import { RPC_SYMBOL } from '../../../core/rpc/rpc.types'
 import { IRPCService } from '../../../core/rpc/rpc.interface'
 import uniqid from 'uniqid'
+import { activeTransaction } from '../../../core/typeorm/utils/active-transaction'
 
 @injectable()
 export class MethodService implements IMethodService {
@@ -198,9 +198,7 @@ export class MethodService implements IMethodService {
 
     public async removeMethods(methods: Method[], transactionEntityManager?: EntityManager): Promise<void> {
         if (transactionEntityManager) {
-            if (transactionEntityManager.queryRunner?.isTransactionActive !== true) {
-                throw new EntityManagerWithoutTransaction
-            }
+            activeTransaction(transactionEntityManager)
         }
 
         /**
@@ -217,15 +215,16 @@ export class MethodService implements IMethodService {
                     await entityManager.query(`SAVEPOINT "${savepoint}"`)
                     await methodRepository.delete(method)
                 } catch(error) {
-                    if (
-                        (error as any)?.driverError?.code === 'SQLITE_CONSTRAINT_FOREIGNKEY'
-                        || (error as any)?.driverError?.code === 'SQLITE_CONSTRAINT_TRIGGER'
-                    ) {
-                        await entityManager.query(`ROLLBACK TO SAVEPOINT "${savepoint}"`)
-                        continue
+                    switch((error as any)?.driverError?.code) {
+                        case 'SQLITE_CONSTRAINT_FOREIGNKEY':
+                            await entityManager.query(`ROLLBACK TO SAVEPOINT "${savepoint}"`)
+                            continue
+                        case 'SQLITE_CONSTRAINT_TRIGGER':
+                            await entityManager.query(`ROLLBACK TO SAVEPOINT "${savepoint}"`)
+                            continue
+                        default:
+                            throw error
                     }
-    
-                    throw error
                 }
     
                 const namespace = this.namespaces.get(method.namespace)
