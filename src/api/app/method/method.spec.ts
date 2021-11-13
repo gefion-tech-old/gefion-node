@@ -17,7 +17,7 @@ import {
     Connection
 } from 'typeorm'
 import { TYPEORM_SYMBOL } from '../../../core/typeorm/typeorm.types'
-import { addTestEntity } from '../../../utils/test-entities'
+import { addTestEntity } from '../../../core/typeorm/utils/test-entities'
 import { getRPCService } from '../../../core/rpc/__mock/RPCService.mock'
 import { RPC_SYMBOL } from '../../../core/rpc/rpc.types'
 import { Method } from '../entities/method.entity'

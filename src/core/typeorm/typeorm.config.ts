@@ -1,7 +1,7 @@
 import { interfaces } from 'inversify'
 import { TYPEORM_SYMBOL } from './typeorm.types'
 import { ConnectionOptions } from 'typeorm'
-import { getTestEntities } from '../../utils/test-entities'
+import { getTestEntities } from './utils/test-entities'
 
 export async function getConfigAppTypeormConnection(context: interfaces.Context): Promise<ConnectionOptions> {
     const container = context.container
