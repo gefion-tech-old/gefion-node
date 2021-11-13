@@ -21,6 +21,7 @@ import { RPC_SYMBOL } from '../../../core/rpc/rpc.types'
 import { IRPCService } from '../../../core/rpc/rpc.interface'
 import uniqid from 'uniqid'
 import { activeTransaction } from '../../../core/typeorm/utils/active-transaction'
+import { isErrorCode, SqliteErrorCode } from '../../../core/typeorm/utils/error-code'
 
 @injectable()
 export class MethodService implements IMethodService {
@@ -62,18 +63,14 @@ export class MethodService implements IMethodService {
     public async method(options: MethodOptions): Promise<void> {
         const methodRepository = await this.methodRepository
         
-        /**
-         * Игнорировать ошибку уникальности, ведь она указывает на то,
-         * что метод уже создан
-         */
-        block: {
-            try {
-                await methodRepository.save(options)
-            } catch(error) {
-                if ((error as any)?.driverError?.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-                    break block
-                }
-    
+        try {
+            await methodRepository.save(options)
+        } catch(error) {
+            /**
+             * Игнорировать ошибку уникальности, ведь она указывает на то,
+             * что метод уже создан, а это ожидаемая ситуация
+             */
+            if (!isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_UNIQUE)) {
                 throw error
             }
         }
@@ -158,14 +155,14 @@ export class MethodService implements IMethodService {
                 namespace: namespace
             })
         } catch(error) {
-            switch ((error as any)?.driverError?.code) {
-                case 'SQLITE_CONSTRAINT_FOREIGNKEY':
-                    throw new MethodUsedError
-                case 'SQLITE_CONSTRAINT_TRIGGER':
-                    throw new MethodUsedError
-                default:
-                    throw error
+            if (isErrorCode(error, [
+                SqliteErrorCode.SQLITE_CONSTRAINT_FOREIGNKEY,
+                SqliteErrorCode.SQLITE_CONSTRAINT_TRIGGER
+            ])) {
+                throw new MethodUsedError
             }
+
+            throw error
         }
 
         this.namespaces.delete(namespace)
@@ -177,14 +174,14 @@ export class MethodService implements IMethodService {
         try {
             await methodRepository.delete(method)
         } catch(error) {
-            switch ((error as any)?.driverError?.code) {
-                case 'SQLITE_CONSTRAINT_FOREIGNKEY':
-                    throw new MethodUsedError
-                case 'SQLITE_CONSTRAINT_TRIGGER':
-                    throw new MethodUsedError
-                default:
-                    throw error
+            if (isErrorCode(error, [
+                SqliteErrorCode.SQLITE_CONSTRAINT_FOREIGNKEY,
+                SqliteErrorCode.SQLITE_CONSTRAINT_TRIGGER
+            ])) {
+                throw new MethodUsedError
             }
+
+            throw error
         }
 
         const namespace = this.namespaces.get(method.namespace)
@@ -215,16 +212,15 @@ export class MethodService implements IMethodService {
                     await entityManager.query(`SAVEPOINT "${savepoint}"`)
                     await methodRepository.delete(method)
                 } catch(error) {
-                    switch((error as any)?.driverError?.code) {
-                        case 'SQLITE_CONSTRAINT_FOREIGNKEY':
-                            await entityManager.query(`ROLLBACK TO SAVEPOINT "${savepoint}"`)
-                            continue
-                        case 'SQLITE_CONSTRAINT_TRIGGER':
-                            await entityManager.query(`ROLLBACK TO SAVEPOINT "${savepoint}"`)
-                            continue
-                        default:
-                            throw error
+                    if (isErrorCode(error, [
+                        SqliteErrorCode.SQLITE_CONSTRAINT_FOREIGNKEY,
+                        SqliteErrorCode.SQLITE_CONSTRAINT_TRIGGER
+                    ])) {
+                        await entityManager.query(`ROLLBACK TO SAVEPOINT "${savepoint}"`)
+                        continue
                     }
+
+                    throw error
                 }
     
                 const namespace = this.namespaces.get(method.namespace)

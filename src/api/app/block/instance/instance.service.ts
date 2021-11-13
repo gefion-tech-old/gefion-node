@@ -68,21 +68,11 @@ export class InstanceService implements IInstanceService {
          * его идентификатор
          */
          const instanceId = await (async () => {
-            try {
-                const instanceEntity = await instanceRepository.save({
-                    blockVersion: version
-                })
+            const instanceEntity = await instanceRepository.save({
+                blockVersion: version
+            })
 
-                return instanceEntity.id
-            } catch(error) {
-                if ((error as any)?.driverError?.code === 'SQLITE_CONSTRAINT_NOTNULL') {
-                    if ((error as any)?.driverError?.message === 'NOT NULL constraint failed: block_instance.blockVersionId') {
-                        throw new NotExistBlockVersion(versionInfo)
-                    }
-                }
-        
-                throw error
-            }
+            return instanceEntity.id
         })()
 
         return instanceId

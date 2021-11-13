@@ -8,6 +8,7 @@ import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
 import { BlockVersion } from '../../entities/block-version.entity'
 import { Repository, Connection } from 'typeorm'
 import { BlockVersionInUse, BlockVersionAlreadyExists } from './version.errors'
+import { isErrorCode, SqliteErrorCode } from '../../../../core/typeorm/utils/error-code'
 
 @injectable()
 export class VersionService implements IVersionService {
@@ -34,7 +35,7 @@ export class VersionService implements IVersionService {
                 path: options.path
             })
         } catch(error) {
-            if ((error as any)?.driverError?.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+            if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_UNIQUE)) {
                 throw new BlockVersionAlreadyExists()
             }
 
@@ -57,7 +58,7 @@ export class VersionService implements IVersionService {
         try {
             await versionRepository.remove(block)
         } catch(error) {
-            if ((error as any)?.driverError?.code === 'SQLITE_CONSTRAINT_FOREIGNKEY') {
+            if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_FOREIGNKEY)) {
                 throw new BlockVersionInUse()
             }
 
