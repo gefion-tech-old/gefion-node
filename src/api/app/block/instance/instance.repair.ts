@@ -49,9 +49,7 @@ export class InstanceRepair implements RepairJob {
 
         const instances = await instanceRepository.find({
             id: Not(In(instanceIds))
-        }) as ({
-            id: number
-        } & BlockInstance)[]
+        })
 
         await Promise.all(instances.map(instance => {
             return this.instanceService.start(instance.id)

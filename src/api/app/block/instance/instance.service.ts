@@ -159,26 +159,24 @@ export class InstanceService implements IInstanceService {
         const instanceRepository = await this.instanceRepository
 
         /**
-         * Остановить и удалить уже запущенный скрипт экземпляра версии,
-         * если он есть
-         */
-        block: {
-            const scriptId = this.getScriptId(instanceId)
-
-            if (!scriptId) {
-                break block
-            }
-
-            this.vmService.remove(scriptId)
-            this.scriptIds.delete(instanceId)
-        }
-
-        /**
          * Удалить созданный экземпляр версии блока из базы данных
          */
         await instanceRepository.delete({
             id: instanceId
         })
+
+        /**
+         * Остановить и удалить уже запущенный скрипт экземпляра версии,
+         * если он есть
+         */
+        const scriptId = this.getScriptId(instanceId)
+
+        if (!scriptId) {
+            return
+        }
+
+        this.vmService.remove(scriptId)
+        this.scriptIds.delete(instanceId)
     }
 
     public getScriptId(instanceId: InstanceId): ScriptID | undefined {
