@@ -17,7 +17,6 @@ export interface BindableResource {
      * Идентификатор ресурса
      */
     id: number
-
     /**
      * Тип ресурса
      */
