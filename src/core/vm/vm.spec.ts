@@ -1227,4 +1227,87 @@ describe('Сервис виртуальной машины', () => {
         container.restore()
     })
 
+    it(`
+        Из внешних источников корректно генерируются ошибки для указанного скрипта
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        const errorEventFn = jest.fn()
+        const MyError = class extends Error {
+            public name = 'MyError'
+        }
+
+        container.rebind(VM_SYMBOL.ScriptStarterService)
+            .to(getScriptStarterService({
+                runFile: () => {}
+            }))
+
+        container.rebind(VM_SYMBOL.VMConfig)
+            .toDynamicValue(getDefaultVMConfig([
+                {
+                    version: 'v4',
+                    properties: [
+                        getAPIPropertyFactory({
+                            name: () => 'test1',
+                            isGlobal: () => true,
+                            stats: () => {
+                                return getAPIPropertyStats({
+                                    stats: () => ({}),
+                                    addStatsSegment: () => {}
+                                })
+                            },
+                            apiProperty: () => getAPIProperty({
+                                hasLink: () => true,
+                                init: () => {
+                                    return {
+                                        name: 'test1'
+                                    }
+                                },
+                                linkCollector: () => {}
+                            })
+                        })
+                    ]
+                }
+            ]))
+
+        const vmService = container
+            .get<IVMService>(VM_SYMBOL.VMService)
+
+        const scriptRunParams = {
+            name: 'Название скрипта 1',
+            path: '/path/path/a1.js',
+            rootDir: '/path/path1',
+            apiProperties: ['test1'],
+        }
+
+        const scriptId = await vmService.run(scriptRunParams)
+
+        expect(vmService.info(scriptId)).not.toBeUndefined()
+
+        vmService.on(scriptId, ScriptEvent.activity, (info: ScriptActivityInfo) => {
+            if (info.event === ScriptEvent.error) {
+                expect(info.params).toMatchObject({
+                    name: 'ScriptError',
+                    scriptId: scriptId,
+                    error: new MyError
+                })
+                errorEventFn()
+            }
+        })
+
+        expect(vmService.error(scriptId, new MyError)).toBeUndefined()
+
+        expect(errorEventFn).toHaveBeenCalledTimes(1)
+        expect(vmService.info(scriptId)?.errors).toHaveLength(1)
+        expect(vmService.info(scriptId)?.dateEnd).toBeUndefined()
+        expect(vmService.info(scriptId)?.errors[0]).toMatchObject({
+            name: 'ScriptError',
+            scriptId: scriptId,
+            error: new MyError
+        })
+
+        container.restore()
+    })
+
 })

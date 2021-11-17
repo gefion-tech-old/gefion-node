@@ -421,6 +421,19 @@ export class VMService implements IVMService {
         metaScript.eventEmitter.on(event, handler)
     }
 
+    public error(scriptId: ScriptID, error: any): void {
+        const metaScript = this.metaScripts.get(scriptId)
+
+        if (!metaScript) {
+            return
+        }
+
+        metaScript.eventEmitter.emit(
+            ScriptEvent.error, 
+            new ScriptError(scriptId, error)
+        )
+    }
+
     public remove(scriptId: ScriptID): void {
         const metaScript = this.metaScripts.get(scriptId)
 

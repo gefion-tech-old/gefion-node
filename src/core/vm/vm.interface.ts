@@ -46,4 +46,9 @@ export interface IVMService {
     on(scriptId: ScriptID, event: symbol, handler: (info: ScriptActivityInfo) => void): void
     on(scriptId: ScriptID, event: symbol, handler: () => void): void
 
+    /**
+     * Сгенерировать ошибку для указанного скрипта
+     */
+    error(scriptId: ScriptID, error: any): void
+
 }
