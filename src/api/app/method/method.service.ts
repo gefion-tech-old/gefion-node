@@ -22,6 +22,8 @@ import { IRPCService } from '../../../core/rpc/rpc.interface'
 import uniqid from 'uniqid'
 import { activeTransaction } from '../../../core/typeorm/utils/active-transaction'
 import { isErrorCode, SqliteErrorCode } from '../../../core/typeorm/utils/error-code'
+import { ICreatorService } from '../creator/creator.interface'
+import { CREATOR_SYMBOL, ResourceType } from '../creator/creator.types'
 
 @injectable()
 export class MethodService implements IMethodService {
@@ -35,7 +37,10 @@ export class MethodService implements IMethodService {
         connection: Promise<Connection>,
 
         @inject(RPC_SYMBOL.RPCService)
-        private rpcService: IRPCService
+        private rpcService: IRPCService,
+
+        @inject(CREATOR_SYMBOL.CreatorService)
+        private creatorService: ICreatorService
     ) {
         this.connection = connection
         this.methodRepository = connection
@@ -61,19 +66,34 @@ export class MethodService implements IMethodService {
     }
 
     public async method(options: MethodOptions): Promise<void> {
-        const methodRepository = await this.methodRepository
+        const connection = await this.connection
         
-        try {
-            await methodRepository.save(options)
-        } catch(error) {
-            /**
-             * Игнорировать ошибку уникальности, ведь она указывает на то,
-             * что метод уже создан, а это ожидаемая ситуация
-             */
-            if (!isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_UNIQUE)) {
-                throw error
+        await connection.manager.transaction(async transactionEntityManager => {
+            const methodRepository = transactionEntityManager.getRepository(MethodEntity)
+
+            const methodEntity = await (async (): Promise<MethodEntity | undefined> => {
+                try {
+                    return await methodRepository.save(options)
+                } catch(error) {
+                    /**
+                     * Игнорировать ошибку уникальности, ведь она указывает на то,
+                     * что метод уже создан, а это ожидаемая ситуация
+                     */
+                    if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_UNIQUE)) {
+                        return
+                    }
+
+                    throw error
+                }
+            })()
+
+            if (methodEntity) {
+                await this.creatorService.bind({
+                    type: ResourceType.Method,
+                    id: methodEntity.id
+                }, options.creator)
             }
-        }
+        })
         
         /**
          * Получить карту пространства имен, если её ещё не существует,

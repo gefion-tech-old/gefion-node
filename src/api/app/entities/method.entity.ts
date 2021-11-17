@@ -1,5 +1,10 @@
 import { injectable } from 'inversify'
-import { Unique, Entity, Column, PrimaryGeneratedColumn } from 'typeorm'
+import { 
+    Unique,
+    Entity,
+    Column,
+    PrimaryGeneratedColumn
+} from 'typeorm'
 
 @injectable()
 @Entity()

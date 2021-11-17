@@ -1,3 +1,5 @@
+import { BindableCreator } from '../creator/creator.types'
+
 export const METHOD_SYMBOL = {
     MethodEntity: Symbol('MethodEntity'),
     MethodService: Symbol('MethodService'),
@@ -22,6 +24,11 @@ export interface Method {
 }
 
 export interface MethodOptions extends Method {
+    /**
+     * Создатель метода
+     */
+    readonly creator: BindableCreator
+
     /**
      * Обработчик метода
      */

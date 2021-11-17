@@ -21,6 +21,7 @@ import { addTestEntity } from '../../../core/typeorm/utils/test-entities'
 import { getRPCService } from '../../../core/rpc/__mock/RPCService.mock'
 import { RPC_SYMBOL } from '../../../core/rpc/rpc.types'
 import { Method } from '../entities/method.entity'
+import { CreatorType } from '../creator/creator.types'
 
 /**
  * Добавление тестовой сущности
@@ -97,6 +98,9 @@ describe('MethodService в MethodModule', () => {
             handler: (boolean) => {
                 handler1Fn()
                 return boolean
+            },
+            creator: {
+                type: CreatorType.System
             }
         })
         await methodService.method({
@@ -104,6 +108,9 @@ describe('MethodService в MethodModule', () => {
             handler: (boolean) => {
                 handler2Fn()
                 return boolean
+            },
+            creator: {
+                type: CreatorType.System
             }
         })
 
@@ -167,6 +174,9 @@ describe('MethodService в MethodModule', () => {
             handler: (boolean) => {
                 handler1Fn()
                 return boolean
+            },
+            creator: {
+                type: CreatorType.System
             }
         })).resolves.toBeUndefined()
         await expect(methodService.method({
@@ -174,6 +184,9 @@ describe('MethodService в MethodModule', () => {
             handler: () => {
                 handler2Fn()
                 return 'xxx'
+            },
+            creator: {
+                type: CreatorType.System
             }
         })).rejects.toBeInstanceOf(HandlerAlreadyAttached)
 
@@ -230,11 +243,17 @@ describe('MethodService в MethodModule', () => {
 
         await methodService.method({
             ...method1,
-            handler: () => {}
+            handler: () => {},
+            creator: {
+                type: CreatorType.System
+            }
         })
         await methodService.method({
             ...method2,
-            handler: () => {}
+            handler: () => {},
+            creator: {
+                type: CreatorType.System
+            }
         })
 
         await expect(methodService.removeNamespace('namespace'))
@@ -292,11 +311,17 @@ describe('MethodService в MethodModule', () => {
 
         await methodService.method({
             ...method1,
-            handler: () => {}
+            handler: () => {},
+            creator: {
+                type: CreatorType.System
+            }
         })
         await methodService.method({
             ...method2,
-            handler: () => {}
+            handler: () => {},
+            creator: {
+                type: CreatorType.System
+            }
         })
 
         const methodObject = await methodRepository.findOne(method1)
@@ -374,7 +399,10 @@ describe('MethodService в MethodModule', () => {
 
         await methodService.method({
             ...method1,
-            handler: () => {}
+            handler: () => {},
+            creator: {
+                type: CreatorType.System
+            }
         })
 
         await expect(methodService.isConsistent(method1))
@@ -420,7 +448,10 @@ describe('MethodService в MethodModule', () => {
 
         await methodService.method({
             ...method1,
-            handler: () => {}
+            handler: () => {},
+            creator: {
+                type: CreatorType.System
+            }
         })
 
         await expect(methodService.isConsistent(method1))
@@ -500,7 +531,10 @@ describe('MethodService в MethodModule', () => {
 
         await methodService.method({
             ...method1,
-            handler: () => {}
+            handler: () => {},
+            creator: {
+                type: CreatorType.System
+            }
         })
 
         const methodObject = await methodRepository.findOne(method1)
@@ -542,11 +576,17 @@ describe('MethodService в MethodModule', () => {
 
         await methodService.method({
             ...method1,
-            handler: () => {}
+            handler: () => {},
+            creator: {
+                type: CreatorType.System
+            }
         })
         await methodService.method({
             ...method2,
-            handler: () => {}
+            handler: () => {},
+            creator: {
+                type: CreatorType.System
+            }
         })
 
         await expect(methodService.removeMethod(method1))
@@ -604,15 +644,24 @@ describe('MethodService в MethodModule', () => {
 
         await methodService.method({
             ...method1,
-            handler: () => {}
+            handler: () => {},
+            creator: {
+                type: CreatorType.System
+            }
         })
         await methodService.method({
             ...method2,
-            handler: () => {}
+            handler: () => {},
+            creator: {
+                type: CreatorType.System
+            }
         })
         await methodService.method({
             ...method3,
-            handler: () => {}
+            handler: () => {},
+            creator: {
+                type: CreatorType.System
+            }
         })
 
         const method1Entity = await methodRepository.findOne(method1)
@@ -697,15 +746,24 @@ describe('MethodService в MethodModule', () => {
 
         await methodService.method({
             ...method1,
-            handler: () => {}
+            handler: () => {},
+            creator: {
+                type: CreatorType.System
+            }
         })
         await methodService.method({
             ...method2,
-            handler: () => {}
+            handler: () => {},
+            creator: {
+                type: CreatorType.System
+            }
         })
         await methodService.method({
             ...method3,
-            handler: () => {}
+            handler: () => {},
+            creator: {
+                type: CreatorType.System
+            }
         })
 
         const method1Entity = await methodRepository.findOne(method1)
@@ -740,11 +798,17 @@ describe('MethodService в MethodModule', () => {
 
         await methodService.method({
             ...method2,
-            handler: () => {}
+            handler: () => {},
+            creator: {
+                type: CreatorType.System
+            }
         })
         await methodService.method({
             ...method3,
-            handler: () => {}
+            handler: () => {},
+            creator: {
+                type: CreatorType.System
+            }
         })
 
         try {
