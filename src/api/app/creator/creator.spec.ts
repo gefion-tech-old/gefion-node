@@ -12,10 +12,6 @@ import { BlockInstance } from '../entities/block-instance.entity'
 import { BlockVersion } from '../entities/block-version.entity'
 import { Creator } from '../entities/creator.entity'
 import { ResourceAlreadyHasCreator } from './creator.errors'
-import { 
-    InvalidTransactionObject, 
-    EntityManagerWithoutTransaction 
-} from '../../../core/typeorm/typeorm.errors'
 
 beforeAll(async () => {
     const container = await getContainer()
@@ -251,68 +247,6 @@ describe('CreatorService в CreatorModule', () => {
             type: ResourceType.Method,
             id: 1
         })).resolves.toBeUndefined()
-
-        container.restore()
-    })
-
-    it(`
-        Попытка передать некорректный или неактивный менеджер транзакции при привязке создателя
-        завершается исключением
-    `, async () => {
-        const container = await getContainer()
-        container.snapshot()
-
-        const creatorService = container
-            .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
-        const connection = await container
-            .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
-
-        await expect(creatorService.bind({
-            type: ResourceType.Method,
-            id: 1
-        }, {
-            type: CreatorType.System
-        }, {} as any)).rejects.toBeInstanceOf(InvalidTransactionObject)
-
-        await expect(creatorService.bind({
-            type: ResourceType.Method,
-            id: 1
-        }, {
-            type: CreatorType.System
-        }, connection.manager)).rejects.toBeInstanceOf(EntityManagerWithoutTransaction)
-
-        container.restore()
-    })
-
-    it(`
-        Привязка создателя ресурса происходит корректно с помощью внешнего менеджера транзакции
-    `, async () => {
-        const container = await getContainer()
-        container.snapshot()
-
-        const creatorService = container
-            .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
-        const connection = await container
-            .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
-        const methodRepository = connection.getRepository(Method)
-        const creatorRepository = connection.getRepository(Creator)
-
-        const methodEntity = await methodRepository.save({
-            name: 'name',
-            namespace: 'namespace',
-            type: 'type'
-        })
-
-        await connection.transaction(async transactionEntityManager => {
-            await expect(creatorService.bind({
-                type: ResourceType.Method,
-                id: methodEntity.id
-            }, {
-                type: CreatorType.System
-            }, transactionEntityManager)).resolves.toBeUndefined()
-        })
-        
-        await expect(creatorRepository.find()).resolves.toHaveLength(1)
 
         container.restore()
     })
