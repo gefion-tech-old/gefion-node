@@ -4,7 +4,8 @@ import {
     ManyToOne,
     PrimaryGeneratedColumn,
     Check,
-    Column
+    Column,
+    Unique
 } from 'typeorm'
 import { BlockInstance } from './block-instance.entity'
 import { Method } from './method.entity'
@@ -16,6 +17,7 @@ import { Method } from './method.entity'
     AND
     (methodId <> NULL)
 `)
+@Unique(['method'])
 export class Creator {
 
     @PrimaryGeneratedColumn()
