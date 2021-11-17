@@ -7,11 +7,12 @@ import {
 } from './creator.types'
 import { TYPEORM_SYMBOL } from '../../../core/typeorm/typeorm.types'
 import { ICreatorService } from './creator.interface'
-import { Connection, Repository } from 'typeorm'
+import { Connection, Repository, EntityManager } from 'typeorm'
 import { Creator } from '../entities/creator.entity'
 import { BlockInstance } from '../entities/block-instance.entity'
 import { ResourceAlreadyHasCreator } from './creator.errors'
 import { isErrorCode, SqliteErrorCode } from '../../../core/typeorm/utils/error-code'
+import { activeTransaction } from '../../../core/typeorm/utils/active-transaction'
 
 @injectable()
 export class CreatorService implements ICreatorService {
@@ -28,8 +29,20 @@ export class CreatorService implements ICreatorService {
             })
     }
 
-    public async bind(resource: BindableResource, creator: BindableCreator): Promise<void> {
-        const creatorRepository = await this.creatorRepository
+    public async bind(
+        resource: BindableResource, 
+        creator: BindableCreator, 
+        transactionEntityManager?: EntityManager
+    ): Promise<void> {
+        if (transactionEntityManager) {
+            activeTransaction(transactionEntityManager)
+        }
+
+        const creatorRepository = (
+            transactionEntityManager 
+            ? transactionEntityManager.getRepository(Creator)
+            : await this.creatorRepository
+        )
         const creatorEntity = creatorRepository.create()
         
         switch (resource.type) {
