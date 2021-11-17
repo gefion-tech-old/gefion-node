@@ -20,7 +20,6 @@ import {
 import { RPC_SYMBOL } from '../../../core/rpc/rpc.types'
 import { IRPCService } from '../../../core/rpc/rpc.interface'
 import uniqid from 'uniqid'
-import { activeTransaction } from '../../../core/typeorm/utils/active-transaction'
 import { isErrorCode, SqliteErrorCode } from '../../../core/typeorm/utils/error-code'
 import { ICreatorService } from '../creator/creator.interface'
 import { CREATOR_SYMBOL, ResourceType } from '../creator/creator.types'
@@ -67,7 +66,7 @@ export class MethodService implements IMethodService {
 
     public async method(options: MethodOptions): Promise<void> {
         const connection = await this.connection
-        
+
         await connection.manager.transaction(async transactionEntityManager => {
             const methodRepository = transactionEntityManager.getRepository(MethodEntity)
 
@@ -213,11 +212,7 @@ export class MethodService implements IMethodService {
         }
     }
 
-    public async removeMethods(methods: Method[], transactionEntityManager?: EntityManager): Promise<void> {
-        if (transactionEntityManager) {
-            activeTransaction(transactionEntityManager)
-        }
-
+    public async removeMethods(methods: Method[]): Promise<void> {
         /**
          * Фактическая функция для удаления методов с помощью переданного менеджера.
          * Игнорировать ошибки внешнего ключа
@@ -256,16 +251,10 @@ export class MethodService implements IMethodService {
         /**
          * Фактическое удаление методов с помощью транзакционного менеджера
          */
-        if (transactionEntityManager) {
+        const connection = await this.connection
+        await connection.manager.transaction(async transactionEntityManager => {
             await removeMethods(transactionEntityManager)
-        } else {
-            const connection = await this.connection
-            const manager = connection.manager
-
-            await manager.transaction(async transactionEntityManager => {
-                await removeMethods(transactionEntityManager)
-            })
-        }
+        })
     }
 
     public async isConsistent(method: Method): Promise<boolean | undefined> {

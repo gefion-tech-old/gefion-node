@@ -33,10 +33,7 @@ export interface IMethodService {
 
     /**
      * Удалить все указанные методы, если на них не ссылается никаких внешних
-     * ключей. 
-     * 
-     * Если транзакция откатывается в результате внешней ошибки, то не стоит забывать, что 
-     * внутренний обработчик метода все равно будет удалён
+     * ключей
      */
     removeMethods(methods: Method[], transactionEntityManager?: EntityManager): Promise<void>
 
