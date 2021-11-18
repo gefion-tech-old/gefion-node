@@ -4,7 +4,8 @@ import { ScriptID } from '../../../core/vm/vm.types'
 export const METHOD_SYMBOL = {
     MethodEntity: Symbol('MethodEntity'),
     MethodService: Symbol('MethodService'),
-    MethodIsAvailableRPC: Symbol('MethodIsAvailableRPC')
+    MethodIsAvailableRPC: Symbol('MethodIsAvailableRPC'),
+    IssueService: Symbol('IssueService')
 }
 
 export type MethodId = number
