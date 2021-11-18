@@ -13,13 +13,15 @@ import {
     NotExistBlockVersion,
     BlockVersionFolderNotFound,
     BlockVersionIndexFileNotFound,
-    NotExistBlockVersionInstance
+    NotExistBlockVersionInstance,
+    InstanceBlockVersionInUse
 } from './instance.error'
 import { BlockVersion } from '../../entities/block-version.entity'
 import { IVMService } from '../../../../core/vm/vm.interface'
 import { VM_SYMBOL } from '../../../../core/vm/vm.types'
 import path from 'path'
 import { pathExists } from 'fs-extra'
+import { isErrorCode, SqliteErrorCode } from '../../../../core/typeorm/utils/error-code'
 
 @injectable()
 export class InstanceService implements IInstanceService {
@@ -161,9 +163,20 @@ export class InstanceService implements IInstanceService {
         /**
          * Удалить созданный экземпляр версии блока из базы данных
          */
-        await instanceRepository.delete({
-            id: instanceId
-        })
+        try {
+            await instanceRepository.delete({
+                id: instanceId
+            })
+        } catch(error) {
+            if (isErrorCode(error, [
+                SqliteErrorCode.SQLITE_CONSTRAINT_TRIGGER,
+                SqliteErrorCode.SQLITE_CONSTRAINT_FOREIGNKEY
+            ])) {
+                throw new InstanceBlockVersionInUse
+            }
+
+            throw error
+        }
 
         /**
          * Остановить и удалить уже запущенный скрипт экземпляра версии,

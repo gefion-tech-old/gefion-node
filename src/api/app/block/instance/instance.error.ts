@@ -35,3 +35,10 @@ export class BlockVersionIndexFileNotFound extends BlockInstanceError {
     public message = 'Индексный файл указанной версии блока не найден'
 
 }
+
+export class InstanceBlockVersionInUse extends BlockInstanceError {
+
+    public name = 'InstanceBlockVersionInUse'
+    public message = 'Попытка удалить используемый экземпляр версии блока'
+
+}

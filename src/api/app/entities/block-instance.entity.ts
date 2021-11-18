@@ -3,8 +3,7 @@ import {
     Entity, 
     PrimaryGeneratedColumn, 
     CreateDateColumn,
-    ManyToOne,
-    UpdateDateColumn
+    ManyToOne
 } from 'typeorm'
 import { BlockVersion } from './block-version.entity'
 
@@ -19,11 +18,6 @@ export class BlockInstance {
         nullable: false
     })
     createdAt: Date
-
-    @UpdateDateColumn({
-        nullable: false
-    })
-    updatedAt: Date
 
     @ManyToOne(() => BlockVersion, version => version.instances, {
         nullable: false

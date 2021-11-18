@@ -58,7 +58,10 @@ export class VersionService implements IVersionService {
         try {
             await versionRepository.remove(block)
         } catch(error) {
-            if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_FOREIGNKEY)) {
+            if (isErrorCode(error, [
+                SqliteErrorCode.SQLITE_CONSTRAINT_FOREIGNKEY,
+                SqliteErrorCode.SQLITE_CONSTRAINT_TRIGGER
+            ])) {
                 throw new BlockVersionInUse()
             }
 

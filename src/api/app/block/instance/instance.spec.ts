@@ -5,17 +5,45 @@ import {
     NotExistBlockVersion,
     NotExistBlockVersionInstance,
     BlockVersionFolderNotFound,
-    BlockVersionIndexFileNotFound
+    BlockVersionIndexFileNotFound,
+    InstanceBlockVersionInUse
 } from './instance.error'
 import { VM_SYMBOL } from '../../../../core/vm/vm.types'
 import { IVMService } from '../../../../core/vm/vm.interface'
 import { getVMService } from '../../../../core/vm/__mock/VMService.mock'
 import path from 'path'
-import { Connection } from 'typeorm'
+import { injectable } from 'inversify'
+import { 
+    Connection, 
+    Entity, 
+    PrimaryGeneratedColumn,
+    ManyToOne
+} from 'typeorm'
 import { BlockInstance } from '../../entities/block-instance.entity'
 import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
 import { IVersionService } from '../version/version.interface'
 import { REPAIR_TYPES, RepairJob } from '../../../../core/repair/repair.types'
+import { addTestEntity } from '../../../../core/typeorm/utils/test-entities'
+
+/**
+ * Объявление тестовых сущностей typeorm
+ */
+// -------------
+@Entity()
+@injectable()
+class InstanceTestEntity {
+
+    @PrimaryGeneratedColumn()
+    id: number
+
+    @ManyToOne(() => BlockInstance, {
+        onDelete: 'RESTRICT'
+    })
+    blockInstance: BlockInstance
+
+}
+addTestEntity(InstanceTestEntity)
+// -------------
 
 beforeAll(async () => {
     const container = await getContainer()
@@ -320,6 +348,43 @@ describe('InstanceService в BlockModule', () => {
 
         expect(vmRemoveFn).toBeCalledTimes(1)
         expect(vmRemoveFn).toBeCalledWith(scriptId)
+
+        container.restore()
+    })
+
+    it(`
+        Попытка удалить экземпляр версии блока, к которому привязаны какие-либо
+        внешние ресурсы приводит к исключению
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        const connection = await container
+            .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+        const instanceTestEntityRepository = connection.getRepository(InstanceTestEntity)
+        const instanceService = container
+            .get<IInstanceService>(BLOCK_SYMBOL.BlockInstanceService)
+        const versionService = container
+            .get<IVersionService>(BLOCK_SYMBOL.BlockVersionService)
+
+        const versionInfo = {
+            name: 'test',
+            version: 'test',
+            path: path.join(__dirname, './__test')
+        }
+
+        await versionService.associate(versionInfo)
+
+        const instanceId = await instanceService.create(versionInfo)
+        await instanceService.start(instanceId)
+
+        await instanceTestEntityRepository.save({
+            blockInstance: { id: instanceId }
+        })
+
+        await expect(instanceService.remove(instanceId))
+            .rejects
+            .toBeInstanceOf(InstanceBlockVersionInUse)
 
         container.restore()
     })

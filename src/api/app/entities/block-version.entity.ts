@@ -5,7 +5,6 @@ import {
     Column,
     Unique, 
     CreateDateColumn,
-    UpdateDateColumn,
     OneToMany
 } from 'typeorm'
 import { BlockInstance } from './block-instance.entity'
@@ -38,14 +37,7 @@ export class BlockVersion {
     })
     createdAt: Date
 
-    @UpdateDateColumn({
-        nullable: false
-    })
-    updatedAt: Date
-
     @OneToMany(() => BlockInstance, instance => instance.blockVersion)
     instances: BlockInstance[]
-
-    // TODO: Добавить список тегов 
 
 }
