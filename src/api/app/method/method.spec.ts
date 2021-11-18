@@ -7,7 +7,7 @@ import {
     MethodUsedError,
     InvalidScriptID
 } from './method.errors'
-import { 
+import {
     Entity, 
     OneToOne, 
     JoinColumn, 
@@ -22,7 +22,6 @@ import { Method } from '../entities/method.entity'
 import { CreatorType } from '../creator/creator.types'
 import { VM_SYMBOL } from '../../../core/vm/vm.types'
 import { getVMService } from '../../../core/vm/__mock/VMService.mock'
-import { getMethodHandler } from './__helper/getMethodHandler.helper'
 
 /**
  * Добавление тестовой сущности
@@ -79,13 +78,13 @@ describe('MethodService в MethodModule', () => {
 
         container.rebind(VM_SYMBOL.VMService)
             .to(getVMService({
+                error: () => {},
                 info: () => ({} as any),
-                listScripts: () => [],
                 on: () => {},
                 remove: () => {},
                 run: async () => Symbol('name'),
-                stats: async () => undefined,
-                error: () => {}
+                stats: async () => [],
+                listScripts: () => []
             }))
             .inSingletonScope()
 
@@ -108,23 +107,25 @@ describe('MethodService в MethodModule', () => {
 
         await methodService.method({
             ...method1,
-            handler: getMethodHandler((boolean) => {
+            handler: (boolean) => {
                 handler1Fn()
                 return boolean
-            }, Symbol('name')),
+            },
             creator: {
                 type: CreatorType.System
-            }
+            },
+            scriptId: Symbol('name')
         })
         await methodService.method({
             ...method2,
-            handler: getMethodHandler((boolean) => {
+            handler: (boolean) => {
                 handler2Fn()
                 return boolean
-            }, Symbol('name')),
+            },
             creator: {
                 type: CreatorType.System
-            }
+            },
+            scriptId: Symbol('name')
         })
 
         await expect(methodService.getMethodId(method1))
@@ -172,13 +173,13 @@ describe('MethodService в MethodModule', () => {
 
         container.rebind(VM_SYMBOL.VMService)
             .to(getVMService({
+                error: () => {},
                 info: () => ({} as any),
-                listScripts: () => [],
                 on: () => {},
                 remove: () => {},
                 run: async () => Symbol('name'),
-                stats: async () => undefined,
-                error: () => {}
+                stats: async () => [],
+                listScripts: () => []
             }))
             .inSingletonScope()
 
@@ -196,23 +197,25 @@ describe('MethodService в MethodModule', () => {
 
         await expect(methodService.method({
             ...method1,
-            handler: getMethodHandler((boolean) => {
+            handler: (boolean) => {
                 handler1Fn()
                 return boolean
-            }, Symbol('name')),
+            },
             creator: {
                 type: CreatorType.System
-            }
+            },
+            scriptId: Symbol('name')
         })).resolves.toBeUndefined()
         await expect(methodService.method({
             ...method1,
-            handler: getMethodHandler(() => {
+            handler: () => {
                 handler2Fn()
                 return 'xxx'
-            }, Symbol('name')),
+            },
             creator: {
                 type: CreatorType.System
-            }
+            },
+            scriptId: Symbol('name')
         })).rejects.toBeInstanceOf(HandlerAlreadyAttached)
 
         expect(methodService.call({
@@ -230,18 +233,6 @@ describe('MethodService в MethodModule', () => {
     `, async () => {
         const container = await getContainer()
         container.snapshot()
-
-        container.rebind(VM_SYMBOL.VMService)
-            .to(getVMService({
-                info: () => ({} as any),
-                listScripts: () => [],
-                on: () => {},
-                remove: () => {},
-                run: async () => Symbol('name'),
-                stats: async () => undefined,
-                error: () => {}
-            }))
-            .inSingletonScope()
 
         const methodService = container
             .get<IMethodService>(METHOD_SYMBOL.MethodService)
@@ -266,13 +257,13 @@ describe('MethodService в MethodModule', () => {
 
         container.rebind(VM_SYMBOL.VMService)
             .to(getVMService({
+                error: () => {},
                 info: () => ({} as any),
-                listScripts: () => [],
                 on: () => {},
                 remove: () => {},
                 run: async () => Symbol('name'),
-                stats: async () => undefined,
-                error: () => {}
+                stats: async () => [],
+                listScripts: () => []
             }))
             .inSingletonScope()
 
@@ -292,17 +283,19 @@ describe('MethodService в MethodModule', () => {
 
         await methodService.method({
             ...method1,
-            handler: getMethodHandler(() => {}, Symbol('name')),
+            handler: () => {},
             creator: {
                 type: CreatorType.System
-            }
+            },
+            scriptId: Symbol('name')
         })
         await methodService.method({
             ...method2,
-            handler: getMethodHandler(() => {}, Symbol('name')),
+            handler: () => {},
             creator: {
                 type: CreatorType.System
-            }
+            },
+            scriptId: Symbol('name')
         })
 
         await expect(methodService.removeNamespace('namespace'))
@@ -331,13 +324,13 @@ describe('MethodService в MethodModule', () => {
 
         container.rebind(VM_SYMBOL.VMService)
             .to(getVMService({
+                error: () => {},
                 info: () => ({} as any),
-                listScripts: () => [],
                 on: () => {},
                 remove: () => {},
                 run: async () => Symbol('name'),
-                stats: async () => undefined,
-                error: () => {}
+                stats: async () => [],
+                listScripts: () => []
             }))
             .inSingletonScope()
 
@@ -372,17 +365,19 @@ describe('MethodService в MethodModule', () => {
 
         await methodService.method({
             ...method1,
-            handler: getMethodHandler(() => {}, Symbol('name')),
+            handler: () => {},
             creator: {
                 type: CreatorType.System
-            }
+            },
+            scriptId: Symbol('name')
         })
         await methodService.method({
             ...method2,
-            handler: getMethodHandler(() => {}, Symbol('name')),
+            handler: () => {},
             creator: {
                 type: CreatorType.System
-            }
+            },
+            scriptId: Symbol('name')
         })
 
         const methodObject = await methodRepository.findOne(method1)
@@ -432,13 +427,13 @@ describe('MethodService в MethodModule', () => {
 
         container.rebind(VM_SYMBOL.VMService)
             .to(getVMService({
+                error: () => {},
                 info: () => ({} as any),
-                listScripts: () => [],
                 on: () => {},
                 remove: () => {},
                 run: async () => Symbol('name'),
-                stats: async () => undefined,
-                error: () => {}
+                stats: async () => [],
+                listScripts: () => []
             }))
             .inSingletonScope()
 
@@ -472,10 +467,11 @@ describe('MethodService в MethodModule', () => {
 
         await methodService.method({
             ...method1,
-            handler: getMethodHandler(() => {}, Symbol('name')),
+            handler: () => {},
             creator: {
                 type: CreatorType.System
-            }
+            },
+            scriptId: Symbol('name')
         })
 
         await expect(methodService.isConsistent(method1))
@@ -493,13 +489,13 @@ describe('MethodService в MethodModule', () => {
 
         container.rebind(VM_SYMBOL.VMService)
             .to(getVMService({
+                error: () => {},
                 info: () => ({} as any),
-                listScripts: () => [],
                 on: () => {},
                 remove: () => {},
                 run: async () => Symbol('name'),
-                stats: async () => undefined,
-                error: () => {}
+                stats: async () => [],
+                listScripts: () => []
             }))
             .inSingletonScope()
 
@@ -533,10 +529,11 @@ describe('MethodService в MethodModule', () => {
 
         await methodService.method({
             ...method1,
-            handler: getMethodHandler(() => {}, Symbol('name')),
+            handler: () => {},
             creator: {
                 type: CreatorType.System
-            }
+            },
+            scriptId: Symbol('name')
         })
 
         await expect(methodService.isConsistent(method1))
@@ -597,13 +594,13 @@ describe('MethodService в MethodModule', () => {
 
         container.rebind(VM_SYMBOL.VMService)
             .to(getVMService({
+                error: () => {},
                 info: () => ({} as any),
-                listScripts: () => [],
                 on: () => {},
                 remove: () => {},
                 run: async () => Symbol('name'),
-                stats: async () => undefined,
-                error: () => {}
+                stats: async () => [],
+                listScripts: () => []
             }))
             .inSingletonScope()
 
@@ -628,10 +625,11 @@ describe('MethodService в MethodModule', () => {
 
         await methodService.method({
             ...method1,
-            handler: getMethodHandler(() => {}, Symbol('name')),
+            handler: () => {},
             creator: {
                 type: CreatorType.System
-            }
+            },
+            scriptId: Symbol('name')
         })
 
         const methodObject = await methodRepository.findOne(method1)
@@ -659,13 +657,13 @@ describe('MethodService в MethodModule', () => {
 
         container.rebind(VM_SYMBOL.VMService)
             .to(getVMService({
+                error: () => {},
                 info: () => ({} as any),
-                listScripts: () => [],
                 on: () => {},
                 remove: () => {},
                 run: async () => Symbol('name'),
-                stats: async () => undefined,
-                error: () => {}
+                stats: async () => [],
+                listScripts: () => []
             }))
             .inSingletonScope()
 
@@ -685,17 +683,19 @@ describe('MethodService в MethodModule', () => {
 
         await methodService.method({
             ...method1,
-            handler: getMethodHandler(() => {}, Symbol('name')),
+            handler: () => {},
             creator: {
                 type: CreatorType.System
-            }
+            },
+            scriptId: Symbol('name')
         })
         await methodService.method({
             ...method2,
-            handler: getMethodHandler(() => {}, Symbol('name')),
+            handler: () => {},
             creator: {
                 type: CreatorType.System
-            }
+            },
+            scriptId: Symbol('name')
         })
 
         await expect(methodService.removeMethod(method1))
@@ -724,13 +724,13 @@ describe('MethodService в MethodModule', () => {
 
         container.rebind(VM_SYMBOL.VMService)
             .to(getVMService({
+                error: () => {},
                 info: () => ({} as any),
-                listScripts: () => [],
                 on: () => {},
                 remove: () => {},
                 run: async () => Symbol('name'),
-                stats: async () => undefined,
-                error: () => {}
+                stats: async () => [],
+                listScripts: () => []
             }))
             .inSingletonScope()
 
@@ -765,24 +765,27 @@ describe('MethodService в MethodModule', () => {
 
         await methodService.method({
             ...method1,
-            handler: getMethodHandler(() => {}, Symbol('name')),
+            handler: () => {},
             creator: {
                 type: CreatorType.System
-            }
+            },
+            scriptId: Symbol('name')
         })
         await methodService.method({
             ...method2,
-            handler: getMethodHandler(() => {}, Symbol('name')),
+            handler: () => {},
             creator: {
                 type: CreatorType.System
-            }
+            },
+            scriptId: Symbol('name')
         })
         await methodService.method({
             ...method3,
-            handler: getMethodHandler(() => {}, Symbol('name')),
+            handler: () => {},
             creator: {
                 type: CreatorType.System
-            }
+            },
+            scriptId: Symbol('name')
         })
 
         const method1Entity = await methodRepository.findOne(method1)
@@ -817,8 +820,8 @@ describe('MethodService в MethodModule', () => {
     })
 
     it(`
-        Попытка передать недействительный идентификатор скрипта при объявлении метода
-        приводит к исключению
+        Попытка передать недействительный идентификатор скрипта при регистрации
+        метода приводит к исключению
     `, async () => {
         const container = await getContainer()
         container.snapshot()
@@ -834,10 +837,11 @@ describe('MethodService в MethodModule', () => {
 
         await expect(methodService.method({
             ...method1,
-            handler: getMethodHandler(() => {}, Symbol('name')),
+            handler: () => {},
             creator: {
                 type: CreatorType.System
-            }
+            },
+            scriptId: Symbol('name')
         })).rejects.toBeInstanceOf(InvalidScriptID)
 
         container.restore()

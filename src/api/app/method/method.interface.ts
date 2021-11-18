@@ -5,6 +5,7 @@ import {
     MethodId
 } from './method.types'
 import { EntityManager } from 'typeorm'
+import { ScriptID } from '../../../core/vm/vm.types'
 
 /**
  * Все внешние ресурсы с которыми связан метод при своем особождении должны
@@ -54,8 +55,13 @@ export interface IMethodService {
     isConsistent(method: Method): Promise<boolean | undefined>
 
     /**
-     * Вернуть идентификато указанного метода, если он существует
+     * Получить идентификатор указанного метода, если он существует
      */
     getMethodId(method: Method): Promise<MethodId | undefined>
+
+    /**
+     * Получить идентификатор скрипта указанного метода, если он существует
+     */
+    getScriptId(method: Method): ScriptID | undefined
 
 }

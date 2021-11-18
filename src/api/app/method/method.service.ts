@@ -4,7 +4,9 @@ import {
     MethodOptions, 
     Method, 
     Namespaces,
-    MethodHandler,
+    Types,
+    MethodDataList,
+    MethodData,
     CallOptions,
     RPCMethodsMethodService,
     MethodId
@@ -24,7 +26,7 @@ import uniqid from 'uniqid'
 import { isErrorCode, SqliteErrorCode } from '../../../core/typeorm/utils/error-code'
 import { ICreatorService } from '../creator/creator.interface'
 import { CREATOR_SYMBOL, ResourceType } from '../creator/creator.types'
-import { VM_SYMBOL } from '../../../core/vm/vm.types'
+import { VM_SYMBOL, ScriptID } from '../../../core/vm/vm.types'
 import { IVMService } from '../../../core/vm/vm.interface'
 
 @injectable()
@@ -54,7 +56,7 @@ export class MethodService implements IMethodService {
             })
     }
 
-    private getMethodHandler(method: Method): MethodHandler | undefined {
+    private getMethodData(method: Method): MethodData | undefined {
         const namespace = this.namespaces.get(method.namespace)
 
         if (!namespace) {
@@ -76,7 +78,7 @@ export class MethodService implements IMethodService {
         /**
          * Провалидировать идентификатор скрипта в обработчике
          */
-        if (!this.vmService.info(options.handler.scriptId)) {
+        if (!this.vmService.info(options.scriptId)) {
             throw new InvalidScriptID()
         }
 
@@ -115,7 +117,7 @@ export class MethodService implements IMethodService {
          * то создать и сохранить
          */
         const namespace = (() => {
-            const namespace = this.namespaces.get(options.namespace) || new Map
+            const namespace: Types = this.namespaces.get(options.namespace) || new Map
 
             if (!this.namespaces.has(options.namespace)) {
                 this.namespaces.set(options.namespace, namespace)
@@ -129,7 +131,7 @@ export class MethodService implements IMethodService {
          * и сохранить
          */
         const type = (() => {
-            const type = namespace.get(options.type) || new Map
+            const type: MethodDataList = namespace.get(options.type) || new Map
 
             if (!namespace.has(options.type)) {
                 namespace.set(options.type, type)
@@ -149,11 +151,14 @@ export class MethodService implements IMethodService {
             })
         }
 
-        type.set(options.name, options.handler)
+        type.set(options.name, {
+            handler: options.handler,
+            scriptId: options.scriptId
+        })
     }
 
     public isAvailable(method: Method): boolean {
-        return Boolean(this.getMethodHandler(method))
+        return Boolean(this.getMethodData(method))
     }
 
     public async getMethodId(method: Method): Promise<MethodId | undefined> {
@@ -169,9 +174,9 @@ export class MethodService implements IMethodService {
     }
 
     public call(options: CallOptions): any {
-        const methodHandler = this.getMethodHandler(options)
+        const methodData = this.getMethodData(options)
 
-        if (!methodHandler) {
+        if (!methodData) {
             throw new MethodNotAvailable({
                 namespace: options.namespace,
                 type: options.type,
@@ -179,7 +184,17 @@ export class MethodService implements IMethodService {
             })
         }
 
-        return methodHandler(...options.args)
+        return methodData.handler(...options.args)
+    }
+
+    public getScriptId(method: Method): ScriptID | undefined {
+        const methodData = this.getMethodData(method)
+
+        if (!methodData) {
+            return
+        }
+
+        return methodData.scriptId
     }
 
     public async removeNamespace(namespace: string): Promise<void> {

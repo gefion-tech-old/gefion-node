@@ -33,6 +33,10 @@ export interface MethodOptions extends Method {
      * Обработчик метода
      */
     readonly handler: MethodHandler
+    /**
+     * Идентификатор скрипта обработчика
+     */
+    readonly scriptId: ScriptID
 }
 
 export interface CallOptions extends Method {
@@ -42,16 +46,20 @@ export interface CallOptions extends Method {
     readonly args: any[]
 }
 
-export interface MethodHandlerBase {
+export interface MethodHandler {
     /**
      * Сама функция обработчика
      */
     (...args: any[]): any
 }
 
-export interface MethodHandler extends MethodHandlerBase {
+export interface MethodData {
     /**
-     * Идентификатор скрипта обработчика
+     * Обработчик метода
+     */
+    handler: MethodHandler
+    /**
+     * Идентификатор скрипта в котором запущен обработчик метода
      */
     scriptId: ScriptID
 }
@@ -62,7 +70,9 @@ export interface MethodHandler extends MethodHandlerBase {
  * 2. Тип метода
  * 2. Название метода
  */
-export type Namespaces = Map<string, Map<string, Map<string, MethodHandler>>>
+export type Namespaces = Map<string, Types>
+export type Types = Map<string, MethodDataList>
+export type MethodDataList = Map<string, MethodData>
 
 export const RPCMethodsMethodService = {
     isAvailable: 'MethodModule:MethodService:isAvailable'
