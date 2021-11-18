@@ -19,6 +19,8 @@ export function getVMService(mock: {
     on(scriptId: ScriptID, event: symbol, handler: (error: ScriptError) => void): void
     on(scriptId: ScriptID, event: symbol, handler: (info: ScriptActivityInfo) => void): void
     on(scriptId: ScriptID, event: symbol, handler: () => void): void
+
+    error(scriptId: ScriptID, error: any): void
 }): new() => IVMService {
     @injectable()
     class VMService implements IVMService {
@@ -45,6 +47,10 @@ export function getVMService(mock: {
 
         public on(scriptId: ScriptID, event: symbol, handler: any): void {
             mock.on(scriptId, event, handler)
+        }
+
+        public error(scriptId: ScriptID, error: any): void {
+            mock.error(scriptId, error)
         }
 
     }

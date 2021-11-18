@@ -4,7 +4,8 @@ import { METHOD_SYMBOL } from './method.types'
 import {
     HandlerAlreadyAttached,
     MethodNotAvailable,
-    MethodUsedError
+    MethodUsedError,
+    InvalidScriptID
 } from './method.errors'
 import { 
     Entity, 
@@ -19,6 +20,9 @@ import { getRPCService } from '../../../core/rpc/__mock/RPCService.mock'
 import { RPC_SYMBOL } from '../../../core/rpc/rpc.types'
 import { Method } from '../entities/method.entity'
 import { CreatorType } from '../creator/creator.types'
+import { VM_SYMBOL } from '../../../core/vm/vm.types'
+import { getVMService } from '../../../core/vm/__mock/VMService.mock'
+import { getMethodHandler } from './__helper/getMethodHandler.helper'
 
 /**
  * Добавление тестовой сущности
@@ -73,6 +77,18 @@ describe('MethodService в MethodModule', () => {
         const container = await getContainer()
         container.snapshot()
 
+        container.rebind(VM_SYMBOL.VMService)
+            .to(getVMService({
+                info: () => ({} as any),
+                listScripts: () => [],
+                on: () => {},
+                remove: () => {},
+                run: async () => Symbol('name'),
+                stats: async () => undefined,
+                error: () => {}
+            }))
+            .inSingletonScope()
+
         const methodService = container
             .get<IMethodService>(METHOD_SYMBOL.MethodService)
 
@@ -92,20 +108,20 @@ describe('MethodService в MethodModule', () => {
 
         await methodService.method({
             ...method1,
-            handler: (boolean) => {
+            handler: getMethodHandler((boolean) => {
                 handler1Fn()
                 return boolean
-            },
+            }, Symbol('name')),
             creator: {
                 type: CreatorType.System
             }
         })
         await methodService.method({
             ...method2,
-            handler: (boolean) => {
+            handler: getMethodHandler((boolean) => {
                 handler2Fn()
                 return boolean
-            },
+            }, Symbol('name')),
             creator: {
                 type: CreatorType.System
             }
@@ -154,6 +170,18 @@ describe('MethodService в MethodModule', () => {
         const container = await getContainer()
         container.snapshot()
 
+        container.rebind(VM_SYMBOL.VMService)
+            .to(getVMService({
+                info: () => ({} as any),
+                listScripts: () => [],
+                on: () => {},
+                remove: () => {},
+                run: async () => Symbol('name'),
+                stats: async () => undefined,
+                error: () => {}
+            }))
+            .inSingletonScope()
+
         const methodService = container
             .get<IMethodService>(METHOD_SYMBOL.MethodService)
 
@@ -168,20 +196,20 @@ describe('MethodService в MethodModule', () => {
 
         await expect(methodService.method({
             ...method1,
-            handler: (boolean) => {
+            handler: getMethodHandler((boolean) => {
                 handler1Fn()
                 return boolean
-            },
+            }, Symbol('name')),
             creator: {
                 type: CreatorType.System
             }
         })).resolves.toBeUndefined()
         await expect(methodService.method({
             ...method1,
-            handler: () => {
+            handler: getMethodHandler(() => {
                 handler2Fn()
                 return 'xxx'
-            },
+            }, Symbol('name')),
             creator: {
                 type: CreatorType.System
             }
@@ -202,6 +230,18 @@ describe('MethodService в MethodModule', () => {
     `, async () => {
         const container = await getContainer()
         container.snapshot()
+
+        container.rebind(VM_SYMBOL.VMService)
+            .to(getVMService({
+                info: () => ({} as any),
+                listScripts: () => [],
+                on: () => {},
+                remove: () => {},
+                run: async () => Symbol('name'),
+                stats: async () => undefined,
+                error: () => {}
+            }))
+            .inSingletonScope()
 
         const methodService = container
             .get<IMethodService>(METHOD_SYMBOL.MethodService)
@@ -224,6 +264,18 @@ describe('MethodService в MethodModule', () => {
         const container = await getContainer()
         container.snapshot()
 
+        container.rebind(VM_SYMBOL.VMService)
+            .to(getVMService({
+                info: () => ({} as any),
+                listScripts: () => [],
+                on: () => {},
+                remove: () => {},
+                run: async () => Symbol('name'),
+                stats: async () => undefined,
+                error: () => {}
+            }))
+            .inSingletonScope()
+
         const methodService = container
             .get<IMethodService>(METHOD_SYMBOL.MethodService)
         
@@ -240,14 +292,14 @@ describe('MethodService в MethodModule', () => {
 
         await methodService.method({
             ...method1,
-            handler: () => {},
+            handler: getMethodHandler(() => {}, Symbol('name')),
             creator: {
                 type: CreatorType.System
             }
         })
         await methodService.method({
             ...method2,
-            handler: () => {},
+            handler: getMethodHandler(() => {}, Symbol('name')),
             creator: {
                 type: CreatorType.System
             }
@@ -276,6 +328,18 @@ describe('MethodService в MethodModule', () => {
     `, async () => {
         const container = await getContainer()
         container.snapshot()
+
+        container.rebind(VM_SYMBOL.VMService)
+            .to(getVMService({
+                info: () => ({} as any),
+                listScripts: () => [],
+                on: () => {},
+                remove: () => {},
+                run: async () => Symbol('name'),
+                stats: async () => undefined,
+                error: () => {}
+            }))
+            .inSingletonScope()
 
         const testRepository = await container
             .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
@@ -308,14 +372,14 @@ describe('MethodService в MethodModule', () => {
 
         await methodService.method({
             ...method1,
-            handler: () => {},
+            handler: getMethodHandler(() => {}, Symbol('name')),
             creator: {
                 type: CreatorType.System
             }
         })
         await methodService.method({
             ...method2,
-            handler: () => {},
+            handler: getMethodHandler(() => {}, Symbol('name')),
             creator: {
                 type: CreatorType.System
             }
@@ -366,6 +430,18 @@ describe('MethodService в MethodModule', () => {
         const container = await getContainer()
         container.snapshot()
 
+        container.rebind(VM_SYMBOL.VMService)
+            .to(getVMService({
+                info: () => ({} as any),
+                listScripts: () => [],
+                on: () => {},
+                remove: () => {},
+                run: async () => Symbol('name'),
+                stats: async () => undefined,
+                error: () => {}
+            }))
+            .inSingletonScope()
+
         container.rebind(RPC_SYMBOL.RPCService)
             .to(getRPCService({
                 call: async () => {
@@ -396,7 +472,7 @@ describe('MethodService в MethodModule', () => {
 
         await methodService.method({
             ...method1,
-            handler: () => {},
+            handler: getMethodHandler(() => {}, Symbol('name')),
             creator: {
                 type: CreatorType.System
             }
@@ -415,6 +491,18 @@ describe('MethodService в MethodModule', () => {
         const container = await getContainer()
         container.snapshot()
 
+        container.rebind(VM_SYMBOL.VMService)
+            .to(getVMService({
+                info: () => ({} as any),
+                listScripts: () => [],
+                on: () => {},
+                remove: () => {},
+                run: async () => Symbol('name'),
+                stats: async () => undefined,
+                error: () => {}
+            }))
+            .inSingletonScope()
+
         container.rebind(RPC_SYMBOL.RPCService)
             .to(getRPCService({
                 call: async () => {
@@ -445,7 +533,7 @@ describe('MethodService в MethodModule', () => {
 
         await methodService.method({
             ...method1,
-            handler: () => {},
+            handler: getMethodHandler(() => {}, Symbol('name')),
             creator: {
                 type: CreatorType.System
             }
@@ -507,6 +595,18 @@ describe('MethodService в MethodModule', () => {
         const container = await getContainer()
         container.snapshot()
 
+        container.rebind(VM_SYMBOL.VMService)
+            .to(getVMService({
+                info: () => ({} as any),
+                listScripts: () => [],
+                on: () => {},
+                remove: () => {},
+                run: async () => Symbol('name'),
+                stats: async () => undefined,
+                error: () => {}
+            }))
+            .inSingletonScope()
+
         const testRepository = await container
             .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
             .then(connection => {
@@ -528,7 +628,7 @@ describe('MethodService в MethodModule', () => {
 
         await methodService.method({
             ...method1,
-            handler: () => {},
+            handler: getMethodHandler(() => {}, Symbol('name')),
             creator: {
                 type: CreatorType.System
             }
@@ -557,6 +657,18 @@ describe('MethodService в MethodModule', () => {
         const container = await getContainer()
         container.snapshot()
 
+        container.rebind(VM_SYMBOL.VMService)
+            .to(getVMService({
+                info: () => ({} as any),
+                listScripts: () => [],
+                on: () => {},
+                remove: () => {},
+                run: async () => Symbol('name'),
+                stats: async () => undefined,
+                error: () => {}
+            }))
+            .inSingletonScope()
+
         const methodService = container
             .get<IMethodService>(METHOD_SYMBOL.MethodService)
         
@@ -573,14 +685,14 @@ describe('MethodService в MethodModule', () => {
 
         await methodService.method({
             ...method1,
-            handler: () => {},
+            handler: getMethodHandler(() => {}, Symbol('name')),
             creator: {
                 type: CreatorType.System
             }
         })
         await methodService.method({
             ...method2,
-            handler: () => {},
+            handler: getMethodHandler(() => {}, Symbol('name')),
             creator: {
                 type: CreatorType.System
             }
@@ -609,6 +721,18 @@ describe('MethodService в MethodModule', () => {
     `, async () => {
         const container = await getContainer()
         container.snapshot()
+
+        container.rebind(VM_SYMBOL.VMService)
+            .to(getVMService({
+                info: () => ({} as any),
+                listScripts: () => [],
+                on: () => {},
+                remove: () => {},
+                run: async () => Symbol('name'),
+                stats: async () => undefined,
+                error: () => {}
+            }))
+            .inSingletonScope()
 
         const testRepository = await container
             .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
@@ -641,21 +765,21 @@ describe('MethodService в MethodModule', () => {
 
         await methodService.method({
             ...method1,
-            handler: () => {},
+            handler: getMethodHandler(() => {}, Symbol('name')),
             creator: {
                 type: CreatorType.System
             }
         })
         await methodService.method({
             ...method2,
-            handler: () => {},
+            handler: getMethodHandler(() => {}, Symbol('name')),
             creator: {
                 type: CreatorType.System
             }
         })
         await methodService.method({
             ...method3,
-            handler: () => {},
+            handler: getMethodHandler(() => {}, Symbol('name')),
             creator: {
                 type: CreatorType.System
             }
@@ -688,6 +812,33 @@ describe('MethodService в MethodModule', () => {
         expect(methodService.isAvailable(method1)).toBe(true)
         expect(methodService.isAvailable(method2)).toBe(false)
         expect(methodService.isAvailable(method3)).toBe(false)
+
+        container.restore()
+    })
+
+    it(`
+        Попытка передать недействительный идентификатор скрипта при объявлении метода
+        приводит к исключению
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        const methodService = container
+            .get<IMethodService>(METHOD_SYMBOL.MethodService)
+
+        const method1 = {
+            namespace: 'namespace',
+            type: 'type',
+            name: 'name1'
+        }
+
+        await expect(methodService.method({
+            ...method1,
+            handler: getMethodHandler(() => {}, Symbol('name')),
+            creator: {
+                type: CreatorType.System
+            }
+        })).rejects.toBeInstanceOf(InvalidScriptID)
 
         container.restore()
     })

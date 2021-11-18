@@ -183,7 +183,8 @@ describe('InstanceService в BlockModule', () => {
                 run: async () => {
                     vmRunFn()
                     return scriptId
-                }
+                },
+                error: () => {}
             }))
             .inSingletonScope()
 
@@ -231,7 +232,8 @@ describe('InstanceService в BlockModule', () => {
                 stats: async () => (undefined),
                 run: async () => {
                     return Symbol('ScriptId')
-                }
+                },
+                error: () => {}
             }))
             .inSingletonScope()
 
@@ -283,7 +285,8 @@ describe('InstanceService в BlockModule', () => {
                 stats: async () => (undefined),
                 run: async () => {
                     return Symbol('ScriptId')
-                }
+                },
+                error: () => {}
             }))
             .inSingletonScope()
 

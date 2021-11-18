@@ -1,4 +1,5 @@
 import { BindableCreator } from '../creator/creator.types'
+import { ScriptID } from '../../../core/vm/vm.types'
 
 export const METHOD_SYMBOL = {
     MethodEntity: Symbol('MethodEntity'),
@@ -28,7 +29,6 @@ export interface MethodOptions extends Method {
      * Создатель метода
      */
     readonly creator: BindableCreator
-
     /**
      * Обработчик метода
      */
@@ -42,7 +42,19 @@ export interface CallOptions extends Method {
     readonly args: any[]
 }
 
-export type MethodHandler = (...args: any[]) => any
+export interface MethodHandlerBase {
+    /**
+     * Сама функция обработчика
+     */
+    (...args: any[]): any
+}
+
+export interface MethodHandler extends MethodHandlerBase {
+    /**
+     * Идентификатор скрипта обработчика
+     */
+    scriptId: ScriptID
+}
 
 /**
  * Порядок таков:

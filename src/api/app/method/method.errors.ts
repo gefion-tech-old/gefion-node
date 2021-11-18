@@ -35,3 +35,10 @@ export class MethodUsedError extends MethodError {
     public message = 'Попытка удалить метод, к которому привязаны важные ресурсы'
 
 }
+
+export class InvalidScriptID extends MethodError {
+
+    public name = 'InvalidScriptID'
+    public message = 'Недействительный идентификатор запущенного скрипта'
+
+}

@@ -15,7 +15,8 @@ import { Method as MethodEntity } from '../entities/method.entity'
 import { 
     HandlerAlreadyAttached,
     MethodNotAvailable,
-    MethodUsedError
+    MethodUsedError,
+    InvalidScriptID
 } from './method.errors'
 import { RPC_SYMBOL } from '../../../core/rpc/rpc.types'
 import { IRPCService } from '../../../core/rpc/rpc.interface'
@@ -23,6 +24,8 @@ import uniqid from 'uniqid'
 import { isErrorCode, SqliteErrorCode } from '../../../core/typeorm/utils/error-code'
 import { ICreatorService } from '../creator/creator.interface'
 import { CREATOR_SYMBOL, ResourceType } from '../creator/creator.types'
+import { VM_SYMBOL } from '../../../core/vm/vm.types'
+import { IVMService } from '../../../core/vm/vm.interface'
 
 @injectable()
 export class MethodService implements IMethodService {
@@ -39,7 +42,10 @@ export class MethodService implements IMethodService {
         private rpcService: IRPCService,
 
         @inject(CREATOR_SYMBOL.CreatorService)
-        private creatorService: ICreatorService
+        private creatorService: ICreatorService,
+
+        @inject(VM_SYMBOL.VMService)
+        private vmService: IVMService
     ) {
         this.connection = connection
         this.methodRepository = connection
@@ -67,6 +73,16 @@ export class MethodService implements IMethodService {
     public async method(options: MethodOptions): Promise<void> {
         const connection = await this.connection
 
+        /**
+         * Провалидировать идентификатор скрипта в обработчике
+         */
+        if (!this.vmService.info(options.handler.scriptId)) {
+            throw new InvalidScriptID()
+        }
+
+        /**
+         * Создать и сохранить метод в БД, если его ещё не существует
+         */
         await connection.manager.transaction(async transactionEntityManager => {
             const methodRepository = transactionEntityManager.getRepository(MethodEntity)
 
