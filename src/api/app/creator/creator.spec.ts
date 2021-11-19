@@ -251,4 +251,113 @@ describe('CreatorService в CreatorModule', () => {
         container.restore()
     })
 
+    it(`
+        Владение системы ресурсом корректно подтверждается
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        const creatorService = container
+            .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+        const connection = await container
+            .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+        const methodRepository = connection.getRepository(Method)
+
+        const methodEntity = await methodRepository.save({
+            name: 'name',
+            namespace: 'namespace',
+            type: 'type'
+        })
+
+        await creatorService.bind({
+            type: ResourceType.Method,
+            id: methodEntity.id
+        }, {
+            type: CreatorType.System
+        })
+
+        await expect(creatorService.isResourceCreator({
+            type: ResourceType.Method,
+            id: methodEntity.id
+        }, {
+            type: CreatorType.System
+        })).resolves.toBe(true)
+
+        container.restore()
+    })
+
+    it(`
+        Отсутствие создателя у ресурса возвращает false при проверке владения ресурсом
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        const creatorService = container
+            .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+
+        await expect(creatorService.isResourceCreator({
+            type: ResourceType.Method,
+            id: 0
+        }, {
+            type: CreatorType.System
+        })).resolves.toBe(false)
+
+        container.restore()
+    })
+
+    it(`
+        Владение экземпляра блока ресурсом корректно подтверждается
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        const creatorService = container
+            .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+        const connection = await container
+            .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+        const methodRepository = connection.getRepository(Method)
+        const versionRepository = connection.getRepository(BlockVersion)
+        const instanceRepository = connection.getRepository(BlockInstance)
+
+        const versionEntity = await versionRepository.save({
+            name: 'name',
+            path: 'path',
+            version: 'version' 
+        })
+        const instanceEntity = await instanceRepository.save({
+            blockVersion: versionEntity
+        })
+
+        const methodEntity = await methodRepository.save({
+            name: 'name',
+            namespace: 'namespace',
+            type: 'type'
+        })
+
+        await creatorService.bind({
+            type: ResourceType.Method,
+            id: methodEntity.id
+        }, {
+            type: CreatorType.BlockInstance,
+            id: instanceEntity.id
+        })
+
+        await expect(creatorService.isResourceCreator({
+            type: ResourceType.Method,
+            id: methodEntity.id
+        }, {
+            type: CreatorType.BlockInstance,
+            id: instanceEntity.id
+        })).resolves.toBe(true)
+        await expect(creatorService.isResourceCreator({
+            type: ResourceType.Method,
+            id: methodEntity.id
+        }, {
+            type: CreatorType.BlockInstance,
+            id: 0
+        })).resolves.toBe(false)
+
+        container.restore()
+    })
+
 })

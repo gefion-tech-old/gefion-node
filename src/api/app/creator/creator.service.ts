@@ -86,4 +86,28 @@ export class CreatorService implements ICreatorService {
         return
     }
 
+    public async isResourceCreator(resource: BindableResource, creator: BindableCreator): Promise<boolean> {
+        const creatorEntity = await this.getCreator(resource)
+
+        if (!creatorEntity) {
+            return false
+        }
+
+        if (creatorEntity === CreatorType.System) {
+            if (creator.type === CreatorType.System) {
+                return true
+            }
+        } else {
+            if (creatorEntity instanceof BlockInstance) {
+                if (creator.type === CreatorType.BlockInstance) {
+                    if (creator.id === creatorEntity.id) {
+                        return true
+                    }
+                }
+            }
+        }
+
+        return false
+    }
+
 }

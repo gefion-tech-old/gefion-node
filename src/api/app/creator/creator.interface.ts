@@ -13,4 +13,9 @@ export interface ICreatorService {
      */
     getCreator(resource: BindableResource): Promise<BlockInstance | CreatorType.System | undefined>
 
+    /**
+     * Вернуть true, если указанный создатель является фактическим создателем указанного ресурса
+     */
+    isResourceCreator(resource: BindableResource, creator: BindableCreator): Promise<boolean>
+
 }
