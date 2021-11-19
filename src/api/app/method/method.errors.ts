@@ -42,3 +42,10 @@ export class InvalidScriptID extends MethodError {
     public message = 'Недействительный идентификатор запущенного скрипта'
 
 }
+
+export class AccessIsDenied extends MethodError {
+
+    public name = 'AccessIsDenied'
+    public message = 'Попытка переопределить метод без прав владения на него'
+
+}

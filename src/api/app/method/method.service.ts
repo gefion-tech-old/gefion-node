@@ -18,7 +18,8 @@ import {
     HandlerAlreadyAttached,
     MethodNotAvailable,
     MethodUsedError,
-    InvalidScriptID
+    InvalidScriptID,
+    AccessIsDenied
 } from './method.errors'
 import { RPC_SYMBOL } from '../../../core/rpc/rpc.types'
 import { IRPCService } from '../../../core/rpc/rpc.interface'
@@ -73,6 +74,7 @@ export class MethodService implements IMethodService {
     }
 
     public async method(options: MethodOptions): Promise<void> {
+        const methodRepository = await this.methodRepository
         const connection = await this.connection
 
         /**
@@ -83,34 +85,44 @@ export class MethodService implements IMethodService {
         }
 
         /**
-         * Создать и сохранить метод в БД, если его ещё не существует
+         * Получить экземпляр метода из БД или создать его, если метода не существует
          */
-        await connection.manager.transaction(async transactionEntityManager => {
-            const methodRepository = transactionEntityManager.getRepository(MethodEntity)
-
-            const methodEntity = await (async (): Promise<MethodEntity | undefined> => {
-                try {
-                    return await methodRepository.save(options)
-                } catch(error) {
-                    /**
-                     * Игнорировать ошибку уникальности, ведь она указывает на то,
-                     * что метод уже создан, а это ожидаемая ситуация
-                     */
-                    if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_UNIQUE)) {
-                        return
-                    }
-
-                    throw error
+        const methodEntity = await (async (): Promise<MethodEntity> => {
+            const methodEntity = await methodRepository.findOne({
+                where: {
+                    namespace: options.namespace,
+                    type: options.type,
+                    name: options.name
                 }
-            })()
+            })
 
             if (methodEntity) {
-                await this.creatorService.bind({
-                    type: ResourceType.Method,
-                    id: methodEntity.id
-                }, options.creator)
+                return methodEntity
+            } else {
+                return await connection.manager.transaction<MethodEntity>(async transactionEntityManager => {
+                    const methodRepository = transactionEntityManager.getRepository(MethodEntity)
+                    const methodEntity = await methodRepository.save(options)
+
+                    await this.creatorService.bind({
+                        type: ResourceType.Method,
+                        id: methodEntity.id
+                    }, options.creator)
+
+                    return methodEntity
+                })
             }
-        })
+        })() 
+
+        /**
+         * Убедиться, что фактический создатель метода совпадает с текущим
+         */
+        if (!await this.creatorService.isResourceCreator({
+            type: ResourceType.Method,
+            id: methodEntity.id
+        }, options.creator)) {
+            throw new AccessIsDenied
+        }
+
         
         /**
          * Получить карту пространства имен, если её ещё не существует,

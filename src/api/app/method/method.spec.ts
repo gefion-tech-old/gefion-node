@@ -5,7 +5,8 @@ import {
     HandlerAlreadyAttached,
     MethodNotAvailable,
     MethodUsedError,
-    InvalidScriptID
+    InvalidScriptID,
+    AccessIsDenied
 } from './method.errors'
 import {
     Entity, 
@@ -843,6 +844,54 @@ describe('MethodService в MethodModule', () => {
             },
             scriptId: Symbol('name')
         })).rejects.toBeInstanceOf(InvalidScriptID)
+
+        container.restore()
+    })
+
+    it(`
+        Попытка привязки метода без прав владения на него приводит к исключению
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        container.rebind(VM_SYMBOL.VMService)
+            .to(getVMService({
+                error: () => {},
+                info: () => ({} as any),
+                on: () => {},
+                remove: () => {},
+                run: async () => Symbol('name'),
+                stats: async () => [],
+                listScripts: () => []
+            }))
+            .inSingletonScope()
+
+        const methodService = container
+            .get<IMethodService>(METHOD_SYMBOL.MethodService)
+
+        const method1 = {
+            namespace: 'namespace',
+            type: 'type',
+            name: 'name1'
+        }
+
+        await expect(methodService.method({
+            ...method1,
+            handler: () => {},
+            creator: {
+                type: CreatorType.System
+            },
+            scriptId: Symbol('name')
+        })).resolves.toBeUndefined()
+        await expect(methodService.method({
+            ...method1,
+            handler: () => {},
+            creator: {
+                type: CreatorType.BlockInstance,
+                id: 0
+            },
+            scriptId: Symbol('name')
+        })).rejects.toBeInstanceOf(AccessIsDenied)
 
         container.restore()
     })
