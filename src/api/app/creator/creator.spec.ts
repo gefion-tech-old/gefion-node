@@ -12,6 +12,7 @@ import { BlockInstance } from '../entities/block-instance.entity'
 import { BlockVersion } from '../entities/block-version.entity'
 import { Creator } from '../entities/creator.entity'
 import { ResourceAlreadyHasCreator } from './creator.errors'
+import { Signal } from '../entities/signal.entity'
 
 beforeAll(async () => {
     const container = await getContainer()
@@ -191,6 +192,179 @@ describe('CreatorService в CreatorModule', () => {
             await expect(creatorService.getCreator({
                 type: ResourceType.Method,
                 id: methodEntity.id
+            })).resolves.toBe(CreatorType.System)
+
+            container.restore()
+        })
+
+    })
+
+    describe('Сигналы в качестве ресурсов', () => {
+
+        it(`
+            Сигналы корректно привязываются к экземпляру блока. Нельзя удалить
+            экземпляр блока с привязанным сигналом, но можно удалить метод.
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+    
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const signalRepository = connection.getRepository(Signal)
+            const versionRepository = connection.getRepository(BlockVersion)
+            const instanceRepository = connection.getRepository(BlockInstance)
+            const creatorRepository = connection.getRepository(Creator)
+    
+            const versionEntity = await versionRepository.save({
+                name: 'name',
+                path: 'path',
+                version: 'version' 
+            })
+            const instanceEntity = await instanceRepository.save({
+                blockVersion: versionEntity
+            })
+            const signalEntity = await signalRepository.save({
+                name: 'name',
+                namespace: 'namespace',
+                metadata: {}
+            })
+    
+            await expect(creatorService.bind({
+                type: ResourceType.Signal,
+                id: signalEntity.id
+            }, {
+                type: CreatorType.BlockInstance,
+                id: instanceEntity.id
+            })).resolves.toBeUndefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(1)
+            await expect(instanceRepository.delete(instanceEntity))
+                .rejects
+                .toThrow()
+            await expect(signalRepository.delete({ id: signalEntity.id }))
+                .resolves
+                .toBeDefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(0)
+    
+            container.restore()
+        })
+
+        it(`
+            Сигналы корректно привязываются к системе. Привязка удаляется вместе
+            с удалением сигнала
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+    
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const signalRepository = connection.getRepository(Signal)
+            const creatorRepository = connection.getRepository(Creator)
+    
+            const signalEntity = await signalRepository.save({
+                name: 'name',
+                namespace: 'namespace',
+                metadata: {}
+            })
+    
+            await expect(creatorService.bind({
+                type: ResourceType.Signal,
+                id: signalEntity.id
+            }, {
+                type: CreatorType.System
+            })).resolves.toBeUndefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(1)
+            await expect(signalRepository.delete({ id: signalEntity.id }))
+                .resolves
+                .toBeDefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(0)
+    
+            container.restore()
+        })
+    
+        it(`
+            Экземпляр блока, к которому привязан метод корректно можно получить
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const signalRepository = connection.getRepository(Signal)
+            const versionRepository = connection.getRepository(BlockVersion)
+            const instanceRepository = connection.getRepository(BlockInstance)
+    
+            const versionEntity = await versionRepository.save({
+                name: 'name',
+                path: 'path',
+                version: 'version' 
+            })
+            const instanceEntity = await instanceRepository.save({
+                blockVersion: versionEntity
+            })
+            const signalEntity = await signalRepository.save({
+                name: 'name',
+                namespace: 'namespace',
+                metadata: {}
+            })
+
+            await creatorService.bind({
+                type: ResourceType.Signal,
+                id: signalEntity.id
+            }, {
+                type: CreatorType.BlockInstance,
+                id: instanceEntity.id
+            })
+
+            await expect(creatorService.getCreator({
+                type: ResourceType.Signal,
+                id: signalEntity.id
+            })).resolves.toBeInstanceOf(BlockInstance)
+
+            container.restore()
+        })
+    
+        it(`
+            Систему, к которой привязан метод корректно можно получить 
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const signalRepository = connection.getRepository(Signal)
+
+            const signalEntity = await signalRepository.save({
+                name: 'name',
+                namespace: 'namespace',
+                metadata: {}
+            })
+
+            await creatorService.bind({
+                type: ResourceType.Signal,
+                id: signalEntity.id
+            }, {
+                type: CreatorType.System
+            })
+
+            await expect(creatorService.getCreator({
+                type: ResourceType.Signal,
+                id: signalEntity.id
             })).resolves.toBe(CreatorType.System)
 
             container.restore()

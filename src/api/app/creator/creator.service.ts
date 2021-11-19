@@ -36,6 +36,8 @@ export class CreatorService implements ICreatorService {
             case ResourceType.Method:
                 creatorEntity.method = { id: resource.id } as any
                 break
+            case ResourceType.Signal:
+                creatorEntity.signal = { id: resource.id } as any
         }
 
         switch (creator.type) {
@@ -65,10 +67,12 @@ export class CreatorService implements ICreatorService {
             where: (() => {
                 switch (resource.type) {
                     case ResourceType.Method:
-                        return { id: resource.id }
+                        return { method: { id: resource.id } }
+                    case ResourceType.Signal:
+                        return { signal: { id: resource.id } }
                 }
             })(),
-            relations: ['blockInstance']
+            relations: ['blockInstance', 'method', 'signal']
         })
 
         if (!creatorEntity) {

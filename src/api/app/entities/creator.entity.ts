@@ -9,15 +9,17 @@ import {
 } from 'typeorm'
 import { BlockInstance } from './block-instance.entity'
 import { Method } from './method.entity'
+import { Signal } from './signal.entity'
 
 @injectable()
 @Entity()
 @Check(`
     (system <> FALSE OR blockInstanceId <> NULL)
     AND
-    (methodId <> NULL)
+    (methodId <> NULL OR signalId <> NULL)
 `)
 @Unique(['method'])
+@Unique(['signal'])
 export class Creator {
 
     @PrimaryGeneratedColumn()
@@ -45,5 +47,10 @@ export class Creator {
         onDelete: 'CASCADE'
     })
     method: Method
+
+    @ManyToOne(() => Signal, {
+        onDelete: 'CASCADE'
+    })
+    signal: Signal
 
 }
