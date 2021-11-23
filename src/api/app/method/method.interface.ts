@@ -4,7 +4,6 @@ import {
     CallOptions,
     MethodId
 } from './method.types'
-import { EntityManager } from 'typeorm'
 import { ScriptID } from '../../../core/vm/vm.types'
 
 /**
@@ -39,7 +38,7 @@ export interface IMethodService {
      * Удалить все указанные методы, если на них не ссылается никаких внешних
      * ключей
      */
-    removeMethods(methods: Method[], transactionEntityManager?: EntityManager): Promise<void>
+    removeMethods(methods: Method[]): Promise<void>
 
     /**
      * Вызвать указанный метод, если он существует и доступен

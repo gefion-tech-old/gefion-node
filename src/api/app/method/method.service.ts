@@ -29,6 +29,7 @@ import { ICreatorService } from '../creator/creator.interface'
 import { CREATOR_SYMBOL, ResourceType } from '../creator/creator.types'
 import { VM_SYMBOL, ScriptID } from '../../../core/vm/vm.types'
 import { IVMService } from '../../../core/vm/vm.interface'
+import { transaction } from '../../../core/typeorm/utils/transaction'
 
 @injectable()
 export class MethodService implements IMethodService {
@@ -99,8 +100,7 @@ export class MethodService implements IMethodService {
             if (methodEntity) {
                 return methodEntity
             } else {
-                return await connection.manager.transaction<MethodEntity>(async transactionEntityManager => {
-                    const methodRepository = transactionEntityManager.getRepository(MethodEntity)
+                return await transaction<MethodEntity>(false, connection, async () => {
                     const methodEntity = await methodRepository.save(options)
 
                     await this.creatorService.bind({
@@ -295,8 +295,9 @@ export class MethodService implements IMethodService {
          * Фактическое удаление методов с помощью транзакционного менеджера
          */
         const connection = await this.connection
-        await connection.manager.transaction(async transactionEntityManager => {
-            await removeMethods(transactionEntityManager)
+        const methodRepository = await this.methodRepository
+        await transaction(false, connection, async () => {
+            await removeMethods(methodRepository.manager)
         })
     }
 
