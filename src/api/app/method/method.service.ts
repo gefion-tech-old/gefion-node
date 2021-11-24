@@ -269,7 +269,9 @@ export class MethodService implements IMethodService {
             for (const method of methods) {
                 try {
                     await transaction(true, connection, async () => {
-                        await methodRepository.delete(method)
+                        await mutationQuery(true, () => {
+                            return methodRepository.delete(method)
+                        })
                     })
                 } catch(error) {
                     if (isErrorCode(error, [

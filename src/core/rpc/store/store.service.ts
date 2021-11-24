@@ -10,6 +10,7 @@ import { FASTIFY_SYMBOL } from '../../fastify/fastify.types'
 import { AddressInfo } from 'net'
 import { IAtomicService } from '../../atomic/atomic.interface'
 import { ATOMIC_SYMBOL } from '../../atomic/atomic.types'
+import { mutationQuery } from '../../typeorm/utils/mutation-query'
 
 @injectable()
 export class StoreService implements IStoreService {
@@ -84,9 +85,11 @@ export class StoreService implements IStoreService {
                 return rpcInfo.value
             }
 
-            const appId = (await rpcInfoRepository.save({
-                key: 'appId',
-                value: uniqid()
+            const appId = (await mutationQuery(false, () => {
+                return rpcInfoRepository.save({
+                    key: 'appId',
+                    value: uniqid()
+                })
             })).value
 
             return appId
@@ -115,9 +118,11 @@ export class StoreService implements IStoreService {
                     value: String(currentPort)
                 }
             })) {
-                await rpcInfoRepository.save({
-                    key: 'port',
-                    value: String(currentPort)
+                await mutationQuery(false, () => {
+                    return rpcInfoRepository.save({
+                        key: 'port',
+                        value: String(currentPort)
+                    })
                 })
             }
 
@@ -162,9 +167,11 @@ export class StoreService implements IStoreService {
         /**
          * Удалить указанный порт из базы данных
          */
-        await rpcInfoRepository.delete({
-            key: 'port',
-            value: String(port)
+        await mutationQuery(false, () => {
+            return rpcInfoRepository.delete({
+                key: 'port',
+                value: String(port)
+            })
         })
 
         /**

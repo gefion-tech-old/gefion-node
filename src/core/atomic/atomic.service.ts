@@ -5,6 +5,7 @@ import retry from 'async-retry'
 import { TYPEORM_SYMBOL } from '../typeorm/typeorm.types'
 import { Repository, Connection } from 'typeorm'
 import { Atomic } from './entities/atomic.entity'
+import { mutationQuery } from '../typeorm/utils/mutation-query'
 
 @injectable()
 export class AtomicService implements IAtomicService {
@@ -26,9 +27,11 @@ export class AtomicService implements IAtomicService {
 
         try {
             await retry(async () => {
-                await atomicRepository.insert({
-                    operation: operation
-                })    
+                await mutationQuery(false, () => {
+                    return atomicRepository.insert({
+                        operation: operation
+                    }) 
+                })  
             }, options)
         } catch {
             return false
@@ -39,7 +42,9 @@ export class AtomicService implements IAtomicService {
 
     public async unlock(operation: string): Promise<void> {
         const atomicRepository = await this.atomicRepository
-        await atomicRepository.delete(operation)
+        await mutationQuery(false, () => {
+            return atomicRepository.delete(operation)
+        })
     }
 
     public async check(operation: string, options?: Options): Promise<boolean> {

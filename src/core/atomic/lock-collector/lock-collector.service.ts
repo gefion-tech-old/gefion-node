@@ -5,6 +5,7 @@ import { Repository, LessThanOrEqual, Connection } from 'typeorm'
 import { TYPEORM_SYMBOL } from '../../typeorm/typeorm.types'
 import { ATOMIC_SYMBOL, AtomicConfig } from '../atomic.types'
 import { getSqliteDateFormat } from '../../../utils/date-format'
+import { mutationQuery } from '../../typeorm/utils/mutation-query'
 
 @injectable()
 export class LockCollectorService implements ILockCollectorService {
@@ -31,8 +32,10 @@ export class LockCollectorService implements ILockCollectorService {
             new Date().getTime() - config.lockExpires
         )
 
-        await atomicRepository.delete({
-            createdAt: LessThanOrEqual(getSqliteDateFormat(dateExpires))
+        await mutationQuery(false, () => {
+            return atomicRepository.delete({
+                createdAt: LessThanOrEqual(getSqliteDateFormat(dateExpires))
+            })
         })
     }
 
