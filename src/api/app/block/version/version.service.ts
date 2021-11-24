@@ -9,6 +9,7 @@ import { BlockVersion } from '../../entities/block-version.entity'
 import { Repository, Connection } from 'typeorm'
 import { BlockVersionInUse, BlockVersionAlreadyExists } from './version.errors'
 import { isErrorCode, SqliteErrorCode } from '../../../../core/typeorm/utils/error-code'
+import { mutationQuery } from '../../../../core/typeorm/utils/mutation-query'
 
 @injectable()
 export class VersionService implements IVersionService {
@@ -25,14 +26,16 @@ export class VersionService implements IVersionService {
             })
     }
 
-    public async associate(options: AssociateOptions): Promise<void> {
+    public async associate(options: AssociateOptions, nestedTransaction = false): Promise<void> {
         const versionRepository = await this.versionRepository
 
         try {
-            await versionRepository.save({
-                name: options.name,
-                version: options.version,
-                path: options.path
+            await mutationQuery(nestedTransaction, () => {
+                return versionRepository.save({
+                    name: options.name,
+                    version: options.version,
+                    path: options.path
+                })
             })
         } catch(error) {
             if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_UNIQUE)) {
@@ -43,7 +46,7 @@ export class VersionService implements IVersionService {
         }
     }
 
-    public async unassociate(options: UnAssociateOptions): Promise<void> {
+    public async unassociate(options: UnAssociateOptions, nestedTransaction = false): Promise<void> {
         const versionRepository = await this.versionRepository
 
         const block = await versionRepository.findOne({
@@ -56,7 +59,9 @@ export class VersionService implements IVersionService {
         }
 
         try {
-            await versionRepository.remove(block)
+            await mutationQuery(nestedTransaction, () => {
+                return versionRepository.remove(block)
+            })
         } catch(error) {
             if (isErrorCode(error, [
                 SqliteErrorCode.SQLITE_CONSTRAINT_FOREIGNKEY,

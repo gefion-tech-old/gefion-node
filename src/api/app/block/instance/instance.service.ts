@@ -22,6 +22,7 @@ import { VM_SYMBOL } from '../../../../core/vm/vm.types'
 import path from 'path'
 import { pathExists } from 'fs-extra'
 import { isErrorCode, SqliteErrorCode } from '../../../../core/typeorm/utils/error-code'
+import { mutationQuery } from '../../../../core/typeorm/utils/mutation-query'
 
 @injectable()
 export class InstanceService implements IInstanceService {
@@ -48,7 +49,7 @@ export class InstanceService implements IInstanceService {
             })
     }
 
-    public async create(versionInfo: Version): Promise<InstanceId> {
+    public async create(versionInfo: Version, nestedTransaction = false): Promise<InstanceId> {
         const versionRepository = await this.versionRepository
         const instanceRepository = await this.instanceRepository
 
@@ -70,8 +71,10 @@ export class InstanceService implements IInstanceService {
          * его идентификатор
          */
          const instanceId = await (async () => {
-            const instanceEntity = await instanceRepository.save({
-                blockVersion: version
+            const instanceEntity = await mutationQuery(nestedTransaction, () => {
+                return instanceRepository.save({
+                    blockVersion: version
+                })
             })
 
             return instanceEntity.id
@@ -157,15 +160,17 @@ export class InstanceService implements IInstanceService {
         await this.start(instanceId)
     }
 
-    public async remove(instanceId: InstanceId): Promise<void> {
+    public async remove(instanceId: InstanceId, nestedTransaction = false): Promise<void> {
         const instanceRepository = await this.instanceRepository
 
         /**
          * Удалить созданный экземпляр версии блока из базы данных
          */
         try {
-            await instanceRepository.delete({
-                id: instanceId
+            await mutationQuery(nestedTransaction, () => {
+                return instanceRepository.delete({
+                    id: instanceId
+                })
             })
         } catch(error) {
             if (isErrorCode(error, [

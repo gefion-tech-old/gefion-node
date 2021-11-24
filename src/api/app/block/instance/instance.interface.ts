@@ -9,7 +9,7 @@ export interface IInstanceService {
     /**
      * Создать экземпляр версии блока, если он ассоциирован
      */
-    create(options: Version): Promise<InstanceId>
+    create(options: Version, nestedTransaction?: boolean): Promise<InstanceId>
 
     /**
      * Запустить экземпляр версии блока, если он уже создан. В случае, если указанный
@@ -26,7 +26,7 @@ export interface IInstanceService {
     /**
      * Остановить и удалить экземпляр версии блока
      */
-    remove(instanceId: InstanceId): Promise<void>
+    remove(instanceId: InstanceId, nestedTransaction?: boolean): Promise<void>
 
     /**
      * Получить идентификатор запущенного скрипта указанного экземпляра блока,
