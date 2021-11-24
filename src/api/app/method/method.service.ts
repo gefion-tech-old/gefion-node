@@ -11,7 +11,7 @@ import {
     RPCMethodsMethodService,
     MethodId
 } from './method.types'
-import { Repository, Connection, EntityManager } from 'typeorm'
+import { Repository, Connection } from 'typeorm'
 import { TYPEORM_SYMBOL } from '../../../core/typeorm/typeorm.types'
 import { Method as MethodEntity } from '../entities/method.entity'
 import { 
@@ -23,13 +23,13 @@ import {
 } from './method.errors'
 import { RPC_SYMBOL } from '../../../core/rpc/rpc.types'
 import { IRPCService } from '../../../core/rpc/rpc.interface'
-import uniqid from 'uniqid'
 import { isErrorCode, SqliteErrorCode } from '../../../core/typeorm/utils/error-code'
 import { ICreatorService } from '../creator/creator.interface'
 import { CREATOR_SYMBOL, ResourceType } from '../creator/creator.types'
 import { VM_SYMBOL, ScriptID } from '../../../core/vm/vm.types'
 import { IVMService } from '../../../core/vm/vm.interface'
 import { transaction } from '../../../core/typeorm/utils/transaction'
+import { mutationQuery } from '../../../core/typeorm/utils/mutation-query'
 
 @injectable()
 export class MethodService implements IMethodService {
@@ -74,7 +74,7 @@ export class MethodService implements IMethodService {
         return type.get(method.name)
     }
 
-    public async method(options: MethodOptions): Promise<void> {
+    public async method(options: MethodOptions, nestedTransaction = false): Promise<void> {
         const methodRepository = await this.methodRepository
         const connection = await this.connection
 
@@ -100,13 +100,15 @@ export class MethodService implements IMethodService {
             if (methodEntity) {
                 return methodEntity
             } else {
-                return await transaction<MethodEntity>(false, connection, async () => {
-                    const methodEntity = await methodRepository.save(options)
+                return await transaction<MethodEntity>(nestedTransaction, connection, async () => {
+                    const methodEntity = await mutationQuery(true, () => {
+                        return methodRepository.save(options)
+                    })
 
                     await this.creatorService.bind({
                         type: ResourceType.Method,
                         id: methodEntity.id
-                    }, options.creator)
+                    }, options.creator, true)
 
                     return methodEntity
                 })
@@ -209,12 +211,14 @@ export class MethodService implements IMethodService {
         return methodData.scriptId
     }
 
-    public async removeNamespace(namespace: string): Promise<void> {
+    public async removeNamespace(namespace: string, nestedTransaction = false): Promise<void> {
         const methodRepository = await this.methodRepository
 
         try {
-            await methodRepository.delete({
-                namespace: namespace
+            await mutationQuery(nestedTransaction, () => {
+                return methodRepository.delete({
+                    namespace: namespace
+                })
             })
         } catch(error) {
             if (isErrorCode(error, [
@@ -230,11 +234,13 @@ export class MethodService implements IMethodService {
         this.namespaces.delete(namespace)
     }
 
-    public async removeMethod(method: Method): Promise<void> {
+    public async removeMethod(method: Method, nestedTransaction = false): Promise<void> {
         const methodRepository = await this.methodRepository
 
         try {
-            await methodRepository.delete(method)
+            await mutationQuery(nestedTransaction, () => {
+                return methodRepository.delete(method)
+            })
         } catch(error) {
             if (isErrorCode(error, [
                 SqliteErrorCode.SQLITE_CONSTRAINT_FOREIGNKEY,
@@ -255,26 +261,21 @@ export class MethodService implements IMethodService {
         }
     }
 
-    public async removeMethods(methods: Method[]): Promise<void> {
-        /**
-         * Фактическая функция для удаления методов с помощью переданного менеджера.
-         * Игнорировать ошибки внешнего ключа
-         */
-        const removeMethods = async (entityManager: EntityManager) => {
-            const methodRepository = entityManager.getRepository(MethodEntity)
-            const salt = uniqid()
+    public async removeMethods(methods: Method[], nestedTransaction = false): Promise<void> {
+        const connection = await this.connection
+        const methodRepository = await this.methodRepository
 
-            for (const [index, method] of methods.entries()) {
-                const savepoint = `${salt}${index}`
+        await transaction(nestedTransaction, connection, async () => {
+            for (const method of methods) {
                 try {
-                    await entityManager.query(`SAVEPOINT "${savepoint}"`)
-                    await methodRepository.delete(method)
+                    await transaction(true, connection, async () => {
+                        await methodRepository.delete(method)
+                    })
                 } catch(error) {
                     if (isErrorCode(error, [
                         SqliteErrorCode.SQLITE_CONSTRAINT_FOREIGNKEY,
                         SqliteErrorCode.SQLITE_CONSTRAINT_TRIGGER
                     ])) {
-                        await entityManager.query(`ROLLBACK TO SAVEPOINT "${savepoint}"`)
                         continue
                     }
 
@@ -289,15 +290,6 @@ export class MethodService implements IMethodService {
                     }
                 }
             }
-        }
-
-        /**
-         * Фактическое удаление методов с помощью транзакционного менеджера
-         */
-        const connection = await this.connection
-        const methodRepository = await this.methodRepository
-        await transaction(false, connection, async () => {
-            await removeMethods(methodRepository.manager)
         })
     }
 

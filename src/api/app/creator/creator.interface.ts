@@ -6,7 +6,7 @@ export interface ICreatorService {
     /**
      * Привязать метод к указанному создателю
      */
-    bind(resource: BindableResource, creator: BindableCreator): Promise<void>
+    bind(resource: BindableResource, creator: BindableCreator, nestedTransaction?: boolean): Promise<void>
 
     /**
      * По идентификатору ресурса получить его создателя

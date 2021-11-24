@@ -12,6 +12,7 @@ import { Creator } from '../entities/creator.entity'
 import { BlockInstance } from '../entities/block-instance.entity'
 import { ResourceAlreadyHasCreator } from './creator.errors'
 import { isErrorCode, SqliteErrorCode } from '../../../core/typeorm/utils/error-code'
+import { mutationQuery } from '../../../core/typeorm/utils/mutation-query'
 
 @injectable()
 export class CreatorService implements ICreatorService {
@@ -28,7 +29,7 @@ export class CreatorService implements ICreatorService {
             })
     }
 
-    public async bind(resource: BindableResource, creator: BindableCreator): Promise<void> {
+    public async bind(resource: BindableResource, creator: BindableCreator, nestedTransaction = false): Promise<void> {
         const creatorRepository = await this.creatorRepository
         const creatorEntity = creatorRepository.create()
         
@@ -50,7 +51,9 @@ export class CreatorService implements ICreatorService {
         }
 
         try {
-            await creatorRepository.save(creatorEntity)
+            await mutationQuery(nestedTransaction, () => {
+                return creatorRepository.save(creatorEntity)
+            })
         } catch(error) {
             if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_UNIQUE)) {
                 throw new ResourceAlreadyHasCreator

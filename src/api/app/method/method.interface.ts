@@ -22,23 +22,23 @@ export interface IMethodService {
      * Только этот метод имеет встроенную защиту для проверки прав владения, так
      * как все остальные методы должны быть публичными
      */
-    method(options: MethodOptions): Promise<void>
+    method(options: MethodOptions, nestedTransaction?: boolean): Promise<void>
 
     /**
      * Удалить все методы указанного пространства имен
      */
-    removeNamespace(namespace: string): Promise<void>
+    removeNamespace(namespace: string, nestedTransaction?: boolean): Promise<void>
 
     /**
      * Попытаться удалить конкретный метод
      */
-    removeMethod(method: Method): Promise<void>
+    removeMethod(method: Method, nestedTransaction?: boolean): Promise<void>
 
     /**
      * Удалить все указанные методы, если на них не ссылается никаких внешних
      * ключей
      */
-    removeMethods(methods: Method[]): Promise<void>
+    removeMethods(methods: Method[], nestedTransaction?: boolean): Promise<void>
 
     /**
      * Вызвать указанный метод, если он существует и доступен
