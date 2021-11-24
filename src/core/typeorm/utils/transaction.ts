@@ -1,5 +1,6 @@
 import { Connection } from 'typeorm'
 import * as atomicTransaction from './atomic-transaction'
+import uniqid from 'uniqid'
 
 export class NestedTransactionIsNotActive extends Error {
 
@@ -9,8 +10,8 @@ export class NestedTransactionIsNotActive extends Error {
 }
 
 /**
- * Атомарно начать транзакцию. Если транзакция вложенная, то ничего не делать, все запросы и так
- * будут в рамках транзакции 
+ * Атомарно начать транзакцию. Если транзакция вложенная, то обернуть запросы в savepoint - rollback для
+ * симуляции вложенных транзакций
  */
 export async function transaction<T = void>(nestedTransaction: boolean, connection: Connection, handler: () => Promise<T>): Promise<T> {
     const queryRunner = connection.createQueryRunner()
@@ -21,13 +22,25 @@ export async function transaction<T = void>(nestedTransaction: boolean, connecti
     try {
         if (!nestedTransaction) {
             await atomicTransaction.lock()
-            result = await queryRunner.manager.transaction<T>(handler)
-            atomicTransaction.unlock()
+            try {
+                result = await queryRunner.manager.transaction<T>(handler)
+            } finally {
+                atomicTransaction.unlock()
+            }
         } else {
+            const savepoint = uniqid()
+
             if (!queryRunner.isTransactionActive) {
                 throw new NestedTransactionIsNotActive
             }
-            result = await handler()
+
+            await queryRunner.manager.query(`SAVEPOINT "${savepoint}"`)
+            try {
+                result = await handler()
+            } catch (error) {
+                await queryRunner.manager.query(`ROLLBACK TO SAVEPOINT "${savepoint}"`)
+                throw error
+            }
         }
     } finally {
         await queryRunner.release()
