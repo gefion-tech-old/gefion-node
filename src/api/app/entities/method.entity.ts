@@ -3,7 +3,8 @@ import {
     Unique,
     Entity,
     Column,
-    PrimaryGeneratedColumn
+    PrimaryGeneratedColumn,
+    CreateDateColumn
 } from 'typeorm'
 
 @injectable()
@@ -13,6 +14,11 @@ export class Method {
 
     @PrimaryGeneratedColumn()
     id: number
+
+    @CreateDateColumn({
+        nullable: false
+    })
+    createdAt: Date
 
     @Column({
         nullable: false
