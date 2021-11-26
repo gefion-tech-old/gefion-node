@@ -15,7 +15,8 @@ export interface IAtomicService {
 
     /**
      * Проверить блокировку операции. Повторение по умолчанию настроено
-     * в соответствии с дефолтными настройками async-retry
+     * в соответствии с дефолтными настройками async-retry. Если возвращается
+     * true, то операция заблокирована
      */
     check(operation: string, options?: Options): Promise<boolean>
 
