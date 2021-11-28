@@ -70,82 +70,88 @@ export class StoreService implements IStoreService {
             maxTimeout: 1000
         })
 
-        /**
-         * Получить текущий идентификатор приложения. При необходимости создать
-         * и сохранить его.
-         */
-        const appId = await (async (): Promise<string> => {
-            const rpcInfo = await rpcInfoRepository.findOne({
-                where: {
-                    key: 'appId'
-                }
-            })
-
-            if (rpcInfo) {
-                return rpcInfo.value
-            }
-
-            const appId = (await mutationQuery(false, () => {
-                return rpcInfoRepository.save({
-                    key: 'appId',
-                    value: uniqid()
-                })
-            })).value
-
-            return appId
-        })()
-
-        /**
-         * Получить текущий список портов всех экземпляров приложения. Если в списке
-         * нет порта текущего экземпляра, то сохранить его. Вернуть порты без порта текущего
-         * экземпляра
-         */
-        const ports = await (async (): Promise<number[]> => {
-            /**
-             * Получить порт текущего экземпляра
-             */
-            const currentPort = await (async (): Promise<number> => {
-                const fastifyInstance = await this.fastifyService.fastify()
-                return (fastifyInstance.server.address() as AddressInfo).port
-            })()
-
-            /**
-             * Сохранить порт текущего экземпляра, если его еще нет
-             */
-            if (!await rpcInfoRepository.findOne({
-                where: {
-                    key: 'port',
-                    value: String(currentPort)
-                }
-            })) {
-                await mutationQuery(false, () => {
-                    return rpcInfoRepository.save({
-                        key: 'port',
-                        value: String(currentPort)
+        const [appId, ports] = await (async (): Promise<[string, number[]]> => {
+            try {
+                /**
+                 * Получить текущий идентификатор приложения. При необходимости создать
+                 * и сохранить его.
+                 */
+                const appId = await (async (): Promise<string> => {
+                    const rpcInfo = await rpcInfoRepository.findOne({
+                        where: {
+                            key: 'appId'
+                        }
                     })
-                })
+        
+                    if (rpcInfo) {
+                        return rpcInfo.value
+                    }
+        
+                    const appId = (await mutationQuery(false, () => {
+                        return rpcInfoRepository.save({
+                            key: 'appId',
+                            value: uniqid()
+                        })
+                    })).value
+        
+                    return appId
+                })()
+        
+                /**
+                 * Получить текущий список портов всех экземпляров приложения. Если в списке
+                 * нет порта текущего экземпляра, то сохранить его. Вернуть порты без порта текущего
+                 * экземпляра
+                 */
+                const ports = await (async (): Promise<number[]> => {
+                    /**
+                     * Получить порт текущего экземпляра
+                     */
+                    const currentPort = await (async (): Promise<number> => {
+                        const fastifyInstance = await this.fastifyService.fastify()
+                        return (fastifyInstance.server.address() as AddressInfo).port
+                    })()
+        
+                    /**
+                     * Сохранить порт текущего экземпляра, если его еще нет
+                     */
+                    if (!await rpcInfoRepository.findOne({
+                        where: {
+                            key: 'port',
+                            value: String(currentPort)
+                        }
+                    })) {
+                        await mutationQuery(false, () => {
+                            return rpcInfoRepository.save({
+                                key: 'port',
+                                value: String(currentPort)
+                            })
+                        })
+                    }
+        
+                    /**
+                     * Получить список портов без текущего порта
+                     */
+                    const ports = (await rpcInfoRepository.find({
+                        where: {
+                            key: 'port'
+                        }
+                    })).map(info => {
+                        return Number(info.value)
+                    }).filter(port => {
+                        return port !== currentPort
+                    })
+        
+                    return ports
+                })()
+
+                return [appId, ports]
+            } finally {
+                /**
+                 * Убрать блокировку синхронизации
+                 */
+                await this.atomicService.unlock(SyncOperation)
             }
-
-            /**
-             * Получить список портов без текущего порта
-             */
-            const ports = (await rpcInfoRepository.find({
-                where: {
-                    key: 'port'
-                }
-            })).map(info => {
-                return Number(info.value)
-            }).filter(port => {
-                return port !== currentPort
-            })
-
-            return ports
         })()
-
-        /**
-         * Убрать блокировку синхронизации
-         */
-        await this.atomicService.unlock(SyncOperation)
 
         /**
          * Сохранить полученные значения
