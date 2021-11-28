@@ -68,10 +68,10 @@ describe('CreatorService в CreatorModule', () => {
             await expect(creatorRepository.find())
                 .resolves
                 .toHaveLength(1)
-            await expect(instanceRepository.delete(instanceEntity))
+            await expect(instanceRepository.remove(instanceEntity))
                 .rejects
                 .toThrow()
-            await expect(methodRepository.delete(methodEntity))
+            await expect(methodRepository.remove(methodEntity))
                 .resolves
                 .toBeDefined()
             await expect(creatorRepository.find())
@@ -110,7 +110,7 @@ describe('CreatorService в CreatorModule', () => {
             await expect(creatorRepository.find())
                 .resolves
                 .toHaveLength(1)
-            await expect(methodRepository.delete(methodEntity))
+            await expect(methodRepository.remove(methodEntity))
                 .resolves
                 .toBeDefined()
             await expect(creatorRepository.find())
@@ -241,10 +241,10 @@ describe('CreatorService в CreatorModule', () => {
             await expect(creatorRepository.find())
                 .resolves
                 .toHaveLength(1)
-            await expect(instanceRepository.delete(instanceEntity))
+            await expect(instanceRepository.remove(instanceEntity))
                 .rejects
                 .toThrow()
-            await expect(signalRepository.delete({ id: signalEntity.id }))
+            await expect(signalRepository.remove({ id: signalEntity.id } as Signal))
                 .resolves
                 .toBeDefined()
             await expect(creatorRepository.find())
@@ -283,7 +283,7 @@ describe('CreatorService в CreatorModule', () => {
             await expect(creatorRepository.find())
                 .resolves
                 .toHaveLength(1)
-            await expect(signalRepository.delete({ id: signalEntity.id }))
+            await expect(signalRepository.remove({ id: signalEntity.id } as Signal))
                 .resolves
                 .toBeDefined()
             await expect(creatorRepository.find())
