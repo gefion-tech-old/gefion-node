@@ -2,7 +2,8 @@ import { Method } from '../method/method.types'
 import { 
     Signal, 
     SignalMetadata,
-    CreateSignal
+    CreateSignal,
+    EventContext
 } from './signal.type'
 
 export interface ISignalService {
@@ -86,17 +87,9 @@ export interface ISignalService {
      */
     remove(signal: Signal, nestedTransaction?: boolean): Promise<void>
 
-    // /**
-    //  * Генерация сигнала с передачей любых данных. Для срабатывания сигнал должен
-    //  * пройти через все зарегистрированные валидаторы. В случае отклонения валидатор вызывает исключение,
-    //  * которое оборачивается перед всплытием в собственный класс
-    //  */
-    // emit(signal: Signal, args: any[]): void
-
-    // /**
-    //  * Прослушивание всех сигналов. Дополнительную информацию можно узнать из переданных
-    //  * параметров. Срабатывает только в случае, если сигнал прошёл через все валидаторы
-    //  */
-    // on(handler: (signal: Signal, metadata: SignalMetadata, args: any[]) => void): void
+    /**
+     * Поставить обработчик для прослушивания события мутации сигнала
+     */
+    onSignalMutation(handler: (context: EventContext) => void): void
 
 }

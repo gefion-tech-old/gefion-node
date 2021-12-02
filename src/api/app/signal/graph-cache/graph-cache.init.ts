@@ -2,21 +2,30 @@ import { injectable, inject } from 'inversify'
 import { InitRunner } from '../../../../core/init/init.types'
 import { IGraphCacheService } from './graph-cache.interface'
 import { SIGNAL_SYMBOL } from '../signal.type'
+import { ISignalService } from '../signal.interface'
 
 /**
  * Запускать полное обновление кэша графа сигналов с полной синхронизацией при
- * запуске нового экземпляра приложения
+ * запуске нового экземпляра приложения, а также привязывать обновление кэша 
+ * к событиям обновления сигнала
  */ 
 @injectable()
 export class InitGraphCache implements InitRunner {
  
     public constructor(
         @inject(SIGNAL_SYMBOL.GraphCacheService)
-        private graphCacheService: IGraphCacheService
+        private graphCacheService: IGraphCacheService,
+
+        @inject(SIGNAL_SYMBOL.SignalService)
+        private signalService: ISignalService
     ) {}
  
     public async run(): Promise<void> {
         await this.graphCacheService.updateSignalsAndSync()
+
+        this.signalService.onSignalMutation((context) => {
+            this.graphCacheService.updateSignalAndSync(context.signalId)
+        })
     }
  
 }

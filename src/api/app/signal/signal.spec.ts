@@ -1,5 +1,5 @@
 import { getContainer } from '../../../inversify.config'
-import { SIGNAL_SYMBOL } from './signal.type'
+import { SIGNAL_SYMBOL, EventType, EventContext } from './signal.type'
 import { ISignalService } from './signal.interface'
 import { METHOD_SYMBOL } from '../method/method.types'
 import { IMethodService } from '../method/method.interface'
@@ -25,7 +25,6 @@ import { ICreatorService } from '../creator/creator.interface'
 import { CREATOR_SYMBOL } from '../creator/creator.types'
 import { getCreatorService } from '../creator/__mock/getCreatorService.mock'
 import { addTestEntity } from '../../../core/typeorm/utils/test-entities'
-import { getGraphCacheService } from './__mock/GraphCacheService.mock'
 
 /**
  * Добавление тестовой сущности
@@ -66,20 +65,6 @@ describe('SignalService в SignalModule', () => {
     `, async () => {
         const container = await getContainer()
         container.snapshot()
-
-        const updateSignalFn = jest.fn()
-
-        container.rebind(SIGNAL_SYMBOL.GraphCacheService)
-            .to(getGraphCacheService({
-                signalDirection: async () => true,
-                updateSignal: async () => {},
-                updateSignals: async () => {},
-                updateSignalAndSync: async (signalId) => {
-                    updateSignalFn(signalId)
-                },
-                updateSignalsAndSync: async () => {}
-            }))
-            .inSingletonScope()
         
         const signalService = container
             .get<ISignalService>(SIGNAL_SYMBOL.SignalService)
@@ -100,6 +85,9 @@ describe('SignalService в SignalModule', () => {
             .resolves
             .toBeUndefined()
 
+        const signalMutationFn = jest.fn()
+        expect(signalService.onSignalMutation(signalMutationFn)).toBeUndefined()
+
         await expect(signalService.createIfNotCreated({
             signal: signal1,
             defaultMetadata: metadata,
@@ -114,8 +102,13 @@ describe('SignalService в SignalModule', () => {
                 type: CreatorType.System
             }
         })).resolves.toBeUndefined()
-        expect(updateSignalFn).toHaveBeenNthCalledWith(1, await signalService.getSignalId(signal1))
-        expect(updateSignalFn).toBeCalledTimes(1)
+        
+        const eventContext: EventContext = {
+            type: EventType.Create,
+            signalId: await signalService.getSignalId(signal1) as number
+        }
+        expect(signalMutationFn).toHaveBeenNthCalledWith(1, expect.objectContaining(eventContext))
+        expect(signalMutationFn).toBeCalledTimes(1)
 
         await expect(signalService.isExists(signal1))
             .resolves
@@ -153,20 +146,6 @@ describe('SignalService в SignalModule', () => {
         const container = await getContainer()
         container.snapshot()
 
-        const updateSignalAndSyncFn = jest.fn()
-
-        container.rebind(SIGNAL_SYMBOL.GraphCacheService)
-            .to(getGraphCacheService({
-                signalDirection: async () => true,
-                updateSignal: async () => {},
-                updateSignals: async () => {},
-                updateSignalAndSync: async (signalId) => {
-                    updateSignalAndSyncFn(signalId)
-                },
-                updateSignalsAndSync: async () => {}
-            }))
-            .inSingletonScope()
-
         const signalService = container
             .get<ISignalService>(SIGNAL_SYMBOL.SignalService)
 
@@ -179,6 +158,9 @@ describe('SignalService в SignalModule', () => {
             value: true
         }
 
+        const signalMutationFn = jest.fn()
+        expect(signalService.onSignalMutation(signalMutationFn)).toBeUndefined()
+
         await signalService.createIfNotCreated({
             signal: signal1,
             defaultMetadata: defaultMetadata,
@@ -186,8 +168,6 @@ describe('SignalService в SignalModule', () => {
                 type: CreatorType.System
             }
         })
-        expect(updateSignalAndSyncFn).toHaveBeenNthCalledWith(1, await signalService.getSignalId(signal1))
-        expect(updateSignalAndSyncFn).toBeCalledTimes(1)
 
         await expect(signalService.getMetadata(signal1))
             .resolves
@@ -203,6 +183,13 @@ describe('SignalService в SignalModule', () => {
                 default: defaultMetadata,
                 custom: customMetadata
             })
+
+        const eventContext: EventContext = {
+            type: EventType.SetCustomMetadata,
+            signalId: await signalService.getSignalId(signal1) as number
+        }
+        expect(signalMutationFn).toHaveBeenNthCalledWith(2, expect.objectContaining(eventContext))
+        expect(signalMutationFn).toBeCalledTimes(2)
 
         container.restore()
     })
@@ -291,16 +278,6 @@ describe('SignalService в SignalModule', () => {
         const container = await getContainer()
         container.snapshot()
 
-        container.rebind(SIGNAL_SYMBOL.GraphCacheService)
-            .to(getGraphCacheService({
-                signalDirection: async () => true,
-                updateSignal: async () => {},
-                updateSignals: async () => {},
-                updateSignalAndSync: async () => {},
-                updateSignalsAndSync: async () => {}
-            }))
-            .inSingletonScope()
-
         const signalService = container
             .get<ISignalService>(SIGNAL_SYMBOL.SignalService)
 
@@ -341,16 +318,6 @@ describe('SignalService в SignalModule', () => {
     `, async () => {
         const container = await getContainer()
         container.snapshot()
-
-        container.rebind(SIGNAL_SYMBOL.GraphCacheService)
-            .to(getGraphCacheService({
-                signalDirection: async () => true,
-                updateSignal: async () => {},
-                updateSignals: async () => {},
-                updateSignalAndSync: async () => {},
-                updateSignalsAndSync: async () => {}
-            }))
-            .inSingletonScope()
 
         container.rebind(VM_SYMBOL.VMService)
             .to(getVMService({
@@ -426,20 +393,6 @@ describe('SignalService в SignalModule', () => {
         const container = await getContainer()
         container.snapshot()
 
-        const updateSignalAndSync = jest.fn()
-
-        container.rebind(SIGNAL_SYMBOL.GraphCacheService)
-            .to(getGraphCacheService({
-                signalDirection: async () => true,
-                updateSignal: async () => {},
-                updateSignals: async () => {},
-                updateSignalAndSync: async (signalId) => {
-                    updateSignalAndSync(signalId)
-                },
-                updateSignalsAndSync: async () => {}
-            }))
-            .inSingletonScope()
-
         container.rebind(VM_SYMBOL.VMService)
             .to(getVMService({
                 error: () => {},
@@ -509,6 +462,9 @@ describe('SignalService в SignalModule', () => {
         }
         const defaultMetadata = true
         
+        const signalMutationFn = jest.fn()
+        expect(signalService.onSignalMutation(signalMutationFn)).toBeUndefined()
+
         await signalService.createIfNotCreated({
             signal: signal1,
             defaultMetadata: defaultMetadata,
@@ -538,11 +494,26 @@ describe('SignalService в SignalModule', () => {
             throw new Error('Непредвиденная ошибка')
         }
 
-        expect(updateSignalAndSync).toHaveBeenLastCalledWith(await signalService.getSignalId(signal1))
-        expect(updateSignalAndSync).toBeCalledTimes(10)
         expect(signalEntity.validators).toHaveLength(3)
         expect(signalEntity.guards).toHaveLength(3)
         expect(signalEntity.filters).toHaveLength(3)
+
+        const eventContext1: EventContext = {
+            type: EventType.AddValidator,
+            signalId: await signalService.getSignalId(signal1) as number
+        }
+        const eventContext2: EventContext = {
+            type: EventType.AddGuard,
+            signalId: await signalService.getSignalId(signal1) as number
+        }
+        const eventContext3: EventContext = {
+            type: EventType.AddFilter,
+            signalId: await signalService.getSignalId(signal1) as number
+        }
+        expect(signalMutationFn).toHaveBeenNthCalledWith(2, expect.objectContaining(eventContext1))
+        expect(signalMutationFn).toHaveBeenNthCalledWith(5, expect.objectContaining(eventContext2))
+        expect(signalMutationFn).toHaveBeenNthCalledWith(8, expect.objectContaining(eventContext3))
+        expect(signalMutationFn).toBeCalledTimes(10)
 
         container.restore()
     })
@@ -608,16 +579,6 @@ describe('SignalService в SignalModule', () => {
         const container = await getContainer()
         container.snapshot()
 
-        container.rebind(SIGNAL_SYMBOL.GraphCacheService)
-            .to(getGraphCacheService({
-                signalDirection: async () => true,
-                updateSignal: async () => {},
-                updateSignals: async () => {},
-                updateSignalAndSync: async () => {},
-                updateSignalsAndSync: async () => {}
-            }))
-            .inSingletonScope()
-
         const signalService = container
             .get<ISignalService>(SIGNAL_SYMBOL.SignalService)
 
@@ -660,20 +621,6 @@ describe('SignalService в SignalModule', () => {
         const container = await getContainer()
         container.snapshot()
 
-        const updateSignalAndSync = jest.fn()
-
-        container.rebind(SIGNAL_SYMBOL.GraphCacheService)
-            .to(getGraphCacheService({
-                signalDirection: async () => true,
-                updateSignal: async () => {},
-                updateSignals: async () => {},
-                updateSignalAndSync: async (signalId) => {
-                    updateSignalAndSync(signalId)
-                },
-                updateSignalsAndSync: async () => {}
-            }))
-            .inSingletonScope()
-
         container.rebind(VM_SYMBOL.VMService)
             .to(getVMService({
                 error: () => {},
@@ -715,6 +662,9 @@ describe('SignalService в SignalModule', () => {
             name: 'name2'
         }
         const defaultMetadata = null
+
+        const signalMutationFn = jest.fn()
+        expect(signalService.onSignalMutation(signalMutationFn)).toBeUndefined()
 
         await signalService.createIfNotCreated({
             signal: signal1,
@@ -828,9 +778,22 @@ describe('SignalService в SignalModule', () => {
 
         expect(methodService.isAvailable(method1)).toBe(false)
 
-        expect(updateSignalAndSync).toHaveBeenNthCalledWith(1, await signalService.getSignalId(signal1))
-        expect(updateSignalAndSync).toHaveBeenNthCalledWith(2, await signalService.getSignalId(signal2))
-        expect(updateSignalAndSync).toBeCalledTimes(20)
+        const eventContext1: EventContext = {
+            type: EventType.RemoveValidator,
+            signalId: await signalService.getSignalId(signal1) as number
+        }
+        const eventContext2: EventContext = {
+            type: EventType.RemoveGuard,
+            signalId: await signalService.getSignalId(signal1) as number
+        }
+        const eventContext3: EventContext = {
+            type: EventType.RemoveFilter,
+            signalId: await signalService.getSignalId(signal1) as number
+        }
+        expect(signalMutationFn).toHaveBeenNthCalledWith(12, expect.objectContaining(eventContext1))
+        expect(signalMutationFn).toHaveBeenNthCalledWith(14, expect.objectContaining(eventContext2))
+        expect(signalMutationFn).toHaveBeenNthCalledWith(16, expect.objectContaining(eventContext3))
+        expect(signalMutationFn).toBeCalledTimes(20)
 
         container.restore()
     })
@@ -840,16 +803,6 @@ describe('SignalService в SignalModule', () => {
     `, async () => {
         const container = await getContainer()
         container.snapshot()
-
-        container.rebind(SIGNAL_SYMBOL.GraphCacheService)
-            .to(getGraphCacheService({
-                signalDirection: async () => true,
-                updateSignal: async () => {},
-                updateSignals: async () => {},
-                updateSignalAndSync: async () => {},
-                updateSignalsAndSync: async () => {}
-            }))
-            .inSingletonScope()
 
         container.rebind(CREATOR_SYMBOL.CreatorService)
             .to(getCreatorService({
@@ -901,16 +854,6 @@ describe('SignalService в SignalModule', () => {
     `, async () => {
         const container = await getContainer()
         container.snapshot()
-
-        container.rebind(SIGNAL_SYMBOL.GraphCacheService)
-            .to(getGraphCacheService({
-                signalDirection: async () => true,
-                updateSignal: async () => {},
-                updateSignals: async () => {},
-                updateSignalAndSync: async () => {},
-                updateSignalsAndSync: async () => {}
-            }))
-            .inSingletonScope()
 
         container.rebind(CREATOR_SYMBOL.CreatorService)
             .to(getCreatorService({
@@ -967,20 +910,6 @@ describe('SignalService в SignalModule', () => {
         const container = await getContainer()
         container.snapshot()
 
-        const updateSignalAndSync = jest.fn()
-
-        container.rebind(SIGNAL_SYMBOL.GraphCacheService)
-            .to(getGraphCacheService({
-                signalDirection: async () => true,
-                updateSignal: async () => {},
-                updateSignals: async () => {},
-                updateSignalAndSync: async () => {
-                    updateSignalAndSync()
-                },
-                updateSignalsAndSync: async () => {}
-            }))
-            .inSingletonScope()
-
         container.rebind(CREATOR_SYMBOL.CreatorService)
             .to(getCreatorService({
                 bind: async () => {},
@@ -1016,6 +945,9 @@ describe('SignalService в SignalModule', () => {
             name: 'name5'
         }
         const defaultMetadata = null
+
+        const signalMutationFn = jest.fn()
+        expect(signalService.onSignalMutation(signalMutationFn)).toBeUndefined()
 
         await Promise.all([
             signalService.createIfNotCreated({
@@ -1122,7 +1054,17 @@ describe('SignalService в SignalModule', () => {
 
         await expect(signalGraphRepository.find()).resolves.toHaveLength(0)
 
-        expect(updateSignalAndSync).toBeCalledTimes(17)
+        const eventContext1: EventContext = {
+            type: EventType.Connect,
+            signalId: await signalService.getSignalId(signal1) as number
+        }
+        const eventContext2: EventContext = {
+            type: EventType.Unconnect,
+            signalId: await signalService.getSignalId(signal1) as number
+        }
+        expect(signalMutationFn).toHaveBeenNthCalledWith(6, expect.objectContaining(eventContext1))
+        expect(signalMutationFn).toHaveBeenNthCalledWith(12, expect.objectContaining(eventContext2))
+        expect(signalMutationFn).toBeCalledTimes(17)
 
         container.restore()
     })
@@ -1132,16 +1074,6 @@ describe('SignalService в SignalModule', () => {
     `, async () => {
         const container = await getContainer()
         container.snapshot()
-
-        container.rebind(SIGNAL_SYMBOL.GraphCacheService)
-            .to(getGraphCacheService({
-                signalDirection: async () => true,
-                updateSignal: async () => {},
-                updateSignals: async () => {},
-                updateSignalAndSync: async () => {},
-                updateSignalsAndSync: async () => {}
-            }))
-            .inSingletonScope()
 
         const connection = await container
             .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
@@ -1180,20 +1112,6 @@ describe('SignalService в SignalModule', () => {
     `, async () => {
         const container = await getContainer()
         container.snapshot()
-
-        const updateSignalAndSync = jest.fn()
-
-        container.rebind(SIGNAL_SYMBOL.GraphCacheService)
-            .to(getGraphCacheService({
-                signalDirection: async () => true,
-                updateSignal: async () => {},
-                updateSignals: async () => {},
-                updateSignalAndSync: async () => {
-                    updateSignalAndSync()
-                },
-                updateSignalsAndSync: async () => {}
-            }))
-            .inSingletonScope()
 
         container.rebind(VM_SYMBOL.VMService)
             .to(getVMService({
@@ -1236,6 +1154,9 @@ describe('SignalService в SignalModule', () => {
             name: 'name2'
         }
         const defaultMetadata = null
+
+        const signalMutationFn = jest.fn()
+        expect(signalService.onSignalMutation(signalMutationFn)).toBeUndefined()
 
         await signalService.createIfNotCreated({
             signal: signal1,
@@ -1284,7 +1205,12 @@ describe('SignalService в SignalModule', () => {
         await expect(methodRepository.find()).resolves.toHaveLength(0)
         await expect(signalRepository.find()).resolves.toHaveLength(0)
 
-        expect(updateSignalAndSync).toBeCalledTimes(14)
+        const eventContext: EventContext = {
+            type: EventType.Remove,
+            signalId: await signalService.getSignalId(signal1) as number
+        }
+        expect(signalMutationFn).toHaveBeenNthCalledWith(13, expect.objectContaining(eventContext))
+        expect(signalMutationFn).toBeCalledTimes(14)
 
         container.restore()
     })

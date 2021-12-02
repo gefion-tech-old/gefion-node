@@ -41,6 +41,7 @@ export const SignalModule = new AsyncContainerModule(async (bind: interfaces.Bin
 
     bind<ISignalService>(SIGNAL_SYMBOL.SignalService)
         .to(SignalService)
+        .inSingletonScope()
 
     bind<IGraphCacheService>(SIGNAL_SYMBOL.GraphCacheService)
         .to(GraphCacheService)

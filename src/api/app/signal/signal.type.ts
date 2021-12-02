@@ -49,3 +49,66 @@ export interface CreateSignal {
      */
     creator: BindableCreator
 }
+
+/**
+ * Идентификатор события мутации
+ */
+export const EventMutation = Symbol('Mutation')
+
+export enum EventType {
+    /**
+     * Событие создания сигнала
+     */
+    Create = 'Create',
+    /**
+     * Событие установки кастомных метаданных сигнала
+     */
+    SetCustomMetadata = 'SetCustomMetadata',
+    /**
+     * Событие добавление валидатора
+     */
+    AddValidator = 'AddValidator',
+    /**
+     * Событие удаления валидатора
+     */
+    RemoveValidator = 'RemoveValidator',
+    /**
+     * Событие добавление охранника
+     */
+    AddGuard = 'AddGuard',
+    /**
+     * Событие удаления охранника
+     */
+    RemoveGuard = 'RemoveGuard',
+    /**
+     * Событие добавления фильтра
+     */
+    AddFilter = 'AddFilter',
+    /**
+     * Событие удаления фильтра
+     */
+    RemoveFilter = 'RemoveFilter',
+    /**
+     * Событие присоединения сигнала к другому сигналу
+     */
+    Connect = 'Connect',
+    /**
+     * Событие отсоединения сигнала от другого сигнала
+     */
+    Unconnect = 'Unconnect',
+    /**
+     * Событие удаления сигнала
+     */
+    Remove = 'Remove'
+}
+
+export interface EventContext {
+    /**
+     * Тип мутации
+     */
+    type: EventType
+    /**
+     * Идентификатор сигнала над которым происходит мутация
+     */
+    signalId: number
+}

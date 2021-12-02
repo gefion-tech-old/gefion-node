@@ -7,7 +7,9 @@ import {
     Signal, 
     SignalMetadata,
     CreateSignal,
-    SIGNAL_SYMBOL
+    EventType,
+    EventMutation,
+    EventContext
 } from './signal.type'
 import { 
     SignalDoesNotExist,
@@ -28,13 +30,14 @@ import { ICreatorService } from '../creator/creator.interface'
 import { transaction } from '../../../core/typeorm/utils/transaction'
 import { GraphRepository } from './repositories/graph.repository'
 import { mutationQuery } from '../../../core/typeorm/utils/mutation-query'
-import { IGraphCacheService } from './graph-cache/graph-cache.interface'
+import { EventEmitter } from 'events'
 
 @injectable()
 export class SignalService implements ISignalService {
 
     private signalRepository: Promise<Repository<SignalEntity>>
     private connection: Promise<Connection>
+    private eventEmitter = new EventEmitter
 
     public constructor(
         @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
@@ -44,10 +47,7 @@ export class SignalService implements ISignalService {
         private methodService: IMethodService,
 
         @inject(CREATOR_SYMBOL.CreatorService)
-        private creatorService: ICreatorService,
-
-        @inject(SIGNAL_SYMBOL.GraphCacheService)
-        private graphCacheService: IGraphCacheService
+        private creatorService: ICreatorService
     ) {
         this.connection = connection
         this.signalRepository = connection
@@ -83,7 +83,11 @@ export class SignalService implements ISignalService {
             return signalEntity
         })
 
-        await this.graphCacheService.updateSignalAndSync(signalEntity.id)
+        const eventContext: EventContext = {
+            type: EventType.Create,
+            signalId: signalEntity.id
+        }
+        this.eventEmitter.emit(EventMutation, eventContext)
     }
 
     public async isExists(signal: Signal): Promise<boolean> {
@@ -143,7 +147,11 @@ export class SignalService implements ISignalService {
             return signalRepository.save(signalEntity)
         })
 
-        await this.graphCacheService.updateSignalAndSync(newSignalEntity.id)
+        const eventContext: EventContext = {
+            type: EventType.SetCustomMetadata,
+            signalId: newSignalEntity.id
+        }
+        this.eventEmitter.emit(EventMutation, eventContext)
     }
 
     public async addValidator(signal: Signal, method: Method, nestedTransaction = false): Promise<void> {
@@ -182,7 +190,11 @@ export class SignalService implements ISignalService {
             throw error
         }
 
-        await this.graphCacheService.updateSignalAndSync(signalEntity.id)
+        const eventContext: EventContext = {
+            type: EventType.AddValidator,
+            signalId: signalEntity.id
+        }
+        this.eventEmitter.emit(EventMutation, eventContext)
     }
 
     public async removeValidator(signal: Signal, method: Method, nestedTransaction = false): Promise<void> {
@@ -229,7 +241,11 @@ export class SignalService implements ISignalService {
             }
         }
 
-        await this.graphCacheService.updateSignalAndSync(signalEntity.id)
+        const eventContext: EventContext = {
+            type: EventType.RemoveValidator,
+            signalId: signalEntity.id
+        }
+        this.eventEmitter.emit(EventMutation, eventContext)
     }
 
     public async addGuard(signal: Signal, method: Method, nestedTransaction = false): Promise<void> {
@@ -268,7 +284,11 @@ export class SignalService implements ISignalService {
             throw error
         }
 
-        await this.graphCacheService.updateSignalAndSync(signalEntity.id)
+        const eventContext: EventContext = {
+            type: EventType.AddGuard,
+            signalId: signalEntity.id
+        }
+        this.eventEmitter.emit(EventMutation, eventContext)
     }
 
     public async removeGuard(signal: Signal, method: Method, nestedTransaction = false): Promise<void> {
@@ -315,7 +335,11 @@ export class SignalService implements ISignalService {
             }
         }
 
-        await this.graphCacheService.updateSignalAndSync(signalEntity.id)
+        const eventContext: EventContext = {
+            type: EventType.RemoveGuard,
+            signalId: signalEntity.id
+        }
+        this.eventEmitter.emit(EventMutation, eventContext)
     }
 
     public async addFilter(signal: Signal, method: Method, nestedTransaction = false): Promise<void> {
@@ -354,7 +378,11 @@ export class SignalService implements ISignalService {
             throw error
         }
 
-        await this.graphCacheService.updateSignalAndSync(signalEntity.id)
+        const eventContext: EventContext = {
+            type: EventType.AddFilter,
+            signalId: signalEntity.id
+        }
+        this.eventEmitter.emit(EventMutation, eventContext)
     }
 
     public async removeFilter(signal: Signal, method: Method, nestedTransaction = false): Promise<void> {
@@ -401,7 +429,11 @@ export class SignalService implements ISignalService {
             }
         }
 
-        await this.graphCacheService.updateSignalAndSync(signalEntity.id)
+        const eventContext: EventContext = {
+            type: EventType.RemoveFilter,
+            signalId: signalEntity.id
+        }
+        this.eventEmitter.emit(EventMutation, eventContext)
     }
 
     public async connect(outSignal: Signal, intoSignal: Signal, nestedTransaction = false): Promise<void> {
@@ -459,7 +491,11 @@ export class SignalService implements ISignalService {
             }
         }
 
-        await this.graphCacheService.updateSignalAndSync(outSignalEntity.id)
+        const eventContext: EventContext = {
+            type: EventType.Connect,
+            signalId: outSignalEntity.id
+        }
+        this.eventEmitter.emit(EventMutation, eventContext)
     }
 
     public async unconnect(outSignal: Signal, intoSignal: Signal, nestedTransaction = false): Promise<void> {
@@ -507,7 +543,11 @@ export class SignalService implements ISignalService {
          */
         await graphRepository.unconnect(outSignalEntity, intoSignalEntity, nestedTransaction)
 
-        await this.graphCacheService.updateSignalAndSync(outSignalEntity.id)
+        const eventContext: EventContext = {
+            type: EventType.Unconnect,
+            signalId: outSignalEntity.id
+        }
+        this.eventEmitter.emit(EventMutation, eventContext)
     }
 
     public async remove(signal: Signal, nestedTransaction = false): Promise<void> {
@@ -573,7 +613,15 @@ export class SignalService implements ISignalService {
             )
         })
 
-        await this.graphCacheService.updateSignalAndSync(signalEntity.id)
+        const eventContext: EventContext = {
+            type: EventType.Remove,
+            signalId: signalEntity.id
+        }
+        this.eventEmitter.emit(EventMutation, eventContext)
+    }
+
+    public onSignalMutation(handler: (context: EventContext) => void): void {
+        this.eventEmitter.on(EventMutation, handler)
     }
 
 }

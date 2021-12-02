@@ -1,11 +1,14 @@
 import { getContainer } from '../../../../inversify.config'
 import { IGraphCacheService } from './graph-cache.interface'
-import { SIGNAL_SYMBOL, Signal } from '../signal.type'
+import { SIGNAL_SYMBOL, Signal, EventType } from '../signal.type'
 import { ISignalService } from '../signal.interface'
 import { CREATOR_SYMBOL, CreatorType } from '../../creator/creator.types'
 import { getCreatorService } from '../../creator/__mock/getCreatorService.mock'
 import { RPC_SYMBOL } from '../../../../core/rpc/rpc.types'
 import { getRPCService } from '../../../../core/rpc/__mock/RPCService.mock'
+import { INIT_SYMBOL, InitRunner } from '../../../../core/init/init.types'
+import { getGraphCacheService } from '../__mock/GraphCacheService.mock'
+import { getSignalService } from '../__mock/SignalService.mock'
 
 beforeAll(async () => {
     const container = await getContainer()
@@ -72,6 +75,16 @@ describe('GraphCacheService в SignalModule', () => {
         ]) as number[]
 
         const graphCallback1 = jest.fn()
+        await expect(Promise.all([signal1Id, signal2Id, signal3Id, signal4Id, signal5Id, signal6Id].map(signalId => {
+            return graphCacheService.signalDirection(signalId, async () => {
+                graphCallback1()
+                return true
+            })
+        }))).resolves.toEqual(
+            expect.arrayContaining([false, false, false, false, false, false])
+        )
+        expect(graphCallback1).toBeCalledTimes(0)
+
         await expect(graphCacheService.updateSignals()).resolves.toBeUndefined()
 
         /**
@@ -366,6 +379,7 @@ describe('GraphCacheService в SignalModule', () => {
         await expect(signalService.unconnect(signal1, signal5)).resolves.toBeUndefined()
         await expect(signalService.unconnect(signal4, signal2)).resolves.toBeUndefined()
         await expect(graphCacheService.updateSignal(signal1Id)).resolves.toBeUndefined()
+        await expect(graphCacheService.updateSignal(signal4Id)).resolves.toBeUndefined()
 
         const graphCallback13 = jest.fn()
         await expect(graphCacheService.signalDirection(signal1Id, async (signal) => {
@@ -413,6 +427,97 @@ describe('GraphCacheService в SignalModule', () => {
             expect.arrayContaining([true, false, true, true, true, true])
         )
         expect(graphCallback15).toBeCalledTimes(2 + 0 + 1 + 1 + 2 + 1)
+
+        container.restore()
+    })
+
+})
+
+describe('GraphCacheInit в SignalModule', () => {
+
+    it(`
+        При инициализации кэш всех приложений полностью обновляется и синхронизируется
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        const updateSignalsAndSyncFn = jest.fn()
+
+        container.rebind(SIGNAL_SYMBOL.GraphCacheService)
+            .to(getGraphCacheService({
+                signalDirection: async () => false,
+                updateSignal: async () => {},
+                updateSignals: async () => {},
+                updateSignalAndSync: async () => {},
+                updateSignalsAndSync: async () => {
+                    updateSignalsAndSyncFn()
+                }
+            }))
+            .inSingletonScope()
+
+        const graphCacheInit = container
+            .getNamed<InitRunner>(INIT_SYMBOL.InitRunner, SIGNAL_SYMBOL.GraphCacheInit)
+
+        await expect(graphCacheInit.run()).resolves.toBeUndefined()
+        expect(updateSignalsAndSyncFn).toBeCalledTimes(1)
+
+        container.restore()
+    })
+
+    it(`
+        При инициализации корректно обновление кэша сигналов корректно привязывается к
+        событиям обновления сигналов
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        const updateSignalAndSyncFn = jest.fn()
+        const onSignalMutationFn = jest.fn()
+
+        container.rebind(SIGNAL_SYMBOL.GraphCacheService)
+            .to(getGraphCacheService({
+                signalDirection: async () => false,
+                updateSignal: async () => {},
+                updateSignals: async () => {},
+                updateSignalAndSync: async () => {
+                    updateSignalAndSyncFn()
+                },
+                updateSignalsAndSync: async () => {}
+            }))
+            .inSingletonScope()
+
+        container.rebind(SIGNAL_SYMBOL.SignalService)
+            .to(getSignalService({
+                addFilter: async () => {},
+                addGuard: async () => {},
+                addValidator: async () => {},
+                removeFilter: async () => {},
+                removeGuard: async () => {},
+                removeValidator: async () => {},
+                isExists: async () => false,
+                createIfNotCreated: async () => {},
+                getMetadata: async () => undefined,
+                getSignalId: async () => undefined,
+                remove: async () => {},
+                connect: async () => {},
+                unconnect: async () => {},
+                setCustomMetadata: async () => {},
+                onSignalMutation: (handler) => {
+                    onSignalMutationFn()
+                    handler({
+                        signalId: 1,
+                        type: EventType.Create
+                    })
+                }
+            }))
+            .inSingletonScope()
+
+        const graphCacheInit = container
+            .getNamed<InitRunner>(INIT_SYMBOL.InitRunner, SIGNAL_SYMBOL.GraphCacheInit)
+
+        await expect(graphCacheInit.run()).resolves.toBeUndefined()
+        expect(onSignalMutationFn).toBeCalledTimes(1)
+        expect(updateSignalAndSyncFn).toBeCalledTimes(1)
 
         container.restore()
     })
