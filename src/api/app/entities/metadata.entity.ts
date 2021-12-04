@@ -6,7 +6,7 @@ import {
 } from 'typeorm'
 
 @injectable()
-@Entity('metadata')
+@Entity()
 export class Metadata<T extends Object> {
 
     @PrimaryGeneratedColumn()
