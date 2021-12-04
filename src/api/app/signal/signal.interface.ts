@@ -5,6 +5,7 @@ import {
     CreateSignal,
     EventContext
 } from './signal.type'
+import { SnapshotMetadata } from '../metadata/metadata.types'
 
 export interface ISignalService {
 
@@ -26,13 +27,12 @@ export interface ISignalService {
     /**
      * Получить метаданные указанного сигнала, если он существует
      */
-    getMetadata(signal: Signal): Promise<SignalMetadata | undefined>
+    getMetadata(signal: Signal): Promise<SnapshotMetadata<SignalMetadata> | undefined>
 
     /**
-     * Записать новые кастомные метаданные в указанный сигнал (быть аккуратным с атомарностью 
-     * в том месте, где это использовать)
+     * Записать новые кастомные метаданные в указанный сигнал
      */
-    setCustomMetadata(signal: Signal, customMetadata: any, nestedTransaction?: boolean): Promise<void>
+    setCustomMetadata(signal: Signal, snapshotMetadata: SnapshotMetadata<SignalMetadata>, nestedTransaction?: boolean): Promise<void>
 
     /**
      * Добавить в пул валидаторов сигнала указанный валидатор, если он существует

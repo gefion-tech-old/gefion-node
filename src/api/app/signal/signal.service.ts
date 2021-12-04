@@ -31,6 +31,9 @@ import { transaction } from '../../../core/typeorm/utils/transaction'
 import { GraphRepository } from './repositories/graph.repository'
 import { mutationQuery } from '../../../core/typeorm/utils/mutation-query'
 import { EventEmitter } from 'events'
+import { SnapshotMetadata } from '../metadata/metadata.types'
+import { MetadataRepository } from '../metadata/repositories/metadata.repository'
+import { Metadata } from '../entities/metadata.entity'
 
 @injectable()
 export class SignalService implements ISignalService {
@@ -70,7 +73,9 @@ export class SignalService implements ISignalService {
                     namespace: options.signal.namespace,
                     name: options.signal.name,
                     metadata: {
-                        default: options.defaultMetadata
+                        metadata: {
+                            default: options.defaultMetadata
+                        }
                     }
                 })
             })
@@ -111,7 +116,7 @@ export class SignalService implements ISignalService {
         return signalEntity.id
     }
 
-    public async getMetadata(signal: Signal): Promise<SignalMetadata | undefined> {
+    public async getMetadata(signal: Signal): Promise<SnapshotMetadata<SignalMetadata> | undefined> {
         const signalRepository = await this.signalRepository
         
         const signalEntity = await signalRepository.findOne({
@@ -125,11 +130,16 @@ export class SignalService implements ISignalService {
             return
         }
 
-        return signalEntity.metadata
+        return {
+            metadata: signalEntity.metadata.metadata,
+            revisionNumber: signalEntity.metadata.revisionNumber
+        }
     }
 
-    public async setCustomMetadata(signal: Signal, customMetadata: any, nestedTransaction = false): Promise<void> {
+    public async setCustomMetadata(signal: Signal, snapshotMetadata: SnapshotMetadata<SignalMetadata>, nestedTransaction = false): Promise<void> {
         const signalRepository = await this.signalRepository
+        const connection = await this.connection
+        const metadataRepository = connection.getCustomRepository(MetadataRepository) 
 
         const signalEntity = await signalRepository.findOne({
             where: {
@@ -142,14 +152,15 @@ export class SignalService implements ISignalService {
             throw new SignalDoesNotExist
         }
 
-        signalEntity.metadata.custom = customMetadata
-        const newSignalEntity = await mutationQuery(nestedTransaction, () => {
-            return signalRepository.save(signalEntity)
-        })
+        signalEntity.metadata.metadata.custom = snapshotMetadata.metadata.custom
+        await metadataRepository.update(signalEntity.id, {
+            metadata: signalEntity.metadata.metadata,
+            revisionNumber: snapshotMetadata.revisionNumber
+        }, nestedTransaction)
 
         const eventContext: EventContext = {
             type: EventType.SetCustomMetadata,
-            signalId: newSignalEntity.id
+            signalId: signalEntity.id
         }
         this.eventEmitter.emit(EventMutation, eventContext)
     }
@@ -553,6 +564,7 @@ export class SignalService implements ISignalService {
     public async remove(signal: Signal, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const signalRepository = await this.signalRepository
+        const metadataRepository = connection.getRepository(Metadata)
 
         /**
          * Получить экземпляр сигнала со всеми прикреплёнными к нему методами
@@ -573,21 +585,26 @@ export class SignalService implements ISignalService {
         }
 
         /**
-         * Удаление сигнала и попытка полностью удалить все привязанные к нему методы
+         * Удаление сигнала и попытка полностью удалить все привязанные к нему методы и
+         * метаданные
          */
         await transaction(nestedTransaction, connection, async () => {
-            try {
-                await mutationQuery(true, () => {
-                    return signalRepository.remove(signalEntity)
-                })
-            } catch(error) {
-                if (isErrorCode(error, [
-                    SqliteErrorCode.SQLITE_CONSTRAINT_FOREIGNKEY,
-                    SqliteErrorCode.SQLITE_CONSTRAINT_TRIGGER
-                ])) {
-                    throw new SignalUsedError
+            await transaction(true, connection, async () => {
+                try {
+                    await mutationQuery(true, () => {
+                        return signalRepository.remove(signalEntity)
+                    })
+                } catch(error) {
+                    if (isErrorCode(error, [
+                        SqliteErrorCode.SQLITE_CONSTRAINT_FOREIGNKEY,
+                        SqliteErrorCode.SQLITE_CONSTRAINT_TRIGGER
+                    ])) {
+                        throw new SignalUsedError
+                    }
                 }
-            }
+
+                await metadataRepository.remove(signalEntity.metadata)
+            })
 
             await this.methodService.removeMethods(
                 ([] as Method[]).concat(signalEntity.validators.map(methodEntity => {

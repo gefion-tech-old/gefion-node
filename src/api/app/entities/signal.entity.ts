@@ -10,10 +10,12 @@ import {
     JoinColumn,
     PrimaryColumn,
     Index,
-    CreateDateColumn
+    CreateDateColumn,
+    OneToOne
 } from 'typeorm'
 import { Method } from './method.entity'
 import { SignalMetadata } from '../signal/signal.type'
+import { Metadata } from './metadata.entity'
 
 @injectable()
 @Entity()
@@ -38,11 +40,13 @@ export class Signal {
     })
     name: string
 
-    @Column({
-        type: 'simple-json',
-        nullable: false
+    @OneToOne(() => Metadata, {
+        onDelete: 'RESTRICT',
+        eager: true,
+        cascade: ['insert']
     })
-    metadata: SignalMetadata
+    @JoinColumn()
+    metadata: Metadata<SignalMetadata>
 
     @ManyToMany(() => Method)
     @JoinTable({

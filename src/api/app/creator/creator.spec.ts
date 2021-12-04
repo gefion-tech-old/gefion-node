@@ -228,7 +228,9 @@ describe('CreatorService в CreatorModule', () => {
             const signalEntity = await signalRepository.save({
                 name: 'name',
                 namespace: 'namespace',
-                metadata: {}
+                metadata: {
+                    metadata: {}
+                }
             })
     
             await expect(creatorService.bind({
@@ -271,7 +273,9 @@ describe('CreatorService в CreatorModule', () => {
             const signalEntity = await signalRepository.save({
                 name: 'name',
                 namespace: 'namespace',
-                metadata: {}
+                metadata: {
+                    metadata: {}
+                }
             })
     
             await expect(creatorService.bind({
@@ -318,7 +322,9 @@ describe('CreatorService в CreatorModule', () => {
             const signalEntity = await signalRepository.save({
                 name: 'name',
                 namespace: 'namespace',
-                metadata: {}
+                metadata: {
+                    metadata: {}
+                }
             })
 
             await creatorService.bind({
@@ -352,7 +358,9 @@ describe('CreatorService в CreatorModule', () => {
             const signalEntity = await signalRepository.save({
                 name: 'name',
                 namespace: 'namespace',
-                metadata: {}
+                metadata: {
+                    metadata: {}
+                }
             })
 
             await creatorService.bind({

@@ -25,6 +25,8 @@ import { ICreatorService } from '../creator/creator.interface'
 import { CREATOR_SYMBOL } from '../creator/creator.types'
 import { getCreatorService } from '../creator/__mock/getCreatorService.mock'
 import { addTestEntity } from '../../../core/typeorm/utils/test-entities'
+import { RevisionNumberError } from '../metadata/metadata.errors'
+import { Metadata } from '../entities/metadata.entity'
 
 /**
  * Добавление тестовой сущности
@@ -121,7 +123,10 @@ describe('SignalService в SignalModule', () => {
         await expect(signalService.getMetadata(signal1))
             .resolves
             .toMatchObject({
-                default: metadata
+                metadata: {
+                    default: metadata
+                },
+                revisionNumber: 0
             })
 
         const signalId = await signalService.getSignalId(signal1)
@@ -172,17 +177,34 @@ describe('SignalService в SignalModule', () => {
         await expect(signalService.getMetadata(signal1))
             .resolves
             .toMatchObject({
-                default: defaultMetadata
+                metadata: {
+                    default: defaultMetadata
+                },
+                revisionNumber: 0
             })
-        await expect(signalService.setCustomMetadata(signal1, customMetadata))
-            .resolves
-            .toBeUndefined()
+        await expect(signalService.setCustomMetadata(signal1, {
+            metadata: {
+                custom: customMetadata,
+                default: defaultMetadata
+            },
+            revisionNumber: 0
+        })).resolves.toBeUndefined()
         await expect(signalService.getMetadata(signal1))
             .resolves
             .toMatchObject({
-                default: defaultMetadata,
-                custom: customMetadata
+                metadata: {
+                    default: defaultMetadata,
+                    custom: customMetadata
+                },
+                revisionNumber: 1
             })
+        await expect(signalService.setCustomMetadata(signal1, {
+            metadata: {
+                custom: customMetadata,
+                default: defaultMetadata
+            },
+            revisionNumber: 2
+        })).rejects.toBeInstanceOf(RevisionNumberError)
 
         const eventContext: EventContext = {
             type: EventType.SetCustomMetadata,
@@ -211,7 +233,13 @@ describe('SignalService в SignalModule', () => {
         await expect(signalService.setCustomMetadata({
             namespace: 'namespace',
             name: 'name'
-        }, customMetadata)).rejects.toBeInstanceOf(SignalDoesNotExist)
+        }, {
+            metadata: {
+                custom: customMetadata,
+                default: null
+            },
+            revisionNumber: 0
+        })).rejects.toBeInstanceOf(SignalDoesNotExist)
 
         container.restore()
     })
@@ -1134,6 +1162,7 @@ describe('SignalService в SignalModule', () => {
         const methodRepository = connection.getRepository(Method)
         const signalGraphRepository = connection.getRepository(SignalGraph)
         const signalRepository = connection.getRepository(Signal)
+        const metadataRepository = connection.getRepository(Metadata)
 
         const method1 = {
             namespace: 'namespace',
@@ -1201,7 +1230,9 @@ describe('SignalService в SignalModule', () => {
 
         await expect(signalService.remove(signal1)).resolves.toBeUndefined()
         await expect(signalGraphRepository.find()).resolves.toHaveLength(0)
+        await expect(metadataRepository.find()).resolves.toHaveLength(1)
         await expect(signalService.remove(signal2)).resolves.toBeUndefined()
+        await expect(metadataRepository.find()).resolves.toHaveLength(0)
         await expect(methodRepository.find()).resolves.toHaveLength(0)
         await expect(signalRepository.find()).resolves.toHaveLength(0)
 
