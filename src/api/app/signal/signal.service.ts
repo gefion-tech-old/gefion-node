@@ -605,7 +605,9 @@ export class SignalService implements ISignalService {
                     }
                 }
 
-                await metadataRepository.remove(signalEntity.metadata)
+                await mutationQuery(true, () => {
+                    return metadataRepository.remove(signalEntity.metadata)
+                })
             })
 
             await this.methodService.removeMethods(
