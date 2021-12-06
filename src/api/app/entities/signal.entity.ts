@@ -43,7 +43,8 @@ export class Signal {
     @OneToOne(() => Metadata, {
         onDelete: 'RESTRICT',
         eager: true,
-        cascade: ['insert']
+        cascade: ['insert'],
+        nullable: false
     })
     @JoinColumn()
     metadata: Metadata<SignalMetadata>

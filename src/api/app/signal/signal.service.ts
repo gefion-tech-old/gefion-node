@@ -34,6 +34,7 @@ import { EventEmitter } from 'events'
 import { SnapshotMetadata } from '../metadata/metadata.types'
 import { MetadataRepository } from '../metadata/repositories/metadata.repository'
 import { Metadata } from '../entities/metadata.entity'
+import { getCustomRepository } from '../../../core/typeorm/utils/custom-repository'
 
 @injectable()
 export class SignalService implements ISignalService {
@@ -139,7 +140,7 @@ export class SignalService implements ISignalService {
     public async setCustomMetadata(signal: Signal, snapshotMetadata: SnapshotMetadata<SignalMetadata>, nestedTransaction = false): Promise<void> {
         const signalRepository = await this.signalRepository
         const connection = await this.connection
-        const metadataRepository = connection.getCustomRepository(MetadataRepository) 
+        const metadataRepository = getCustomRepository(connection, MetadataRepository)
 
         const signalEntity = await signalRepository.findOne({
             where: {
@@ -450,7 +451,7 @@ export class SignalService implements ISignalService {
     public async connect(outSignal: Signal, intoSignal: Signal, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const signalRepository = await this.signalRepository
-        const graphRepository = connection.getCustomRepository(GraphRepository)
+        const graphRepository = getCustomRepository(connection, GraphRepository)
 
         /**
          * Получить сущности указанных сигналов
@@ -512,7 +513,7 @@ export class SignalService implements ISignalService {
     public async unconnect(outSignal: Signal, intoSignal: Signal, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const signalRepository = await this.signalRepository
-        const graphRepository = connection.getCustomRepository(GraphRepository)
+        const graphRepository = getCustomRepository(connection, GraphRepository)
 
         /**
          * Получить сущности указанных сигналов
