@@ -75,7 +75,8 @@ export class SignalService implements ISignalService {
                     name: options.signal.name,
                     metadata: {
                         metadata: {
-                            default: options.defaultMetadata
+                            default: options.defaultMetadata,
+                            custom: null
                         }
                     }
                 })
