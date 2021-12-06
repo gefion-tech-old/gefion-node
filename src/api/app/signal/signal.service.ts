@@ -154,7 +154,7 @@ export class SignalService implements ISignalService {
         }
 
         signalEntity.metadata.metadata.custom = snapshotMetadata.metadata.custom
-        await metadataRepository.update(signalEntity.id, {
+        await metadataRepository.update(signalEntity.metadata.id, {
             metadata: signalEntity.metadata.metadata,
             revisionNumber: snapshotMetadata.revisionNumber
         }, nestedTransaction)

@@ -10,8 +10,8 @@ const mocks = new Map
  * получения кастомных репозиториев напрямую из соединения, которая нужна только для
  * облегчения в тестировании
  */
-export function getCustomRepository<T>(connection: Connection, repository: ObjectType<T>) {
-    const mockRepository = mocks.get(repository)
+export function getCustomRepository<T>(connection: Connection, repository: ObjectType<T>): T {
+    const mockRepository = mocks.get(repository) as T
 
     if (mockRepository) {
         return mockRepository
@@ -23,6 +23,6 @@ export function getCustomRepository<T>(connection: Connection, repository: Objec
 /**
  * Установить заглушку вместо указанного репозитория
  */
-export function mockCustomRepository<T>(repository: ObjectType<T>, mock: T) {
+export function mockCustomRepository<T>(repository: ObjectType<T>, mock: T): void {
     mocks.set(repository, mock)
 }
