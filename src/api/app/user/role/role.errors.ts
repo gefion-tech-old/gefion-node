@@ -1,4 +1,6 @@
-export class RoleError extends Error {}
+import { UserError } from '../user.errors'
+
+export class RoleError extends UserError {}
 
 export class RoleDoesNotExists extends RoleError {
 

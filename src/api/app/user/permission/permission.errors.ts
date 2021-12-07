@@ -1,4 +1,6 @@
-export class PermissionError extends Error {}
+import { UserError } from '../user.errors'
+
+export class PermissionError extends UserError {}
 
 export class PermissionDoesNotExist extends PermissionError {
 

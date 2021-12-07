@@ -1,4 +1,6 @@
-export class GraphCacheError extends Error {}
+import { SignalError } from '../signal.errors'
+
+export class GraphCacheError extends SignalError {}
 
 export class SignalUpdateAndSyncError extends GraphCacheError {
 

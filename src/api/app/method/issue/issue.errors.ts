@@ -1,7 +1,8 @@
+import { MethodError } from '../method.errors'
 import { Method } from '../method.types'
 import { Applicant } from './issue.types'
 
-export class IssueError extends Error {}
+export class IssueError extends MethodError {}
 
 export class MethodComplaintError extends IssueError {
 
