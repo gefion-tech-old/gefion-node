@@ -146,13 +146,17 @@ describe('SignalService в SignalModule', () => {
     })
 
     it(`
-        Кастомные метаданные сигнала успешно сохраняются
+        Кастомные метаданные сигнала успешно сохраняются. Попытка установить 
+        метаданные несоответствующей редакции приводит к исключению
     `, async () => {
         const container = await getContainer()
         container.snapshot()
 
         const signalService = container
             .get<ISignalService>(SIGNAL_SYMBOL.SignalService)
+        const connection = await container
+            .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+        const metadataRepository = connection.getRepository(Metadata)
 
         const signal1 = {
             namespace: 'namespace',
@@ -173,6 +177,7 @@ describe('SignalService в SignalModule', () => {
                 type: CreatorType.System
             }
         })
+        await expect(metadataRepository.count()).resolves.toBe(1)
 
         await expect(signalService.getMetadata(signal1))
             .resolves
@@ -1228,6 +1233,7 @@ describe('SignalService в SignalModule', () => {
         await signalService.addFilter(signal2, method1)
         await signalService.connect(signal1, signal2)
 
+        await expect(metadataRepository.count()).resolves.toBe(2)
         await expect(signalService.remove(signal1)).resolves.toBeUndefined()
         await expect(signalGraphRepository.find()).resolves.toHaveLength(0)
         await expect(metadataRepository.find()).resolves.toHaveLength(1)

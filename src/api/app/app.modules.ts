@@ -3,11 +3,13 @@ import { MethodModule } from './method/method.module'
 import { SignalModule } from './signal/signal.module'
 import { CreatorModule } from './creator/creator.module'
 import { MetadataModule } from './metadata/metadata.module'
+import { UserModule } from './user/user.module'
 
 export const APPModules = [
     BlockModule,
     MethodModule,
     MetadataModule,
     SignalModule,
-    CreatorModule
+    CreatorModule,
+    UserModule
 ]
