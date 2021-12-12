@@ -25,6 +25,6 @@ export interface IDefaultPluginService {
      * регистрировать специфичные плагины, которые могут понадобиться далеко не
      * во всех запросах
      */
-    registerAllPlugins(instance: FastifyInstance): Promise<void>
+    registerDefaultPlugins(instance: FastifyInstance): Promise<void>
 
 }
