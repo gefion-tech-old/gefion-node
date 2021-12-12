@@ -13,6 +13,8 @@ export async function getFastifyConfig(context: interfaces.Context): Promise<Fas
     } catch {}
 
     return {
-        plugins
+        plugins,
+        secret: 'secret',
+        hosts: ['localhost']
     }
 }

@@ -9,7 +9,8 @@ export function getHostFilterMiddlewarePlugin(options: {
             if (!options.hosts.includes(request.hostname)) {
                 reply.callNotFound()
             }
-            return
         })
+    }, {
+        name: 'gf-host-filter'
     })
 }

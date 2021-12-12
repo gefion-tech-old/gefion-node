@@ -29,7 +29,7 @@ export class FastifyService implements IFastifyService {
 
         const instance = this.__instance = fastify({
             /**
-             * Генерировать более уникальный идентификатор, чем по умолчанию
+             * Генерировать более уникальный идентификатор чем по умолчанию
              */
             genReqId: function(): string {
                 return uniqid()
@@ -59,7 +59,7 @@ export class FastifyService implements IFastifyService {
          * Устанавливаю обработчик ошибок
          */
         instance.setErrorHandler(async function(error, request, reply): Promise<any> {
-            if (reply.statusCode >= 500) {
+            if (reply.statusCode >= 400) {
                 request.log.error(getLoggerErrorFormat(error), 'setErrorHandler')
                 return getHttpErrorFormat(error)
             } else {

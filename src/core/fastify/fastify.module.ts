@@ -5,6 +5,8 @@ import { IFastifyService } from './fastify.interface'
 import { FastifyService } from './fastify.service'
 import { INIT_SYMBOL, InitRunner } from '../init/init.types'
 import { InitFastify } from './fastify.init'
+import { IDefaultPluginService } from './default-plugin/default-plugin.interfaces'
+import { DefaultPluginService } from './default-plugin/default-plugin.service'
 
 export const FastifyModule = new AsyncContainerModule(async (bind: interfaces.Bind) => {
     bind<Promise<FastifyConfig>>(FASTIFY_SYMBOL.FastifyConfig)
@@ -18,4 +20,7 @@ export const FastifyModule = new AsyncContainerModule(async (bind: interfaces.Bi
     bind<InitRunner>(INIT_SYMBOL.InitRunner)
         .to(InitFastify)
         .whenTargetNamed(FASTIFY_SYMBOL.FastifyInit)
+
+    bind<IDefaultPluginService>(FASTIFY_SYMBOL.DefaultPluginService)
+        .to(DefaultPluginService)
 })
