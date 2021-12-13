@@ -33,11 +33,4 @@ export class DefaultPluginService implements IDefaultPluginService {
         instance.register(getCsrfMiddlewarePlugin())
     }
 
-    public async registerDefaultPlugins(instance: FastifyInstance): Promise<void> {
-        await Promise.all([
-            this.registerCookiePlugin(instance),
-            this.registerHostFilterMiddlewatePlugin(instance)
-        ])
-    }
-
 }

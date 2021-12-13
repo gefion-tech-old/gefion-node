@@ -20,11 +20,4 @@ export interface IDefaultPluginService {
      */
     registerCsrfMiddlewarePlugin(instance: FastifyInstance): Promise<void>
 
-    /**
-     * Зарегистрировать все универсальные плагины за один вызов функции. Не
-     * регистрировать специфичные плагины, которые могут понадобиться далеко не
-     * во всех запросах
-     */
-    registerDefaultPlugins(instance: FastifyInstance): Promise<void>
-
 }
