@@ -59,11 +59,15 @@ export class FastifyService implements IFastifyService {
          * Устанавливаю обработчик ошибок
          */
         instance.setErrorHandler(async function(error, request, reply): Promise<any> {
-            if (reply.statusCode >= 400) {
+            if (reply.statusCode >= 500) {
                 request.log.error(getLoggerErrorFormat(error), 'setErrorHandler')
-                return getHttpErrorFormat(error)
             } else {
                 request.log.info(getLoggerErrorFormat(error), 'setErrorHandler')
+            }
+
+            if (reply.statusCode >= 400) {
+                return getHttpErrorFormat(error)
+            } else {
                 return error
             }
         })
