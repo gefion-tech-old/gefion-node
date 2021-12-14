@@ -5,5 +5,8 @@ export const USER_SYMBOL = {
     PermissionEntity: Symbol('PermissionEntity'),
     PermissionService: Symbol('PermissionService'),
     RoleService: Symbol('RoleService'),
-    UserService: Symbol('UserService')
+    UserService: Symbol('UserService'),
+    AuthService: Symbol('AuthService'),
+    AuthConfig: Symbol('AuthConfig'),
+    RemoteAuthService: Symbol('RemoteAuthService')
 }
