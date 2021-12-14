@@ -7,6 +7,9 @@ import { AddressInfo } from 'net'
 beforeAll(async () => {
     const container = await getContainer()
     container.snapshot()
+
+    container.rebind(FASTIFY_SYMBOL.FastifyConfig)
+        .toDynamicValue(getInitConfig({}))
 })
 
 afterAll(async () => {
@@ -22,11 +25,6 @@ describe('Модуль Fastify', () => {
     `, async () => {
         const container = await getContainer()
         container.snapshot()
-
-        container.rebind(FASTIFY_SYMBOL.FastifyConfig)
-            .toDynamicValue(getInitConfig({
-                plugins: []
-            }))
 
         const fastifyService = container
             .get<IFastifyService>(FASTIFY_SYMBOL.FastifyService)
