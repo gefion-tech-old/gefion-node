@@ -19,5 +19,11 @@ export interface IDefaultPluginService {
      * промежуточного ПО для работы с csrf токенами
      */
     registerCsrfMiddlewarePlugin(instance: FastifyInstance): Promise<void>
+    
+    /**
+     * Зарегистрировать в переданном экземпляре сервера плагин для добавления
+     * промежуточного ПО для добавления ко всем ответам запрета ккеширования
+     */
+    registerCacheNoStoreMiddlewarePlugin(instance: FastifyInstance): Promise<void>
 
 }

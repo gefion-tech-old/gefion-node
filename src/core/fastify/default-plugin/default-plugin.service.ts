@@ -6,6 +6,7 @@ import cookie from 'fastify-cookie'
 import { FastifyCookieOptions } from 'fastify-cookie'
 import { FastifyInstance } from 'fastify'
 import { getCsrfMiddlewarePlugin } from '../csrf/csrf.middleware'
+import { getCacheNoStoreMiddlewarePlugin } from '../cache-no-store/cache-no-store.middleware'
 
 @injectable()
 export class DefaultPluginService implements IDefaultPluginService {
@@ -31,6 +32,10 @@ export class DefaultPluginService implements IDefaultPluginService {
 
     public async registerCsrfMiddlewarePlugin(instance: FastifyInstance): Promise<void> {
         instance.register(getCsrfMiddlewarePlugin())
+    }
+
+    public async registerCacheNoStoreMiddlewarePlugin(instance: FastifyInstance): Promise<void> {
+        instance.register(getCacheNoStoreMiddlewarePlugin())
     }
 
 }
