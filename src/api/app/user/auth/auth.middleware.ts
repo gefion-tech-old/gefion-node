@@ -104,6 +104,6 @@ export function getAuthMiddlewarePlugin(): FastifyPluginAsync {
         })
     }, {
         name: 'gf-auth',
-        dependencies: ['fastify-cookie', 'gf-host-filter']
+        dependencies: ['fastify-cookie', 'gf-host-filter', 'gf-cache-no-store']
     })
 }

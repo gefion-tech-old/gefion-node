@@ -22,7 +22,8 @@ export async function getAuthHttpPlugin(context: interfaces.Context): Promise<Fa
          */
         await Promise.all([
             defaultPluginService.registerCookiePlugin(instance),
-            defaultPluginService.registerHostFilterMiddlewatePlugin(instance)
+            defaultPluginService.registerHostFilterMiddlewatePlugin(instance),
+            defaultPluginService.registerCacheNoStoreMiddlewarePlugin(instance)
         ])
 
         /**

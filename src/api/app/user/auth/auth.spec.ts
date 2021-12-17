@@ -477,7 +477,8 @@ describe('AuthMiddleware в UserModule', () => {
                     async function(instance) {
                         await Promise.all([
                             defaultPluginService.registerCookiePlugin(instance),
-                            defaultPluginService.registerHostFilterMiddlewatePlugin(instance)
+                            defaultPluginService.registerHostFilterMiddlewatePlugin(instance),
+                            defaultPluginService.registerCacheNoStoreMiddlewarePlugin(instance)
                         ])
 
                         instance.register(getAuthMiddlewarePlugin())
@@ -587,7 +588,8 @@ describe('AuthMiddleware в UserModule', () => {
                     async function(instance) {
                         await Promise.all([
                             defaultPluginService.registerCookiePlugin(instance),
-                            defaultPluginService.registerHostFilterMiddlewatePlugin(instance)
+                            defaultPluginService.registerHostFilterMiddlewatePlugin(instance),
+                            defaultPluginService.registerCacheNoStoreMiddlewarePlugin(instance)
                         ])
 
                         instance.register(getAuthMiddlewarePlugin())
@@ -690,7 +692,8 @@ describe('AuthMiddleware в UserModule', () => {
                     async function(instance) {
                         await Promise.all([
                             defaultPluginService.registerCookiePlugin(instance),
-                            defaultPluginService.registerHostFilterMiddlewatePlugin(instance)
+                            defaultPluginService.registerHostFilterMiddlewatePlugin(instance),
+                            defaultPluginService.registerCacheNoStoreMiddlewarePlugin(instance)
                         ])
 
                         instance.register(getAuthMiddlewarePlugin())
