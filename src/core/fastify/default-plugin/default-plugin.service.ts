@@ -25,9 +25,7 @@ export class DefaultPluginService implements IDefaultPluginService {
 
     public async registerHostFilterMiddlewatePlugin(instance: FastifyInstance): Promise<void> {
         const config = await this.config
-        instance.register(getHostFilterMiddlewarePlugin({
-            hosts: config.hosts
-        }))
+        instance.register(getHostFilterMiddlewarePlugin(async () => config.hosts))
     }
 
     public async registerCsrfMiddlewarePlugin(instance: FastifyInstance): Promise<void> {

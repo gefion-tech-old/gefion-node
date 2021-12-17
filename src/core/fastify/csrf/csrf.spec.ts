@@ -34,9 +34,7 @@ describe('CsrfMiddleware в FastifyModule', () => {
                         instance.register(cookie, {
                             secret: 'secret'
                         } as FastifyCookieOptions)
-                        instance.register(getHostFilterMiddlewarePlugin({
-                            hosts: ['localhost']
-                        }))
+                        instance.register(getHostFilterMiddlewarePlugin(async () => ['localhost']))
                         instance.register(getCsrfMiddlewarePlugin())
 
                         instance.route({
@@ -153,9 +151,7 @@ describe('CsrfMiddleware в FastifyModule', () => {
                         instance.register(cookie, {
                             secret: 'secret'
                         } as FastifyCookieOptions)
-                        instance.register(getHostFilterMiddlewarePlugin({
-                            hosts: ['localhost']
-                        }))
+                        instance.register(getHostFilterMiddlewarePlugin(async () => ['localhost']))
                         instance.register(getCsrfMiddlewarePlugin())
 
                         instance.route({
@@ -374,9 +370,7 @@ describe('CsrfMiddleware в FastifyModule', () => {
                         instance.register(cookie, {
                             secret: 'secret'
                         } as FastifyCookieOptions)
-                        instance.register(getHostFilterMiddlewarePlugin({
-                            hosts: ['localhost']
-                        }))
+                        instance.register(getHostFilterMiddlewarePlugin(async () => ['localhost']))
                         instance.register(getCsrfMiddlewarePlugin())
 
                         instance.route({

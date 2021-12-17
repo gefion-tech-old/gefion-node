@@ -27,9 +27,7 @@ describe('HostFilterMiddleware в FastifyModule', () => {
             .toDynamicValue(getInitConfig({
                 plugins: [
                     async function(instance) {
-                        instance.register(getHostFilterMiddlewarePlugin({
-                            hosts: ['localhost']
-                        }))
+                        instance.register(getHostFilterMiddlewarePlugin(async () => ['localhost']))
 
                         instance.get('/test', async () => {
                             return {
