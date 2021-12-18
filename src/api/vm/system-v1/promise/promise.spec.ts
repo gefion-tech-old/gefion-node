@@ -63,6 +63,7 @@ describe('API Promise System V1', () => {
             promise11?: Promise<any>
             promise12?: Promise<any>
             promise13?: Promise<any>
+            promise14?: Promise<any>
         } = {}
     
         container
@@ -93,6 +94,7 @@ describe('API Promise System V1', () => {
         expect(testObject.promise11).toBeInstanceOf(VMPromise)
         expect(testObject.promise12).toBeInstanceOf(VMPromise)
         expect(testObject.promise13).toBeInstanceOf(VMPromise)
+        expect(testObject.promise14).toBeInstanceOf(VMPromise)
 
         await expect(testObject.promise1).resolves.toBe(1)
         await expect(testObject.promise2).resolves.toBe(2)
@@ -114,6 +116,7 @@ describe('API Promise System V1', () => {
             method: 'then',
             value: 1
         })
+        await expect(testObject.promise14).rejects.toBe(14)
 
         container.restore()
     })
@@ -308,7 +311,10 @@ describe('API Promise System V1', () => {
         const MyError = class extends Error {}
 
         const testObject = {
-            MyError
+            MyError,
+            log: (...args: any[]) => {
+                console.log(...args)
+            }
         }
         
         container
@@ -340,10 +346,21 @@ describe('API Promise System V1', () => {
                     ._original()
                     .off('unhandledRejection', listener)
 
-                ;(process as any)._original().once('unhandledRejection', unhandledRejection)
+                ;(process as any)._original().on('unhandledRejection', unhandledRejection)
             },
 
             end: () => {
+                ;(process as any)
+                    ._original()
+                    .listeners('unhandledRejection')
+                    .forEach((listener: any) => {
+                        if (operations.__jestListener !== listener) {
+                            ;(process as any)
+                                ._original()
+                                .off('unhandledRejection', listener) 
+                        }
+                    })
+
                 ;(process as any)._original().on(
                     'unhandledRejection', 
                     operations.__jestListener
@@ -360,33 +377,44 @@ describe('API Promise System V1', () => {
         })
 
         const scriptInfo = vmService.info(scriptId)
-
         
         expect(scriptInfo?.dateEnd).toBeInstanceOf(Date)
-        
+
         /**
          * Jest не хочет ждать срабатывания события unhandledRejection, который нужен
          * для теста, поэтому придётся ждать за него
          */
         await new Promise<void>(resolve => {
-            (process as any)._original().once('unhandledRejection', (reason: any, promise: any) => {
+            let count = 0
+            ;(process as any)._original().on('unhandledRejection', (reason: any, promise: any) => {
                 if (promise instanceof VMPromise) {
-                    resolve()
+                    count++
+                    if (count === 2) {
+                        resolve()
+                    }
                 } else {
                     operations.__jestListener(reason, promise)
                 }
             })
         })
         
-        expect(scriptInfo?.errors).toHaveLength(1)
-        const [ error ] = (scriptInfo as any).errors
-        expect(error).toBeInstanceOf(ScriptError)
-        expect(error.error).toBeInstanceOf(APIPropertyError)
-        expect(error.error.targetApiProperty).toMatchObject({
+        expect(scriptInfo?.errors).toHaveLength(2)
+        const [ error1, error2 ] = (scriptInfo as any).errors
+        expect(error1).toBeInstanceOf(ScriptError)
+        expect(error1.error).toBeInstanceOf(APIPropertyError)
+        expect(error1.error.targetApiProperty).toMatchObject({
             name: PromiseName,
             version: SystemV1Name
         })
-        expect(error.error.error).toBeInstanceOf(MyError)
+        expect(error1.error.error).toBeInstanceOf(MyError)
+
+        expect(error2).toBeInstanceOf(ScriptError)
+        expect(error2.error).toBeInstanceOf(APIPropertyError)
+        expect(error2.error.targetApiProperty).toMatchObject({
+            name: PromiseName,
+            version: SystemV1Name
+        })
+        expect(error2.error.error).toBeInstanceOf(MyError)
 
         /**
          * Корректно вернуть обратно обработчик jest

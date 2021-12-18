@@ -54,3 +54,9 @@ test.promise13 = test.promise1.then(value => {
         value: value
     }
 })
+
+test.promise14 = new Promise((resolve) => {
+    resolve(14)
+}).then(value => {
+    throw value
+})
