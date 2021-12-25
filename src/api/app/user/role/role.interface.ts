@@ -1,12 +1,12 @@
 import { SnapshotMetadata } from '../../metadata/metadata.types'
-import { RoleMetadata, RolePermissionMetadata } from './role.types'
+import { RoleMetadata, RolePermissionMetadata, CreateRole } from './role.types'
 
 export interface IRoleService {
 
     /**
      * Создать новую роль
      */
-    create(role: string, nestedTransaction?: boolean): Promise<void>
+    create(options: CreateRole, nestedTransaction?: boolean): Promise<void>
 
     /**
      * Удалить указанную роль

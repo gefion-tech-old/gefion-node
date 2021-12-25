@@ -4,6 +4,7 @@ import { IUserService } from './user.interface'
 import { IRoleService } from './role/role.interface'
 import { RoleDoesNotExists } from './role/role.errors'
 import { UserDoesNotExists } from './user.errors'
+import { CreatorType } from '../creator/creator.types'
 
 beforeAll(async () => {
     const container = await getContainer()
@@ -47,7 +48,12 @@ describe('UserService в UserModule', () => {
         const roleService = container
             .get<IRoleService>(USER_SYMBOL.RoleService)
 
-        await roleService.create('role1')
+        await roleService.create({
+            name: 'role1',
+            creator: {
+                type: CreatorType.System
+            }
+        })
         
         await expect(userService.create('username1')).resolves.toBeUndefined()
         await expect(userService.setRole('username1', 'role1')).resolves.toBeUndefined()
@@ -104,7 +110,12 @@ describe('UserService в UserModule', () => {
 
         await expect(userService.getRole('username1')).resolves.toBeUndefined()
 
-        await roleService.create('role1')
+        await roleService.create({
+            name: 'role1',
+            creator: {
+                type: CreatorType.System
+            }
+        })
         await userService.create('username1')
 
         await expect(userService.getRole('username1')).resolves.toBeNull()

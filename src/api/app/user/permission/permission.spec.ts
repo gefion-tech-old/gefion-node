@@ -6,6 +6,8 @@ import { RevisionNumberError } from '../../metadata/metadata.errors'
 import { Metadata } from '../../entities/metadata.entity'
 import { Connection } from 'typeorm'
 import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
+import { CREATOR_SYMBOL, CreatorType, ResourceType } from '../../creator/creator.types'
+import { ICreatorService } from '../../creator/creator.interface'
 
 beforeAll(async () => {
     const container = await getContainer()
@@ -28,11 +30,27 @@ describe('PermissionService в UserModule', () => {
 
         const permissionService = container
             .get<IPermissionService>(USER_SYMBOL.PermissionService)
+        const creatorService = container
+            .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
 
         await expect(permissionService.isExists('permission1')).resolves.toBe(false)
-        await expect(permissionService.create('permission1')).resolves.toBeUndefined()
-        await expect(permissionService.create('permission1')).resolves.toBeUndefined()
+        await expect(permissionService.create({
+            name: 'permission1',
+            creator: {
+                type: CreatorType.System
+            }
+        })).resolves.toBeUndefined()
+        await expect(permissionService.create({
+            name: 'permission1',
+            creator: {
+                type: CreatorType.System
+            }
+        })).resolves.toBeUndefined()
         await expect(permissionService.isExists('permission1')).resolves.toBe(true)
+        await expect(creatorService.isResourceCreator({
+            type: ResourceType.Permission,
+            id: 1
+        }, { type: CreatorType.System }))
 
         container.restore()
     })
@@ -50,7 +68,12 @@ describe('PermissionService в UserModule', () => {
         const permissionService = container
             .get<IPermissionService>(USER_SYMBOL.PermissionService)
 
-        await expect(permissionService.create('permission1')).resolves.toBeUndefined()
+        await expect(permissionService.create({
+            name: 'permission1',
+            creator: {
+                type: CreatorType.System
+            }
+        })).resolves.toBeUndefined()
         await expect(permissionService.isExists('permission1')).resolves.toBe(true)
         await expect(permissionService.remove('permission1')).resolves.toBeUndefined()
         await expect(permissionService.remove('permission1')).resolves.toBeUndefined()
@@ -89,7 +112,12 @@ describe('PermissionService в UserModule', () => {
         const permissionService = container
             .get<IPermissionService>(USER_SYMBOL.PermissionService)
 
-        await expect(permissionService.create('permission1')).resolves.toBeUndefined()
+        await expect(permissionService.create({
+            name: 'permission1',
+            creator: {
+                type: CreatorType.System
+            }
+        })).resolves.toBeUndefined()
         await expect(permissionService.getMetadata('permission1')).resolves.toMatchObject({
             metadata: {
                 custom: null

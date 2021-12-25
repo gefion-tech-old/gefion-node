@@ -3,15 +3,16 @@ import { IPermissionService } from './permission.interface'
 import { Permission } from '../../entities/user.entity'
 import { Connection, Repository } from 'typeorm'
 import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
-import { SqliteErrorCode, isErrorCode } from '../../../../core/typeorm/utils/error-code'
 import { mutationQuery } from '../../../../core/typeorm/utils/mutation-query'
-import { PermissionMetadata } from './permission.types'
+import { PermissionMetadata, CreatePermission } from './permission.types'
 import { SnapshotMetadata } from '../../metadata/metadata.types'
 import { PermissionDoesNotExist } from './permission.errors'
 import { MetadataRepository } from '../../metadata/repositories/metadata.repository'
 import { getCustomRepository } from '../../../../core/typeorm/utils/custom-repository'
 import { transaction } from '../../../../core/typeorm/utils/transaction'
 import { Metadata } from '../../entities/metadata.entity'
+import { ResourceType, CREATOR_SYMBOL } from '../../creator/creator.types'
+import { ICreatorService } from '../../creator/creator.interface'
 
 @injectable()
 export class PermissionService implements IPermissionService {
@@ -21,7 +22,10 @@ export class PermissionService implements IPermissionService {
 
     public constructor(
         @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
-        connection: Promise<Connection>
+        connection: Promise<Connection>,
+
+        @inject(CREATOR_SYMBOL.CreatorService)
+        private creatorService: ICreatorService
     ) {
         this.connection = connection
         this.permissionRepository = connection
@@ -30,36 +34,35 @@ export class PermissionService implements IPermissionService {
             })
     }
 
-    public async create(permission: string, nestedTransaction = false): Promise<void> {
+    public async create(options: CreatePermission, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const permissionRepository = await this.permissionRepository
 
-        try {
-            /**
-             * Оборачиваю запрос в транзакцию из-за каскадного сохранения
-             * метаданных
-             */
-            await transaction(nestedTransaction, connection, async () => {
-                await mutationQuery(true, () => {
-                    return permissionRepository.save({
-                        name: permission,
+        if (await this.isExists(options.name)) {
+            return
+        }
+
+        /**
+         * Оборачиваю запрос в транзакцию в том числе из-за каскадного сохранения
+         * метаданных
+         */
+        await transaction(nestedTransaction, connection, async () => {
+            const permissionEntity = await mutationQuery(true, () => {
+                return permissionRepository.save({
+                    name: options.name,
+                    metadata: {
                         metadata: {
-                            metadata: {
-                                custom: null
-                            }
+                            custom: null
                         }
-                    })
+                    }
                 })
             })
-        } catch (error) {
-            block: {
-                if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_UNIQUE)) {
-                    break block
-                }
 
-                throw error
-            }
-        }
+            await this.creatorService.bind({
+                type: ResourceType.Permission,
+                id: permissionEntity.id
+            }, options.creator, true)
+        })
     }
 
     public async remove(permission: string, nestedTransaction = false): Promise<void> {

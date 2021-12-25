@@ -10,16 +10,19 @@ import {
 import { BlockInstance } from './block-instance.entity'
 import { Method } from './method.entity'
 import { Signal } from './signal.entity'
+import { Role, Permission } from './user.entity'
 
 @injectable()
 @Entity()
 @Check(`
     (system <> FALSE OR blockInstanceId <> NULL)
     AND
-    (methodId <> NULL OR signalId <> NULL)
+    (methodId <> NULL OR signalId <> NULL OR roleId <> NULL OR permissionId <> NULL)
 `)
 @Unique(['method'])
 @Unique(['signal'])
+@Unique(['role'])
+@Unique(['permission'])
 export class Creator {
 
     @PrimaryGeneratedColumn()
@@ -47,10 +50,40 @@ export class Creator {
         onDelete: 'CASCADE'
     })
     method: Method
+    
+    @Column({
+        nullable: true
+    })
+    methodId: number
 
     @ManyToOne(() => Signal, {
         onDelete: 'CASCADE'
     })
     signal: Signal
+
+    @Column({
+        nullable: true
+    })
+    signalId: number
+
+    @ManyToOne(() => Role, {
+        onDelete: 'CASCADE'
+    })
+    role: Role
+
+    @Column({
+        nullable: true
+    })
+    roleId: number
+
+    @ManyToOne(() => Permission, {
+        onDelete: 'CASCADE'
+    })
+    permission: Permission
+
+    @Column({
+        nullable: true
+    })
+    permissionId: number
 
 }

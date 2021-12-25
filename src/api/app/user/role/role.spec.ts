@@ -8,6 +8,8 @@ import { RoleDoesNotExists, RoleDoesNotHavePermission } from './role.errors'
 import { RevisionNumberError } from '../../metadata/metadata.errors'
 import { PermissionDoesNotExist } from '../permission/permission.errors'
 import { IPermissionService } from '../permission/permission.interface'
+import { CreatorType, CREATOR_SYMBOL, ResourceType } from '../../creator/creator.types'
+import { ICreatorService } from '../../creator/creator.interface'
 
 beforeAll(async () => {
     const container = await getContainer()
@@ -30,11 +32,27 @@ describe('RoleService в UserModule', () => {
 
         const roleService = container
             .get<IRoleService>(USER_SYMBOL.RoleService)
+        const creatorService = container
+            .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
 
         await expect(roleService.isExists('role1')).resolves.toBe(false)
-        await expect(roleService.create('role1')).resolves.toBeUndefined()
-        await expect(roleService.create('role1')).resolves.toBeUndefined()
+        await expect(roleService.create({
+            name: 'role1',
+            creator: {
+                type: CreatorType.System
+            }
+        })).resolves.toBeUndefined()
+        await expect(roleService.create({
+            name: 'role1',
+            creator: {
+                type: CreatorType.System
+            }
+        })).resolves.toBeUndefined()
         await expect(roleService.isExists('role1')).resolves.toBe(true)
+        await expect(creatorService.isResourceCreator({
+            type: ResourceType.Role,
+            id: 1
+        }, { type: CreatorType.System })).resolves.toBe(true)
 
         container.restore()
     })
@@ -53,7 +71,12 @@ describe('RoleService в UserModule', () => {
         const metadataRepository = connection.getRepository(Metadata)
         
         await expect(roleService.isExists('role1')).resolves.toBe(false)
-        await expect(roleService.create('role1')).resolves.toBeUndefined()
+        await expect(roleService.create({
+            name: 'role1',
+            creator: {
+                type: CreatorType.System
+            }
+        })).resolves.toBeUndefined()
         await expect(metadataRepository.find()).resolves.toHaveLength(1)
         await expect(roleService.isExists('role1')).resolves.toBe(true)
         await expect(roleService.remove('role1')).resolves.toBeUndefined()
@@ -93,7 +116,12 @@ describe('RoleService в UserModule', () => {
         const roleService = container
             .get<IRoleService>(USER_SYMBOL.RoleService)
 
-        await expect(roleService.create('role1')).resolves.toBeUndefined()
+        await expect(roleService.create({
+            name: 'role1',
+            creator: {
+                type: CreatorType.System
+            }
+        })).resolves.toBeUndefined()
         await expect(roleService.getMetadata('role1')).resolves.toMatchObject({
             metadata: {
                 custom: null
@@ -159,7 +187,12 @@ describe('RoleService в UserModule', () => {
         const roleService = container
             .get<IRoleService>(USER_SYMBOL.RoleService)
 
-        await expect(roleService.create('role1')).resolves.toBeUndefined()
+        await expect(roleService.create({
+            name: 'role1',
+            creator: {
+                type: CreatorType.System
+            }
+        })).resolves.toBeUndefined()
         await expect(roleService.addPermission('role1', 'permission1'))
             .rejects
             .toBeInstanceOf(PermissionDoesNotExist)
@@ -182,8 +215,18 @@ describe('RoleService в UserModule', () => {
             .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
         const metadataRepository = connection.getRepository(Metadata)
 
-        await roleService.create('role1')
-        await permissionService.create('permission1')
+        await roleService.create({
+            name: 'role1',
+            creator: {
+                type: CreatorType.System
+            }
+        })
+        await permissionService.create({
+            name: 'permission1',
+            creator: {
+                type: CreatorType.System
+            }
+        })
 
         await expect(roleService.isExistsPermission('role1', 'permission1')).resolves.toBe(false)
         await expect(metadataRepository.count()).resolves.toBe(2)
@@ -226,8 +269,18 @@ describe('RoleService в UserModule', () => {
             .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
         const metadataRepository = connection.getRepository(Metadata)
 
-        await expect(roleService.create('role1')).resolves.toBeUndefined()
-        await expect(permissionService.create('permission1')).resolves.toBeUndefined()
+        await expect(roleService.create({
+            name: 'role1',
+            creator: {
+                type: CreatorType.System
+            }
+        })).resolves.toBeUndefined()
+        await expect(permissionService.create({
+            name: 'permission1',
+            creator: {
+                type: CreatorType.System
+            }
+        })).resolves.toBeUndefined()
         await expect(roleService.addPermission('role1', 'permission1')).resolves.toBeUndefined()
         await expect(roleService.addPermission('role1', 'permission1')).resolves.toBeUndefined()
         await expect(metadataRepository.count()).resolves.toBe(3)
@@ -253,8 +306,18 @@ describe('RoleService в UserModule', () => {
         const permissionService = container
             .get<IPermissionService>(USER_SYMBOL.PermissionService)
 
-        await expect(roleService.create('role1')).resolves.toBeUndefined()
-        await expect(permissionService.create('permission1')).resolves.toBeUndefined()
+        await expect(roleService.create({
+            name: 'role1',
+            creator: {
+                type: CreatorType.System
+            }
+        })).resolves.toBeUndefined()
+        await expect(permissionService.create({
+            name: 'permission1',
+            creator: {
+                type: CreatorType.System
+            }
+        })).resolves.toBeUndefined()
 
         await expect(roleService.setRolePermissionMetadata('role2', 'permission1', {} as any))
             .rejects
@@ -284,8 +347,18 @@ describe('RoleService в UserModule', () => {
             .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
         const metadataRepository = connection.getRepository(Metadata)
 
-        await expect(roleService.create('role1')).resolves.toBeUndefined()
-        await expect(permissionService.create('permission1')).resolves.toBeUndefined()
+        await expect(roleService.create({
+            name: 'role1',
+            creator: {
+                type: CreatorType.System
+            }
+        })).resolves.toBeUndefined()
+        await expect(permissionService.create({
+            name: 'permission1',
+            creator: {
+                type: CreatorType.System
+            }
+        })).resolves.toBeUndefined()
         await expect(roleService.addPermission('role1', 'permission1')).resolves.toBeUndefined()
         await expect(metadataRepository.count()).resolves.toBe(3)
 

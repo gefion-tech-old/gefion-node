@@ -1,12 +1,12 @@
 import { SnapshotMetadata } from '../../metadata/metadata.types'
-import { PermissionMetadata } from './permission.types'
+import { PermissionMetadata, CreatePermission } from './permission.types'
 
 export interface IPermissionService {
 
     /**
      * Создать новое полномочие
      */
-    create(permission: string, nestedTransaction?: boolean): Promise<void>
+    create(options: CreatePermission, nestedTransaction?: boolean): Promise<void>
 
     /**
      * Удалить указанное полномочие

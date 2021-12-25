@@ -5,7 +5,9 @@ export const CREATOR_SYMBOL = {
 
 export enum ResourceType {
     Method = 'Method',
-    Signal = 'Signal'
+    Signal = 'Signal',
+    Role = 'Role',
+    Permission = 'Permission'
 }
 
 export enum CreatorType {

@@ -13,11 +13,13 @@ import { Connection, Repository } from 'typeorm'
 import { SqliteErrorCode, isErrorCode } from '../../../../core/typeorm/utils/error-code'
 import { Metadata } from '../../entities/metadata.entity'
 import { SnapshotMetadata } from '../../metadata/metadata.types'
-import { RoleMetadata, RolePermissionMetadata } from './role.types'
+import { RoleMetadata, RolePermissionMetadata, CreateRole } from './role.types'
 import { MetadataRepository } from '../../metadata/repositories/metadata.repository'
 import { RoleDoesNotExists, RoleDoesNotHavePermission } from './role.errors'
 import { getCustomRepository } from '../../../../core/typeorm/utils/custom-repository'
 import { PermissionDoesNotExist } from '../permission/permission.errors'
+import { CREATOR_SYMBOL, ResourceType } from '../../creator/creator.types'
+import { ICreatorService } from '../../creator/creator.interface'
 
 @injectable()
 export class RoleService implements IRoleService {
@@ -31,7 +33,10 @@ export class RoleService implements IRoleService {
         connection: Promise<Connection>,
 
         @inject(USER_SYMBOL.PermissionService)
-        private permissionService: IPermissionService
+        private permissionService: IPermissionService,
+
+        @inject(CREATOR_SYMBOL.CreatorService)
+        private creatorService: ICreatorService
     ) {
         this.connection = connection
         this.roleRepository = connection
@@ -44,36 +49,35 @@ export class RoleService implements IRoleService {
             })
     }
 
-    public async create(role: string, nestedTransaction = false): Promise<void> {
+    public async create(options: CreateRole, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const roleRepository = await this.roleRepository
 
-        try {
-            /**
-             * Оборачиваю запрос в транзакцию из-за каскадного сохранения
-             * метаданных
-             */
-            await transaction(nestedTransaction, connection, async () => {
-                await mutationQuery(true, () => {
-                    return roleRepository.save({
-                        name: role,
+        if (await this.isExists(options.name)) {
+            return
+        }
+
+        /**
+         * Оборачиваю запрос в транзакцию в том числе из-за каскадного сохранения
+         * метаданных
+         */
+        await transaction(nestedTransaction, connection, async () => {
+            const roleEntity = await mutationQuery(true, () => {
+                return roleRepository.save({
+                    name: options.name,
+                    metadata: {
                         metadata: {
-                            metadata: {
-                                custom: null
-                            }
+                            custom: null
                         }
-                    })
+                    }
                 })
             })
-        } catch (error) {
-            block: {
-                if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_UNIQUE)) {
-                    break block
-                }
 
-                throw error
-            }
-        } 
+            await this.creatorService.bind({
+                type: ResourceType.Role,
+                id: roleEntity.id
+            }, options.creator, true)
+        })
     }
 
     public async remove(role: string, nestedTransaction = false): Promise<void> {
