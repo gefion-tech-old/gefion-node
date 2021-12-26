@@ -239,7 +239,11 @@ export class MethodService implements IMethodService {
 
         try {
             await mutationQuery(nestedTransaction, () => {
-                return methodRepository.delete(method)
+                return methodRepository.delete({
+                    name: method.name,
+                    namespace: method.namespace,
+                    type: method.type
+                })
             })
         } catch(error) {
             if (isErrorCode(error, [
