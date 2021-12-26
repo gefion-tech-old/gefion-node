@@ -14,6 +14,7 @@ import { Creator } from '../entities/creator.entity'
 import { ResourceAlreadyHasCreator } from './creator.errors'
 import { Signal } from '../entities/signal.entity'
 import { Role, Permission } from '../entities/user.entity'
+import { Controller } from '../entities/route.entity'
 
 beforeAll(async () => {
     const container = await getContainer()
@@ -744,6 +745,223 @@ describe('CreatorService в CreatorModule', () => {
             await expect(creatorService.getCreator({
                 type: ResourceType.Permission,
                 id: permissionEntity.id
+            })).resolves.toBe(CreatorType.System)
+
+            container.restore()
+        })
+
+    })
+
+    describe('Контроллеры в качестве ресурсов', () => {
+
+        it(`
+            Контроллеры корректно привязываются к экземпляру блока. Нельзя удалить
+            экземпляр блока с привязанным контроллером, но можно удалить контроллер.
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+    
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const versionRepository = connection.getRepository(BlockVersion)
+            const instanceRepository = connection.getRepository(BlockInstance)
+            const creatorRepository = connection.getRepository(Creator)
+            const controllerRepository = connection.getRepository(Controller)
+            const methodRepository = connection.getRepository(Method)
+    
+            const methodEntity = await methodRepository.save({
+                name: 'name',
+                namespace: 'namespace',
+                type: 'type'
+            })
+            const controllerEntity = await controllerRepository.save({
+                name: 'name',
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                method: methodEntity
+            })
+            const versionEntity = await versionRepository.save({
+                name: 'name',
+                path: 'path',
+                version: 'version' 
+            })
+            const instanceEntity = await instanceRepository.save({
+                blockVersion: versionEntity
+            })
+    
+            await expect(creatorService.bind({
+                type: ResourceType.Controller,
+                id: controllerEntity.id
+            }, {
+                type: CreatorType.BlockInstance,
+                id: instanceEntity.id
+            })).resolves.toBeUndefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(1)
+            await expect(instanceRepository.remove(instanceEntity))
+                .rejects
+                .toThrow()
+            await expect(controllerRepository.remove(controllerEntity))
+                .resolves
+                .toBeDefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(0)
+    
+            container.restore()
+        })
+    
+        it(`
+            Контроллеры корректно привязываются к системе. Привязка удаляется вместе
+            с удалением контроллера
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+    
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const creatorRepository = connection.getRepository(Creator)
+    
+            const controllerRepository = connection.getRepository(Controller)
+            const methodRepository = connection.getRepository(Method)
+    
+            const methodEntity = await methodRepository.save({
+                name: 'name',
+                namespace: 'namespace',
+                type: 'type'
+            })
+            const controllerEntity = await controllerRepository.save({
+                name: 'name',
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                method: methodEntity
+            })
+    
+            await expect(creatorService.bind({
+                type: ResourceType.Controller,
+                id: controllerEntity.id
+            }, {
+                type: CreatorType.System
+            })).resolves.toBeUndefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(1)
+            await expect(controllerRepository.remove(controllerEntity))
+                .resolves
+                .toBeDefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(0)
+    
+            container.restore()
+        })
+    
+        it(`
+            Экземпляр блока, к которому привязан контроллер корректно можно получить
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const versionRepository = connection.getRepository(BlockVersion)
+            const instanceRepository = connection.getRepository(BlockInstance)
+    
+            const versionEntity = await versionRepository.save({
+                name: 'name',
+                path: 'path',
+                version: 'version' 
+            })
+            const instanceEntity = await instanceRepository.save({
+                blockVersion: versionEntity
+            })
+
+            const controllerRepository = connection.getRepository(Controller)
+            const methodRepository = connection.getRepository(Method)
+    
+            const methodEntity = await methodRepository.save({
+                name: 'name',
+                namespace: 'namespace',
+                type: 'type'
+            })
+            const controllerEntity = await controllerRepository.save({
+                name: 'name',
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                method: methodEntity
+            })
+
+            await creatorService.bind({
+                type: ResourceType.Controller,
+                id: controllerEntity.id
+            }, {
+                type: CreatorType.BlockInstance,
+                id: instanceEntity.id
+            })
+
+            await expect(creatorService.getCreator({
+                type: ResourceType.Controller,
+                id: controllerEntity.id
+            })).resolves.toBeInstanceOf(BlockInstance)
+
+            container.restore()
+        })
+    
+        it(`
+            Систему, к которой привязан контроллер корректно можно получить 
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+
+            const controllerRepository = connection.getRepository(Controller)
+            const methodRepository = connection.getRepository(Method)
+    
+            const methodEntity = await methodRepository.save({
+                name: 'name',
+                namespace: 'namespace',
+                type: 'type'
+            })
+            const controllerEntity = await controllerRepository.save({
+                name: 'name',
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                method: methodEntity
+            })
+
+            await creatorService.bind({
+                type: ResourceType.Controller,
+                id: controllerEntity.id
+            }, {
+                type: CreatorType.System
+            })
+
+            await expect(creatorService.getCreator({
+                type: ResourceType.Controller,
+                id: controllerEntity.id
             })).resolves.toBe(CreatorType.System)
 
             container.restore()

@@ -46,6 +46,8 @@ export class CreatorService implements ICreatorService {
             case ResourceType.Permission:
                 creatorEntity.permission = { id: resource.id } as any
                 break
+            case ResourceType.Controller:
+                creatorEntity.controller = { id: resource.id } as any
         }
 
         switch (creator.type) {
@@ -84,6 +86,8 @@ export class CreatorService implements ICreatorService {
                         return { roleId: resource.id }
                     case ResourceType.Permission:
                         return { permissionId: resource.id }
+                    case ResourceType.Controller:
+                        return { controllerId: resource.id }
                 }
             })(),
             relations: ['blockInstance']

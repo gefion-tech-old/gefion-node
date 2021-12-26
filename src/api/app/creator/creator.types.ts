@@ -7,7 +7,8 @@ export enum ResourceType {
     Method = 'Method',
     Signal = 'Signal',
     Role = 'Role',
-    Permission = 'Permission'
+    Permission = 'Permission',
+    Controller = 'Controller'
 }
 
 export enum CreatorType {
