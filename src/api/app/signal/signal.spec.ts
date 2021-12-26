@@ -90,7 +90,6 @@ describe('SignalService в SignalModule', () => {
             const signalEntity = await signalRepository.findOne({
                 where: signal1
             })
-            console.log(signalEntity)
             return signalEntity?.metadata
         })()).resolves.toBeUndefined()            
 
