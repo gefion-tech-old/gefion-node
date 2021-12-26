@@ -14,7 +14,7 @@ import { Creator } from '../entities/creator.entity'
 import { ResourceAlreadyHasCreator } from './creator.errors'
 import { Signal } from '../entities/signal.entity'
 import { Role, Permission } from '../entities/user.entity'
-import { Controller } from '../entities/route.entity'
+import { Controller, Middleware } from '../entities/route.entity'
 
 beforeAll(async () => {
     const container = await getContainer()
@@ -962,6 +962,225 @@ describe('CreatorService в CreatorModule', () => {
             await expect(creatorService.getCreator({
                 type: ResourceType.Controller,
                 id: controllerEntity.id
+            })).resolves.toBe(CreatorType.System)
+
+            container.restore()
+        })
+
+    })
+
+    describe('Middleware в качестве ресурсов', () => {
+
+        it(`
+            Middleware корректно привязываются к экземпляру блока. Нельзя удалить
+            экземпляр блока с привязанным middleware, но можно удалить middleware.
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+    
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const versionRepository = connection.getRepository(BlockVersion)
+            const instanceRepository = connection.getRepository(BlockInstance)
+            const creatorRepository = connection.getRepository(Creator)
+            const methodRepository = connection.getRepository(Method)
+            const middlewareRepository = connection.getRepository(Middleware)
+
+            const methodEntity = await methodRepository.save({
+                name: 'name',
+                namespace: 'namespace',
+                type: 'type'
+            })
+            const middlewareEntity = await middlewareRepository.save({
+                isCsrf: false,
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                name: 'middleware1',
+                method: methodEntity
+            })
+    
+            const versionEntity = await versionRepository.save({
+                name: 'name',
+                path: 'path',
+                version: 'version' 
+            })
+            const instanceEntity = await instanceRepository.save({
+                blockVersion: versionEntity
+            })
+    
+            await expect(creatorService.bind({
+                type: ResourceType.Middleware,
+                id: middlewareEntity.id
+            }, {
+                type: CreatorType.BlockInstance,
+                id: instanceEntity.id
+            })).resolves.toBeUndefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(1)
+            await expect(instanceRepository.remove(instanceEntity))
+                .rejects
+                .toThrow()
+            await expect(middlewareRepository.remove(middlewareEntity))
+                .resolves
+                .toBeDefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(0)
+    
+            container.restore()
+        })
+    
+        it(`
+            Middleware корректно привязываются к системе. Привязка удаляется вместе
+            с удалением middleware
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+    
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const creatorRepository = connection.getRepository(Creator)
+            const methodRepository = connection.getRepository(Method)
+            const middlewareRepository = connection.getRepository(Middleware)
+
+            const methodEntity = await methodRepository.save({
+                name: 'name',
+                namespace: 'namespace',
+                type: 'type'
+            })
+            const middlewareEntity = await middlewareRepository.save({
+                isCsrf: false,
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                name: 'middleware1',
+                method: methodEntity
+            })
+    
+            await expect(creatorService.bind({
+                type: ResourceType.Middleware,
+                id: middlewareEntity.id
+            }, {
+                type: CreatorType.System
+            })).resolves.toBeUndefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(1)
+            await expect(middlewareRepository.remove(middlewareEntity))
+                .resolves
+                .toBeDefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(0)
+    
+            container.restore()
+        })
+    
+        it(`
+            Экземпляр блока, к которому привязан middleware корректно можно получить
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const versionRepository = connection.getRepository(BlockVersion)
+            const instanceRepository = connection.getRepository(BlockInstance)
+            const methodRepository = connection.getRepository(Method)
+            const middlewareRepository = connection.getRepository(Middleware)
+
+            const methodEntity = await methodRepository.save({
+                name: 'name',
+                namespace: 'namespace',
+                type: 'type'
+            })
+            const middlewareEntity = await middlewareRepository.save({
+                isCsrf: false,
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                name: 'middleware1',
+                method: methodEntity
+            })
+    
+            const versionEntity = await versionRepository.save({
+                name: 'name',
+                path: 'path',
+                version: 'version' 
+            })
+            const instanceEntity = await instanceRepository.save({
+                blockVersion: versionEntity
+            })
+
+            await creatorService.bind({
+                type: ResourceType.Middleware,
+                id: middlewareEntity.id
+            }, {
+                type: CreatorType.BlockInstance,
+                id: instanceEntity.id
+            })
+
+            await expect(creatorService.getCreator({
+                type: ResourceType.Middleware,
+                id: middlewareEntity.id
+            })).resolves.toBeInstanceOf(BlockInstance)
+
+            container.restore()
+        })
+    
+        it(`
+            Систему, к которой привязан middleware корректно можно получить 
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const methodRepository = connection.getRepository(Method)
+            const middlewareRepository = connection.getRepository(Middleware)
+
+            const methodEntity = await methodRepository.save({
+                name: 'name',
+                namespace: 'namespace',
+                type: 'type'
+            })
+            const middlewareEntity = await middlewareRepository.save({
+                isCsrf: false,
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                name: 'middleware1',
+                method: methodEntity
+            })
+
+            await creatorService.bind({
+                type: ResourceType.Middleware,
+                id: middlewareEntity.id
+            }, {
+                type: CreatorType.System
+            })
+
+            await expect(creatorService.getCreator({
+                type: ResourceType.Middleware,
+                id: middlewareEntity.id
             })).resolves.toBe(CreatorType.System)
 
             container.restore()

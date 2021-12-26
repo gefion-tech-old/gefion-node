@@ -8,7 +8,8 @@ export enum ResourceType {
     Signal = 'Signal',
     Role = 'Role',
     Permission = 'Permission',
-    Controller = 'Controller'
+    Controller = 'Controller',
+    Middleware = 'Middleware'
 }
 
 export enum CreatorType {
