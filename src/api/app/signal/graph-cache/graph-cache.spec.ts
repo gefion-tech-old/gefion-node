@@ -496,7 +496,6 @@ describe('GraphCacheInit в SignalModule', () => {
                 removeValidator: async () => {},
                 isExists: async () => false,
                 createIfNotCreated: async () => {},
-                getMetadata: async () => undefined,
                 getSignalId: async () => undefined,
                 remove: async () => {},
                 connect: async () => {},

@@ -98,25 +98,6 @@ export class PermissionService implements IPermissionService {
         }) > 0
     }
 
-    public async getMetadata(permission: string): Promise<SnapshotMetadata<PermissionMetadata> | undefined> {
-        const permissionRepository = await this.permissionRepository
-
-        const permissionEntity = await permissionRepository.findOne({
-            where: {
-                name: permission
-            }
-        })
-
-        if (!permissionEntity) {
-            return
-        }
-
-        return {
-            metadata: permissionEntity.metadata.metadata,
-            revisionNumber: permissionEntity.metadata.revisionNumber
-        }
-    }
-
     public async setMetadata(permission: string, snapshotMetadata: SnapshotMetadata<PermissionMetadata>, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const metadataRepository = getCustomRepository(connection, MetadataRepository)

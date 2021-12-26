@@ -8,6 +8,7 @@ import { Connection } from 'typeorm'
 import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
 import { CREATOR_SYMBOL, CreatorType, ResourceType } from '../../creator/creator.types'
 import { ICreatorService } from '../../creator/creator.interface'
+import { Permission } from '../../entities/user.entity'
 
 beforeAll(async () => {
     const container = await getContainer()
@@ -111,6 +112,9 @@ describe('PermissionService в UserModule', () => {
         
         const permissionService = container
             .get<IPermissionService>(USER_SYMBOL.PermissionService)
+        const connection = await container
+            .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+        const permissionRepository = connection.getRepository(Permission)
 
         await expect(permissionService.create({
             name: 'permission1',
@@ -118,7 +122,14 @@ describe('PermissionService в UserModule', () => {
                 type: CreatorType.System
             }
         })).resolves.toBeUndefined()
-        await expect(permissionService.getMetadata('permission1')).resolves.toMatchObject({
+        await expect((async () => {
+            const permissionEntity = await permissionRepository.findOne({
+                where: {
+                    name: 'permission1'
+                }
+            })
+            return permissionEntity?.metadata
+        })()).resolves.toMatchObject({
             metadata: {
                 custom: null
             },
@@ -132,7 +143,14 @@ describe('PermissionService в UserModule', () => {
             },
             revisionNumber: 0
         })).resolves.toBeUndefined()
-        await expect(permissionService.getMetadata('permission1')).resolves.toMatchObject({
+        await expect((async () => {
+            const permissionEntity = await permissionRepository.findOne({
+                where: {
+                    name: 'permission1'
+                }
+            })
+            return permissionEntity?.metadata
+        })()).resolves.toMatchObject({
             metadata: {
                 custom: {
                     test: 'test'
@@ -146,7 +164,14 @@ describe('PermissionService в UserModule', () => {
             },
             revisionNumber: 0
         })).rejects.toBeInstanceOf(RevisionNumberError)
-        await expect(permissionService.getMetadata('permission1')).resolves.toMatchObject({
+        await expect((async () => {
+            const permissionEntity = await permissionRepository.findOne({
+                where: {
+                    name: 'permission1'
+                }
+            })
+            return permissionEntity?.metadata
+        })()).resolves.toMatchObject({
             metadata: {
                 custom: {
                     test: 'test'

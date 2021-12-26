@@ -10,6 +10,7 @@ import { PermissionDoesNotExist } from '../permission/permission.errors'
 import { IPermissionService } from '../permission/permission.interface'
 import { CreatorType, CREATOR_SYMBOL, ResourceType } from '../../creator/creator.types'
 import { ICreatorService } from '../../creator/creator.interface'
+import { Role, RolePermission } from '../../entities/user.entity'
 
 beforeAll(async () => {
     const container = await getContainer()
@@ -115,6 +116,9 @@ describe('RoleService в UserModule', () => {
 
         const roleService = container
             .get<IRoleService>(USER_SYMBOL.RoleService)
+        const connection = await container
+            .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+        const roleRepository = connection.getRepository(Role)
 
         await expect(roleService.create({
             name: 'role1',
@@ -122,7 +126,14 @@ describe('RoleService в UserModule', () => {
                 type: CreatorType.System
             }
         })).resolves.toBeUndefined()
-        await expect(roleService.getMetadata('role1')).resolves.toMatchObject({
+        await expect((async () => {
+            const roleEntity = await roleRepository.findOne({
+                where: {
+                    name: 'role1'
+                }
+            })
+            return roleEntity?.metadata
+        })()).resolves.toMatchObject({
             metadata: {
                 custom: null
             },
@@ -136,7 +147,14 @@ describe('RoleService в UserModule', () => {
             },
             revisionNumber: 0
         })).resolves.toBeUndefined()
-        await expect(roleService.getMetadata('role1')).resolves.toMatchObject({
+        await expect((async () => {
+            const roleEntity = await roleRepository.findOne({
+                where: {
+                    name: 'role1'
+                }
+            })
+            return roleEntity?.metadata
+        })()).resolves.toMatchObject({
             metadata: {
                 custom: {
                     test: 'test'
@@ -150,7 +168,14 @@ describe('RoleService в UserModule', () => {
             },
             revisionNumber: 0
         })).rejects.toBeInstanceOf(RevisionNumberError)
-        await expect(roleService.getMetadata('role1')).resolves.toMatchObject({
+        await expect((async () => {
+            const roleEntity = await roleRepository.findOne({
+                where: {
+                    name: 'role1'
+                }
+            })
+            return roleEntity?.metadata
+        })()).resolves.toMatchObject({
             metadata: {
                 custom: {
                     test: 'test'
@@ -346,6 +371,7 @@ describe('RoleService в UserModule', () => {
         const connection = await container
             .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
         const metadataRepository = connection.getRepository(Metadata)
+        const rolePermissionRepository = connection.getRepository(RolePermission)
 
         await expect(roleService.create({
             name: 'role1',
@@ -361,8 +387,16 @@ describe('RoleService в UserModule', () => {
         })).resolves.toBeUndefined()
         await expect(roleService.addPermission('role1', 'permission1')).resolves.toBeUndefined()
         await expect(metadataRepository.count()).resolves.toBe(3)
-
-        await expect(roleService.getRolePermissionMetadata('role1', 'permission1')).resolves.toMatchObject({
+        
+        await expect((async () => {
+            const rolePermissionEntity = await rolePermissionRepository.findOne({
+                where: {
+                    roleName: 'role1',
+                    permissionName: 'permission1'
+                }
+            })
+            return rolePermissionEntity?.metadata
+        })()).resolves.toMatchObject({
             metadata: {
                 custom: null
             },
@@ -376,7 +410,15 @@ describe('RoleService в UserModule', () => {
             },
             revisionNumber: 0
         })).resolves.toBeUndefined()
-        await expect(roleService.getRolePermissionMetadata('role1', 'permission1')).resolves.toMatchObject({
+        await expect((async () => {
+            const rolePermissionEntity = await rolePermissionRepository.findOne({
+                where: {
+                    roleName: 'role1',
+                    permissionName: 'permission1'
+                }
+            })
+            return rolePermissionEntity?.metadata
+        })()).resolves.toMatchObject({
             metadata: {
                 custom: {
                     test: 'test'

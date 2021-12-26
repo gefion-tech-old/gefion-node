@@ -25,11 +25,6 @@ export interface ISignalService {
     getSignalId(signal: Signal): Promise<number | undefined>
 
     /**
-     * Получить метаданные указанного сигнала, если он существует
-     */
-    getMetadata(signal: Signal): Promise<SnapshotMetadata<SignalMetadata> | undefined>
-
-    /**
      * Записать новые кастомные метаданные в указанный сигнал
      */
     setCustomMetadata(signal: Signal, snapshotMetadata: SnapshotMetadata<SignalMetadata>, nestedTransaction?: boolean): Promise<void>

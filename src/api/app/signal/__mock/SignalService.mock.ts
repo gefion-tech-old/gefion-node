@@ -22,10 +22,6 @@ export function getSignalService(mock: ISignalService): new() => ISignalService 
         getSignalId(signal: Signal): any {
             return mock.getSignalId(signal)
         }
-
-        getMetadata(signal: Signal): any {
-            return mock.getMetadata(signal)
-        }
     
         setCustomMetadata(signal: Signal, customMetadata: any, nestedTransaction?: boolean): any {
             return mock.setCustomMetadata(signal, customMetadata, nestedTransaction)

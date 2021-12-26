@@ -72,6 +72,9 @@ describe('SignalService в SignalModule', () => {
             .get<ISignalService>(SIGNAL_SYMBOL.SignalService)
         const creatorService = container
             .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+        const connection = await container
+            .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+        const signalRepository = connection.getRepository(Signal)
 
         const signal1 = {
             namespace: 'namespace',
@@ -83,9 +86,13 @@ describe('SignalService в SignalModule', () => {
             .resolves
             .toBe(false)
 
-        await expect(signalService.getMetadata(signal1))
-            .resolves
-            .toBeUndefined()
+        await expect((async () => {
+            const signalEntity = await signalRepository.findOne({
+                where: signal1
+            })
+            console.log(signalEntity)
+            return signalEntity?.metadata
+        })()).resolves.toBeUndefined()            
 
         const signalMutationFn = jest.fn()
         expect(signalService.onSignalMutation(signalMutationFn)).toBeUndefined()
@@ -120,14 +127,17 @@ describe('SignalService в SignalModule', () => {
             .resolves
             .toBe(1)
         
-        await expect(signalService.getMetadata(signal1))
-            .resolves
-            .toMatchObject({
-                metadata: {
-                    default: metadata
-                },
-                revisionNumber: 0
+        await expect((async () => {
+            const signalEntity = await signalRepository.findOne({
+                where: signal1
             })
+            return signalEntity?.metadata
+        })()).resolves.toMatchObject({
+            metadata: {
+                default: metadata
+            },
+            revisionNumber: 0
+        })
 
         const signalId = await signalService.getSignalId(signal1)
 
@@ -157,6 +167,7 @@ describe('SignalService в SignalModule', () => {
         const connection = await container
             .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
         const metadataRepository = connection.getRepository(Metadata)
+        const signalRepository = connection.getRepository(Signal)
 
         const signal1 = {
             namespace: 'namespace',
@@ -179,9 +190,12 @@ describe('SignalService в SignalModule', () => {
         })
         await expect(metadataRepository.count()).resolves.toBe(1)
 
-        await expect(signalService.getMetadata(signal1))
-            .resolves
-            .toMatchObject({
+        await expect((async () => {
+            const signalEntity = await signalRepository.findOne({
+                where: signal1
+            })
+            return signalEntity?.metadata
+        })()).resolves.toMatchObject({
                 metadata: {
                     default: defaultMetadata
                 },
@@ -194,15 +208,18 @@ describe('SignalService в SignalModule', () => {
             },
             revisionNumber: 0
         })).resolves.toBeUndefined()
-        await expect(signalService.getMetadata(signal1))
-            .resolves
-            .toMatchObject({
-                metadata: {
-                    default: defaultMetadata,
-                    custom: customMetadata
-                },
-                revisionNumber: 1
+        await expect((async () => {
+            const signalEntity = await signalRepository.findOne({
+                where: signal1
             })
+            return signalEntity?.metadata
+        })()).resolves.toMatchObject({
+            metadata: {
+                default: defaultMetadata,
+                custom: customMetadata
+            },
+            revisionNumber: 1
+        })
         await expect(signalService.setCustomMetadata(signal1, {
             metadata: {
                 custom: customMetadata,

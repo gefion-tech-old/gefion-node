@@ -34,12 +34,6 @@ export interface IRoleService {
     isExistsPermission(role: string, permission: string): Promise<boolean>
 
     /**
-     * Получить метаданные из связи указанной роли с указанным полномочием, если она
-     * существует
-     */
-    getRolePermissionMetadata(role: string, permission: string): Promise<SnapshotMetadata<RolePermissionMetadata> | undefined>
-
-    /**
      * Изменить метаданные в связи указанной роли с указанным полномочием, если она
      * существует
      */
@@ -49,11 +43,6 @@ export interface IRoleService {
         snapshotMetadata: SnapshotMetadata<RolePermissionMetadata>, 
         nestedTransaction?: boolean
     ): Promise<void>
-
-    /**
-     * Получить метаданные роли, если она существует
-     */
-    getMetadata(role: string): Promise<SnapshotMetadata<RoleMetadata> | undefined>
 
     /**
      * Установить метаданные в роль, если она существует

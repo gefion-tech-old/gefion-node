@@ -115,25 +115,6 @@ export class RoleService implements IRoleService {
         }) > 0
     }
 
-    public async getMetadata(role: string): Promise<SnapshotMetadata<RoleMetadata> | undefined> {
-        const roleRepository = await this.roleRepository
-
-        const roleEntity = await roleRepository.findOne({
-            where: {
-                name: role
-            }
-        })
-
-        if (!roleEntity) {
-            return
-        }
-
-        return {
-            metadata: roleEntity.metadata.metadata,
-            revisionNumber: roleEntity.metadata.revisionNumber
-        }
-    }
-
     public async setMetadata(role: string, snapshotMetadata: SnapshotMetadata<RoleMetadata>, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const metadataRepository = getCustomRepository(connection, MetadataRepository)
@@ -235,26 +216,6 @@ export class RoleService implements IRoleService {
                 permissionName: permission
             }
         }) > 0
-    }
-
-    public async getRolePermissionMetadata(role: string, permission: string): Promise<SnapshotMetadata<RolePermissionMetadata> | undefined> {
-        const rolePermissionRepository = await this.rolePermissionRepository
-
-        const rolePermissionEntity = await rolePermissionRepository.findOne({
-            where: {
-                roleName: role,
-                permissionName: permission
-            }
-        })
-
-        if (!rolePermissionEntity) {
-            return
-        }
-
-        return {
-            metadata: rolePermissionEntity.metadata.metadata,
-            revisionNumber: rolePermissionEntity.metadata.revisionNumber
-        }
     }
 
     public async setRolePermissionMetadata(

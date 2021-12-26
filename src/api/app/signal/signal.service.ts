@@ -118,26 +118,6 @@ export class SignalService implements ISignalService {
         return signalEntity.id
     }
 
-    public async getMetadata(signal: Signal): Promise<SnapshotMetadata<SignalMetadata> | undefined> {
-        const signalRepository = await this.signalRepository
-        
-        const signalEntity = await signalRepository.findOne({
-            where: {
-                namespace: signal.namespace,
-                name: signal.name
-            }
-        })
-
-        if (!signalEntity) {
-            return
-        }
-
-        return {
-            metadata: signalEntity.metadata.metadata,
-            revisionNumber: signalEntity.metadata.revisionNumber
-        }
-    }
-
     public async setCustomMetadata(signal: Signal, snapshotMetadata: SnapshotMetadata<SignalMetadata>, nestedTransaction = false): Promise<void> {
         const signalRepository = await this.signalRepository
         const connection = await this.connection
