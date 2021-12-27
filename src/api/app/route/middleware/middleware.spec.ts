@@ -99,7 +99,7 @@ describe('MiddlewareService в RouteModule', () => {
     
     it(`
         Middleware корректно удаляется вместе с метаданными. Попытка удалить несуществующий 
-        middleware приводит к исключению. Вместе с middleware удаляется и его метод, если он
+        middleware ни к чему не приводит. Вместе с middleware удаляется и его метод, если он
         больше ни к чему не привязан
     `, async () => {
         const container = await getContainer()
@@ -154,7 +154,7 @@ describe('MiddlewareService в RouteModule', () => {
     })
     
     it(`
-        Попытка установить метаданные в несуществующиё middleware приводит к исключению
+        Попытка установить метаданные в несуществующий middleware приводит к исключению
     `, async () => {
         const container = await getContainer()
         container.snapshot()
