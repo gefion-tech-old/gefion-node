@@ -9,7 +9,8 @@ export enum ResourceType {
     Role = 'Role',
     Permission = 'Permission',
     Controller = 'Controller',
-    Middleware = 'Middleware'
+    Middleware = 'Middleware',
+    MiddlewareGroup = 'MiddlewareGroup'
 }
 
 export enum CreatorType {

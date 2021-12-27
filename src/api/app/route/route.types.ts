@@ -4,7 +4,10 @@ export const ROUTE_SYMBOL = {
     ControllerEntity: Symbol('ControllerEntity'),
     ControllerService: Symbol('ControllerService'),
     MiddlewareEntity: Symbol('MiddlewareEntity'),
-    MiddlewareService: Symbol('MiddlewareService')
+    MiddlewareService: Symbol('MiddlewareService'),
+    MiddlewareGroupEntity: Symbol('MiddlewareGroupEntity'),
+    MiddlewareGroupMiddlewareEntity: Symbol('MiddlewareGroupMiddlewareEntity'),
+    MiddlewareGroupService: Symbol('MiddlewareGroupService')
 }
 
 export interface RouteMetadata {
