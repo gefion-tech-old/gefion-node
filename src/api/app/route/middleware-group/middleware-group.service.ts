@@ -14,9 +14,9 @@ import { ICreatorService } from '../../creator/creator.interface'
 import { ResourceType, CREATOR_SYMBOL } from '../../creator/creator.types'
 import { 
     MiddlewareGroupDoesNotExists,
-    MiddlewareGroupMiddlewareDoesNotExists
 } from './middleware-group.errors'
 import { Metadata } from '../../entities/metadata.entity'
+import { MiddlewareDoesNotExists } from '../middleware/middleware.errors'
 
 @injectable()
 export class MiddlewareGroupService implements IMiddlewareGroupService {
@@ -123,7 +123,7 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
         })
 
         if (!middlewareEntity) {
-            throw new MiddlewareGroupMiddlewareDoesNotExists
+            throw new MiddlewareDoesNotExists
         }
 
         try {
@@ -167,7 +167,7 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
         })
 
         if (!middlewareEntity) {
-            throw new MiddlewareGroupMiddlewareDoesNotExists
+            throw new MiddlewareDoesNotExists
         }
 
         await mutationQuery(nestedTransaction, () => {

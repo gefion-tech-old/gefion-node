@@ -8,11 +8,11 @@ import { Connection } from 'typeorm'
 import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
 import {
     MiddlewareGroupDoesNotExists,
-    MiddlewareGroupMiddlewareDoesNotExists
 } from './middleware-group.errors'
 import { RevisionNumberError } from '../../metadata/metadata.errors'
 import { MiddlewareGroup, Middleware, MiddlewareGroupMiddleware } from '../../entities/route.entity'
 import { Method } from '../../entities/method.entity'
+import { MiddlewareDoesNotExists } from '../middleware/middleware.errors'
 
 beforeAll(async () => {
     const container = await getContainer()
@@ -229,8 +229,8 @@ describe('MiddlewareGroup в RouteModule', () => {
             name: 'group1'
         })
 
-        await expect(middlewareGroupService.addMiddleware('group1', 'middleware1')).rejects.toBeInstanceOf(MiddlewareGroupMiddlewareDoesNotExists)
-        await expect(middlewareGroupService.removeMiddleware('group1', 'middleware1')).rejects.toBeInstanceOf(MiddlewareGroupMiddlewareDoesNotExists)
+        await expect(middlewareGroupService.addMiddleware('group1', 'middleware1')).rejects.toBeInstanceOf(MiddlewareDoesNotExists)
+        await expect(middlewareGroupService.removeMiddleware('group1', 'middleware1')).rejects.toBeInstanceOf(MiddlewareDoesNotExists)
 
         container.restore()
     })
