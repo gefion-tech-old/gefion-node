@@ -225,6 +225,11 @@ export class RouteMiddlewareGroup {
     @JoinColumn()
     middlewareGroup: MiddlewareGroup
 
+    @Column({
+        nullable: true
+    })
+    serialNumber: number
+
 }
 
 @injectable()
@@ -249,6 +254,11 @@ export class RouteMiddleware {
     @JoinColumn()
     middleware: Middleware
 
+    @Column({
+        nullable: true
+    })
+    serialNumber: number
+
 }
 
 @injectable()
@@ -272,5 +282,10 @@ export class MiddlewareGroupMiddleware {
     })
     @JoinColumn()
     middlewareGroup: MiddlewareGroup
+
+    @Column({
+        nullable: true
+    })
+    serialNumber: number
 
 }

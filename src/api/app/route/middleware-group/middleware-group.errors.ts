@@ -6,3 +6,10 @@ export class MiddlewareGroupDoesNotExists extends MiddlewareGroupError {
     public message = 'Указанной группы middleware не существует'
 
 }
+
+export class MiddlewareGroupDoesNotHaveMiddleware extends MiddlewareGroupError {
+
+    public name = 'MiddlewareGroupDoesNotHaveMiddleware'
+    public message = 'Указанная группа middleware не имеет связи с указанным middleware'
+
+}

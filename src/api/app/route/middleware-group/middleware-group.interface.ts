@@ -29,6 +29,11 @@ export interface IMiddlewareGroupService {
     removeMiddleware(groupName: string, middlewareName: string, nestedTransaction?: boolean): Promise<void>
 
     /**
+     * Изменить порядковый номер указанного промежуточного ПО в указанной группе
+     */
+    setMiddlewareSerialNumber(groupName: string, middlewareName: string, serialNumber: number, nestedTransaction?: boolean): Promise<void>
+
+    /**
      * Удалить указанную группу промежуточного ПО
      */
     remove(name: string, nestedTransaction?: boolean): Promise<void>

@@ -2,7 +2,7 @@ import { injectable, inject } from 'inversify'
 import { IMiddlewareGroupService } from './middleware-group.interface'
 import { Connection, Repository } from 'typeorm'
 import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
-import { MiddlewareGroup, Middleware } from '../../entities/route.entity'
+import { MiddlewareGroup, Middleware, MiddlewareGroupMiddleware } from '../../entities/route.entity'
 import { CreateMiddlewareGroup, MiddlewareGroupMetadata } from './middleware-group.types'
 import { getCustomRepository } from '../../../../core/typeorm/utils/custom-repository'
 import { transaction } from '../../../../core/typeorm/utils/transaction'
@@ -14,6 +14,7 @@ import { ICreatorService } from '../../creator/creator.interface'
 import { ResourceType, CREATOR_SYMBOL } from '../../creator/creator.types'
 import { 
     MiddlewareGroupDoesNotExists,
+    MiddlewareGroupDoesNotHaveMiddleware
 } from './middleware-group.errors'
 import { Metadata } from '../../entities/metadata.entity'
 import { MiddlewareDoesNotExists } from '../middleware/middleware.errors'
@@ -177,6 +178,51 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
                 .of(middlewareGroupEntity)
                 .remove(middlewareEntity)
         })
+    }
+
+    public async setMiddlewareSerialNumber(
+        groupName: string, 
+        middlewareName: string, 
+        serialNumber: number, 
+        nestedTransaction = false
+    ): Promise<void> {
+        const connection = await this.connection
+        const middlewareGroupRepository = await this.middlewareGroupRepository
+        const middlewareGroupMiddlewareRepository = connection.getRepository(MiddlewareGroupMiddleware)
+        const middlewareRepository = connection.getRepository(Middleware)
+
+        const middlewareGroupEntity = await middlewareGroupRepository.findOne({
+            where: {
+                name: groupName
+            }
+        })
+
+        if (!middlewareGroupEntity) {
+            throw new MiddlewareGroupDoesNotExists
+        }
+
+        const middlewareEntity = await middlewareRepository.findOne({
+            where: {
+                name: middlewareName
+            }
+        })
+
+        if (!middlewareEntity) {
+            throw new MiddlewareDoesNotExists
+        }
+
+        const updateResult = await mutationQuery(nestedTransaction, () => {
+            return middlewareGroupMiddlewareRepository.update({
+                middlewareGroupId: middlewareGroupEntity.id,
+                middlewareId: middlewareEntity.id
+            }, {
+                serialNumber: serialNumber
+            })
+        })
+
+        if (updateResult.affected === 0) {
+            throw new MiddlewareGroupDoesNotHaveMiddleware
+        }
     }
 
     public async remove(name: string, nestedTransaction = false): Promise<void> {

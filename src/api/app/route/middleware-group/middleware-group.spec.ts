@@ -8,9 +8,14 @@ import { Connection } from 'typeorm'
 import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
 import {
     MiddlewareGroupDoesNotExists,
+    MiddlewareGroupDoesNotHaveMiddleware
 } from './middleware-group.errors'
 import { RevisionNumberError } from '../../metadata/metadata.errors'
-import { MiddlewareGroup, Middleware, MiddlewareGroupMiddleware } from '../../entities/route.entity'
+import { 
+    MiddlewareGroup, 
+    Middleware, 
+    MiddlewareGroupMiddleware 
+} from '../../entities/route.entity'
 import { Method } from '../../entities/method.entity'
 import { MiddlewareDoesNotExists } from '../middleware/middleware.errors'
 
@@ -447,6 +452,153 @@ describe('MiddlewareGroup в RouteModule', () => {
             }
         })).resolves.toMatchObject({
             isCsrf: false
+        })
+
+        container.restore()
+    })
+
+    describe(`
+        Попытка изменить порядковый номер middleware в указанной группе middleware завершается исключением,
+        если:
+    `, () => {
+
+        beforeAll(async () => {
+            const container = await getContainer()
+            container.snapshot()
+
+            const middlewareGroupService = container
+                .get<IMiddlewareGroupService>(ROUTE_SYMBOL.MiddlewareGroupService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const methodRepository = connection.getRepository(Method)
+            const middlewareRepository = connection.getRepository(Middleware)
+
+            const methodEntity = await methodRepository.save({
+                name: 'name1',
+                namespace: 'namespace1',
+                type: 'type1'
+            })
+            await middlewareRepository.save({
+                isCsrf: false,
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                method: methodEntity,
+                name: 'middleware1'
+            })
+            await middlewareGroupService.createIfNotExists({
+                creator: {
+                    type: CreatorType.System
+                },
+                isDefault: false,
+                name: 'group1'
+            })
+        })
+
+        afterAll(async () => {
+            const container = await getContainer()
+            container.restore()
+        })
+
+        it(`
+            1. Указана несуществующая группа middleware
+        `, async () => {
+            const container = await getContainer()
+        
+            const middlewareGroupService = container
+                .get<IMiddlewareGroupService>(ROUTE_SYMBOL.MiddlewareGroupService)
+            
+            await expect(middlewareGroupService.setMiddlewareSerialNumber('incorrect', 'middleware1', 1))
+                .rejects
+                .toBeInstanceOf(MiddlewareGroupDoesNotExists)
+        })
+
+        it(`
+            2. Указан несуществующий middleware
+        `, async () => {
+            const container = await getContainer()
+        
+            const middlewareGroupService = container
+                .get<IMiddlewareGroupService>(ROUTE_SYMBOL.MiddlewareGroupService)
+            
+            await expect(middlewareGroupService.setMiddlewareSerialNumber('group1', 'incorrect', 1))
+                .rejects
+                .toBeInstanceOf(MiddlewareDoesNotExists)
+        })
+
+        it(`
+            3. Указанная группа middleware не имеет никаких связей с указанным middleware
+        `, async () => {
+            const container = await getContainer()
+        
+            const middlewareGroupService = container
+                .get<IMiddlewareGroupService>(ROUTE_SYMBOL.MiddlewareGroupService)
+
+            await expect(middlewareGroupService.setMiddlewareSerialNumber('group1', 'middleware1', 1))
+                .rejects
+                .toBeInstanceOf(MiddlewareGroupDoesNotHaveMiddleware)
+        })
+
+    })
+
+    it(`
+        Порядковый номер указанного middleware в указанной группе middleware корректно изменяется. По умолчанию
+        порядковый номер имеет значение null
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        const middlewareGroupService = container
+            .get<IMiddlewareGroupService>(ROUTE_SYMBOL.MiddlewareGroupService)
+        const connection = await container
+            .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+        const methodRepository = connection.getRepository(Method)
+        const middlewareRepository = connection.getRepository(Middleware)
+        const middlewareGroupMiddlewareRepository = connection.getRepository(MiddlewareGroupMiddleware)
+
+        const methodEntity = await methodRepository.save({
+            name: 'name1',
+            namespace: 'namespace1',
+            type: 'type1'
+        })
+        await middlewareRepository.save({
+            isCsrf: false,
+            metadata: {
+                metadata: {
+                    custom: null
+                }
+            },
+            method: methodEntity,
+            name: 'middleware1'
+        })
+        await middlewareGroupService.createIfNotExists({
+            creator: {
+                type: CreatorType.System
+            },
+            isDefault: false,
+            name: 'group1'
+        })
+
+        
+        await expect(middlewareGroupService.addMiddleware('group1', 'middleware1')).resolves.toBeUndefined()
+        await expect(middlewareGroupMiddlewareRepository.findOne({
+            where: {
+                middlewareGroupId: 1,
+                middlewareId: 1
+            }
+        })).resolves.toMatchObject({
+            serialNumber: null
+        })
+        await expect(middlewareGroupService.setMiddlewareSerialNumber('group1', 'middleware1', 1)).resolves.toBeUndefined()
+        await expect(middlewareGroupMiddlewareRepository.findOne({
+            where: {
+                middlewareGroupId: 1,
+                middlewareId: 1
+            }
+        })).resolves.toMatchObject({
+            serialNumber: 1
         })
 
         container.restore()
