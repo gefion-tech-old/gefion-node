@@ -11,7 +11,7 @@ import { BlockInstance } from './block-instance.entity'
 import { Method } from './method.entity'
 import { Signal } from './signal.entity'
 import { Role, Permission } from './user.entity'
-import { Controller, Middleware, MiddlewareGroup } from './route.entity'
+import { Controller, Middleware, MiddlewareGroup, Route } from './route.entity'
 
 @injectable()
 @Entity()
@@ -26,6 +26,7 @@ import { Controller, Middleware, MiddlewareGroup } from './route.entity'
         OR controllerId <> NULL
         OR middlewareId <> NULL
         OR middlewareGroupId <> NULL
+        OR routeId <> NULL
     )
 `)
 @Unique(['method'])
@@ -35,6 +36,7 @@ import { Controller, Middleware, MiddlewareGroup } from './route.entity'
 @Unique(['controller'])
 @Unique(['middleware'])
 @Unique(['middlewareGroup'])
+@Unique(['route'])
 export class Creator {
 
     @PrimaryGeneratedColumn()
@@ -127,5 +129,15 @@ export class Creator {
         nullable: true
     })
     middlewareGroupId: number
+
+    @ManyToOne(() => Route, {
+        onDelete: 'CASCADE'
+    })
+    route: Route
+
+    @Column({
+        nullable: true
+    })
+    routeId: number
 
 }

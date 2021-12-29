@@ -14,7 +14,7 @@ import { Creator } from '../entities/creator.entity'
 import { ResourceAlreadyHasCreator } from './creator.errors'
 import { Signal } from '../entities/signal.entity'
 import { Role, Permission } from '../entities/user.entity'
-import { Controller, Middleware, MiddlewareGroup } from '../entities/route.entity'
+import { Controller, Middleware, MiddlewareGroup, Route } from '../entities/route.entity'
 
 beforeAll(async () => {
     const container = await getContainer()
@@ -1374,6 +1374,203 @@ describe('CreatorService в CreatorModule', () => {
             await expect(creatorService.getCreator({
                 type: ResourceType.MiddlewareGroup,
                 id: middlewareGroupEntity.id
+            })).resolves.toBe(CreatorType.System)
+
+            container.restore()
+        })
+
+    })
+
+    describe('Маршруты в качестве ресурсов', () => {
+
+        it(`
+            Маршруты корректно привязываются к экземпляру блока. Нельзя удалить
+            экземпляр блока с привязанным маршрутом, но можно удалить маршрут.
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+    
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const routeRepository = connection.getRepository(Route)
+            const versionRepository = connection.getRepository(BlockVersion)
+            const instanceRepository = connection.getRepository(BlockInstance)
+            const creatorRepository = connection.getRepository(Creator)
+    
+            const versionEntity = await versionRepository.save({
+                name: 'name',
+                path: 'path',
+                version: 'version' 
+            })
+            const instanceEntity = await instanceRepository.save({
+                blockVersion: versionEntity
+            })
+            const routeEntity = await routeRepository.save({
+                isCsrf: false,
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                method: 'POST',
+                name: 'route1',
+                path: '/'
+            })
+    
+            await expect(creatorService.bind({
+                type: ResourceType.Route,
+                id: routeEntity.id
+            }, {
+                type: CreatorType.BlockInstance,
+                id: instanceEntity.id
+            })).resolves.toBeUndefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(1)
+            await expect(instanceRepository.remove(instanceEntity))
+                .rejects
+                .toThrow()
+            await expect(routeRepository.remove(routeEntity))
+                .resolves
+                .toBeDefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(0)
+    
+            container.restore()
+        })
+    
+        it(`
+            Маршруты корректно привязываются к системе. Привязка удаляется вместе
+            с удалением маршрута
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+    
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const routeRepository = connection.getRepository(Route)
+            const creatorRepository = connection.getRepository(Creator)
+    
+            const routeEntity = await routeRepository.save({
+                isCsrf: false,
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                method: 'POST',
+                name: 'route1',
+                path: '/'
+            })
+    
+            await expect(creatorService.bind({
+                type: ResourceType.Route,
+                id: routeEntity.id
+            }, {
+                type: CreatorType.System
+            })).resolves.toBeUndefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(1)
+            await expect(routeRepository.remove(routeEntity))
+                .resolves
+                .toBeDefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(0)
+    
+            container.restore()
+        })
+    
+        it(`
+            Экземпляр блока, к которому привязан маршрут корректно можно получить
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const routeRepository = connection.getRepository(Route)
+            const versionRepository = connection.getRepository(BlockVersion)
+            const instanceRepository = connection.getRepository(BlockInstance)
+    
+            const versionEntity = await versionRepository.save({
+                name: 'name',
+                path: 'path',
+                version: 'version' 
+            })
+            const instanceEntity = await instanceRepository.save({
+                blockVersion: versionEntity
+            })
+            const routeEntity = await routeRepository.save({
+                isCsrf: false,
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                method: 'POST',
+                name: 'route1',
+                path: '/'
+            })
+
+            await creatorService.bind({
+                type: ResourceType.Route,
+                id: routeEntity.id
+            }, {
+                type: CreatorType.BlockInstance,
+                id: instanceEntity.id
+            })
+
+            await expect(creatorService.getCreator({
+                type: ResourceType.Route,
+                id: routeEntity.id
+            })).resolves.toBeInstanceOf(BlockInstance)
+
+            container.restore()
+        })
+    
+        it(`
+            Систему, к которой привязан маршрут корректно можно получить 
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const routeRepository = connection.getRepository(Route)
+
+            const routeEntity = await routeRepository.save({
+                isCsrf: false,
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                method: 'POST',
+                name: 'route1',
+                path: '/'
+            })
+
+            await creatorService.bind({
+                type: ResourceType.Route,
+                id: routeEntity.id
+            }, {
+                type: CreatorType.System
+            })
+
+            await expect(creatorService.getCreator({
+                type: ResourceType.Route,
+                id: routeEntity.id
             })).resolves.toBe(CreatorType.System)
 
             container.restore()

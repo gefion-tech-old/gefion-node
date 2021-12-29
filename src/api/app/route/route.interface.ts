@@ -1,6 +1,5 @@
 import { CreateRoute, RouteMetadata } from './route.types'
 import { SnapshotMetadata } from '../metadata/metadata.types'
-import { Middleware } from '../entities/route.entity'
 
 export interface IRouteService {
 
@@ -20,20 +19,34 @@ export interface IRouteService {
     setMetadata(name: string, snapshotMetadata: SnapshotMetadata<RouteMetadata>, nestedTransaction?: boolean): Promise<void>
 
     /**
-     * Получить список всех промежуточных ПО, в том числе и тех, которые в группах, в порядке их
-     * предполагаемого вызова и без дублирования
-     */
-    getAllMiddlewares(routeName: string): Promise<Middleware[]>
-
-    /**
      * Добавить группу промежуточного ПО в указанный маршрут
      */
     addMiddlewareGroup(routeName: string, groupName: string, nestedTransaction?: boolean): Promise<void>
 
     /**
+     * Удалить указанную группу промежуточного ПО из указанного маршрута
+     */
+    removeMiddlewareGroup(routeName: string, groupName: string, nestedTransaction?: boolean): Promise<void>
+
+    /**
+     * Изменить порядковый номер указанной группы промежуточного ПО в указанном маршрута
+     */
+    setMiddlewareGroupSerialNumber(routeName: string, groupName: string, serialNumber: number, nestedTransaction?: boolean): Promise<void>
+
+    /**
      * Добавить указанное промежуточное ПО напрямую к указанному маршрута
      */
     addMiddleware(routeName: string, middlewareName: string, nestedTransaction?: boolean): Promise<void>
+
+    /**
+     * Удалить указанное промежуточное ПО из указанного маршрута 
+     */
+    removeMiddleware(routeName: string, middlewareName: string, nestedTransaction?: boolean): Promise<void>
+
+    /**
+     * Изменить порядковый номер указанного промежуточного ПО в указанном маршрута
+     */
+    setMiddlewareSerialNumber(routeName: string, middlewareName: string, serialNumber: number, nestedTransaction?: boolean): Promise<void>
 
     /**
      * Включить флаг csrf в указанном маршруте
@@ -48,6 +61,6 @@ export interface IRouteService {
     /**
      * Удалить указанный маршрут
      */
-    remove(name: string): Promise<void>
+    remove(name: string, nestedTransaction?: boolean): Promise<void>
 
 }
