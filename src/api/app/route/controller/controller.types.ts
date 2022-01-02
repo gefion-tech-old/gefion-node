@@ -1,6 +1,17 @@
 import { Method } from '../../method/method.types'
 import { BindableCreator } from '../../creator/creator.types'
 
+export interface Controller {
+    /**
+     * Пространство имён
+     */
+    readonly namespace: string
+    /**
+     * Название
+     */
+    readonly name: string
+}
+
 export interface ControllerMetadata {
     /**
      * Метаданные, которые можно изменить в любой момент времени без особых ограничений
@@ -10,9 +21,13 @@ export interface ControllerMetadata {
 
 export interface CreateController {
     /**
-     * Уникальное название контроллера
+     * Название контроллера
      */
     readonly name: string
+    /**
+     * Пространство имён контроллера
+     */
+    readonly namespace: string
     /**
      * Метод контроллера
      */

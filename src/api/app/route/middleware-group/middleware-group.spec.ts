@@ -46,7 +46,12 @@ describe('MiddlewareGroup в RouteModule', () => {
             .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
         const metadataRepository = connection.getRepository(Metadata)
 
-        await expect(middlewareGroupService.isExists('group1')).resolves.toBe(false)
+        const middlewareGroup = {
+            namespace: 'group1',
+            name: 'group1'
+        }
+
+        await expect(middlewareGroupService.isExists(middlewareGroup)).resolves.toBe(false)
         await expect(metadataRepository.count()).resolves.toBe(0)
 
         await expect(middlewareGroupService.createIfNotExists({
@@ -54,17 +59,17 @@ describe('MiddlewareGroup в RouteModule', () => {
             creator: {
                 type: CreatorType.System
             },
-            name: 'group1'
+            ...middlewareGroup
         })).resolves.toBeUndefined()
         await expect(middlewareGroupService.createIfNotExists({
             isDefault: false,
             creator: {
                 type: CreatorType.System
             },
-            name: 'group1'
+            ...middlewareGroup
         })).resolves.toBeUndefined()
 
-        await expect(middlewareGroupService.isExists('group1')).resolves.toBe(true)
+        await expect(middlewareGroupService.isExists(middlewareGroup)).resolves.toBe(true)
         await expect(metadataRepository.count()).resolves.toBe(1)
         
         await expect(creatorService.isResourceCreator({
@@ -86,7 +91,12 @@ describe('MiddlewareGroup в RouteModule', () => {
         const middlewareGroupService = container
             .get<IMiddlewareGroupService>(ROUTE_SYMBOL.MiddlewareGroupService)
 
-        await expect(middlewareGroupService.setMetadata('group1', {
+        const middlewareGroup = {
+            namespace: 'group1',
+            name: 'group1'
+        }
+
+        await expect(middlewareGroupService.setMetadata(middlewareGroup, {
             metadata: {
                 custom: null
             },
@@ -110,19 +120,22 @@ describe('MiddlewareGroup в RouteModule', () => {
         const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)
         const metadataRepository = connection.getRepository(Metadata)
 
+        const middlewareGroup = {
+            namespace: 'group1',
+            name: 'group1'
+        }
+
         await expect(middlewareGroupService.createIfNotExists({
             creator: {
                 type: CreatorType.System
             },
-            name: 'group1',
-            isDefault: false
+            isDefault: false,
+            ...middlewareGroup
         })).resolves.toBeUndefined()
         await expect(metadataRepository.count()).resolves.toBe(1)
         await expect((async () => {
             const middlewareGroupEntity = await middlewareGroupRepository.findOne({
-                where: {
-                    name: 'group1'
-                }
+                where: middlewareGroup
             })
             return middlewareGroupEntity?.metadata
         })()).resolves.toMatchObject({
@@ -131,7 +144,7 @@ describe('MiddlewareGroup в RouteModule', () => {
             },
             revisionNumber: 0
         })
-        await expect(middlewareGroupService.setMetadata('group1', {
+        await expect(middlewareGroupService.setMetadata(middlewareGroup, {
             metadata: {
                 custom: {
                     test: 'test'
@@ -141,9 +154,7 @@ describe('MiddlewareGroup в RouteModule', () => {
         })).resolves.toBeUndefined()
         await expect((async () => {
             const middlewareGroupEntity = await middlewareGroupRepository.findOne({
-                where: {
-                    name: 'group1'
-                }
+                where: middlewareGroup
             })
             return middlewareGroupEntity?.metadata
         })()).resolves.toMatchObject({
@@ -154,7 +165,7 @@ describe('MiddlewareGroup в RouteModule', () => {
             },
             revisionNumber: 1
         })
-        await expect(middlewareGroupService.setMetadata('group1', {
+        await expect(middlewareGroupService.setMetadata(middlewareGroup, {
             metadata: {
                 custom: null
             },
@@ -162,9 +173,7 @@ describe('MiddlewareGroup в RouteModule', () => {
         })).rejects.toBeInstanceOf(RevisionNumberError)
         await expect((async () => {
             const middlewareGroupEntity = await middlewareGroupRepository.findOne({
-                where: {
-                    name: 'group1'
-                }
+                where: middlewareGroup
             })
             return middlewareGroupEntity?.metadata
         })()).resolves.toMatchObject({
@@ -194,6 +203,15 @@ describe('MiddlewareGroup в RouteModule', () => {
         const methodRepository = connection.getRepository(Method)
         const middlewareRepository = connection.getRepository(Middleware)
 
+        const middlewareGroup = {
+            namespace: 'group1',
+            name: 'group1'
+        }
+        const middleware = {
+            namespace: 'middleware1',
+            name: 'middleware1'
+        }
+
         const methodEntity = await methodRepository.save({
             name: 'name1',
             namespace: 'namespace1',
@@ -207,11 +225,11 @@ describe('MiddlewareGroup в RouteModule', () => {
                 }
             },
             method: methodEntity,
-            name: 'middleware1'
+            ...middleware
         })
 
-        await expect(middlewareGroupService.addMiddleware('group1', 'middleware1')).rejects.toBeInstanceOf(MiddlewareGroupDoesNotExists)
-        await expect(middlewareGroupService.removeMiddleware('group1', 'middleware1')).rejects.toBeInstanceOf(MiddlewareGroupDoesNotExists)
+        await expect(middlewareGroupService.addMiddleware(middlewareGroup, middleware)).rejects.toBeInstanceOf(MiddlewareGroupDoesNotExists)
+        await expect(middlewareGroupService.removeMiddleware(middlewareGroup, middleware)).rejects.toBeInstanceOf(MiddlewareGroupDoesNotExists)
 
         container.restore()
     })
@@ -226,16 +244,25 @@ describe('MiddlewareGroup в RouteModule', () => {
         const middlewareGroupService = container
             .get<IMiddlewareGroupService>(ROUTE_SYMBOL.MiddlewareGroupService)
 
+        const middlewareGroup = {
+            namespace: 'group1',
+            name: 'group1'
+        }
+        const middleware = {
+            namespace: 'middleware1',
+            name: 'middleware1'
+        }
+
         await middlewareGroupService.createIfNotExists({
             creator: {
                 type: CreatorType.System
             },
             isDefault: false,
-            name: 'group1'
+            ...middlewareGroup
         })
 
-        await expect(middlewareGroupService.addMiddleware('group1', 'middleware1')).rejects.toBeInstanceOf(MiddlewareDoesNotExists)
-        await expect(middlewareGroupService.removeMiddleware('group1', 'middleware1')).rejects.toBeInstanceOf(MiddlewareDoesNotExists)
+        await expect(middlewareGroupService.addMiddleware(middlewareGroup, middleware)).rejects.toBeInstanceOf(MiddlewareDoesNotExists)
+        await expect(middlewareGroupService.removeMiddleware(middlewareGroup, middleware)).rejects.toBeInstanceOf(MiddlewareDoesNotExists)
 
         container.restore()
     })
@@ -255,6 +282,15 @@ describe('MiddlewareGroup в RouteModule', () => {
         const middlewareRepository = connection.getRepository(Middleware)
         const middlewareGroupMiddlewareRepository = connection.getRepository(MiddlewareGroupMiddleware)
 
+        const middlewareGroup = {
+            namespace: 'group1',
+            name: 'group1'
+        }
+        const middleware = {
+            namespace: 'middleware1',
+            name: 'middleware1'
+        }
+
         const methodEntity = await methodRepository.save({
             name: 'name1',
             namespace: 'namespace1',
@@ -268,19 +304,19 @@ describe('MiddlewareGroup в RouteModule', () => {
                 }
             },
             method: methodEntity,
-            name: 'middleware1'
+            ...middleware
         })
         await middlewareGroupService.createIfNotExists({
             creator: {
                 type: CreatorType.System
             },
             isDefault: false,
-            name: 'group1'
+            ...middlewareGroup
         })
 
         await expect(middlewareGroupMiddlewareRepository.count()).resolves.toBe(0)
-        await expect(middlewareGroupService.addMiddleware('group1', 'middleware1')).resolves.toBeUndefined()
-        await expect(middlewareGroupService.addMiddleware('group1', 'middleware1')).resolves.toBeUndefined()
+        await expect(middlewareGroupService.addMiddleware(middlewareGroup, middleware)).resolves.toBeUndefined()
+        await expect(middlewareGroupService.addMiddleware(middlewareGroup, middleware)).resolves.toBeUndefined()
         await expect(middlewareGroupMiddlewareRepository.count()).resolves.toBe(1)
 
         container.restore()
@@ -301,6 +337,15 @@ describe('MiddlewareGroup в RouteModule', () => {
         const middlewareRepository = connection.getRepository(Middleware)
         const middlewareGroupMiddlewareRepository = connection.getRepository(MiddlewareGroupMiddleware)
 
+        const middlewareGroup = {
+            namespace: 'group1',
+            name: 'group1'
+        }
+        const middleware = {
+            namespace: 'middleware1',
+            name: 'middleware1'
+        }
+
         const methodEntity = await methodRepository.save({
             name: 'name1',
             namespace: 'namespace1',
@@ -314,20 +359,20 @@ describe('MiddlewareGroup в RouteModule', () => {
                 }
             },
             method: methodEntity,
-            name: 'middleware1'
+            ...middleware
         })
         await middlewareGroupService.createIfNotExists({
             creator: {
                 type: CreatorType.System
             },
             isDefault: false,
-            name: 'group1'
+            ...middlewareGroup
         })
 
-        await expect(middlewareGroupService.addMiddleware('group1', 'middleware1')).resolves.toBeUndefined()
+        await expect(middlewareGroupService.addMiddleware(middlewareGroup, middleware)).resolves.toBeUndefined()
         await expect(middlewareGroupMiddlewareRepository.count()).resolves.toBe(1)
-        await expect(middlewareGroupService.removeMiddleware('group1', 'middleware1')).resolves.toBeUndefined()
-        await expect(middlewareGroupService.removeMiddleware('group1', 'middleware1')).resolves.toBeUndefined()
+        await expect(middlewareGroupService.removeMiddleware(middlewareGroup, middleware)).resolves.toBeUndefined()
+        await expect(middlewareGroupService.removeMiddleware(middlewareGroup, middleware)).resolves.toBeUndefined()
         await expect(middlewareGroupMiddlewareRepository.count()).resolves.toBe(0)
 
         container.restore()
@@ -349,6 +394,15 @@ describe('MiddlewareGroup в RouteModule', () => {
         const middlewareGroupMiddlewareRepository = connection.getRepository(MiddlewareGroupMiddleware)
         const metadataRepository = connection.getRepository(Metadata)
 
+        const middlewareGroup = {
+            namespace: 'group1',
+            name: 'group1'
+        }
+        const middleware = {
+            namespace: 'middleware1',
+            name: 'middleware1'
+        }
+
         const methodEntity = await methodRepository.save({
             name: 'name1',
             namespace: 'namespace1',
@@ -362,28 +416,28 @@ describe('MiddlewareGroup в RouteModule', () => {
                 }
             },
             method: methodEntity,
-            name: 'middleware1'
+            ...middleware
         })
         await middlewareGroupService.createIfNotExists({
             creator: {
                 type: CreatorType.System
             },
             isDefault: false,
-            name: 'group1'
+            ...middlewareGroup
         })
 
-        await expect(middlewareGroupService.addMiddleware('group1', 'middleware1')).resolves.toBeUndefined()
+        await expect(middlewareGroupService.addMiddleware(middlewareGroup, middleware)).resolves.toBeUndefined()
 
         await expect(middlewareGroupMiddlewareRepository.count()).resolves.toBe(1)
         await expect(metadataRepository.count()).resolves.toBe(2)
-        await expect(middlewareGroupService.isExists('group1')).resolves.toBe(true)
+        await expect(middlewareGroupService.isExists(middlewareGroup)).resolves.toBe(true)
 
-        await expect(middlewareGroupService.remove('group1')).resolves.toBeUndefined()
-        await expect(middlewareGroupService.remove('group1')).resolves.toBeUndefined()
+        await expect(middlewareGroupService.remove(middlewareGroup)).resolves.toBeUndefined()
+        await expect(middlewareGroupService.remove(middlewareGroup)).resolves.toBeUndefined()
 
         await expect(middlewareGroupMiddlewareRepository.count()).resolves.toBe(0)
         await expect(metadataRepository.count()).resolves.toBe(1)
-        await expect(middlewareGroupService.isExists('group1')).resolves.toBe(false)
+        await expect(middlewareGroupService.isExists(middlewareGroup)).resolves.toBe(false)
 
         container.restore()
     })
@@ -397,8 +451,13 @@ describe('MiddlewareGroup в RouteModule', () => {
         const middlewareGroupService = container
             .get<IMiddlewareGroupService>(ROUTE_SYMBOL.MiddlewareGroupService)
 
-        await expect(middlewareGroupService.enableCsrf('group1')).rejects.toBeInstanceOf(MiddlewareGroupDoesNotExists)
-        await expect(middlewareGroupService.disableCsrf('group1')).rejects.toBeInstanceOf(MiddlewareGroupDoesNotExists)
+        const middlewareGroup = {
+            namespace: 'group1',
+            name: 'group1'
+        }
+
+        await expect(middlewareGroupService.enableCsrf(middlewareGroup)).rejects.toBeInstanceOf(MiddlewareGroupDoesNotExists)
+        await expect(middlewareGroupService.disableCsrf(middlewareGroup)).rejects.toBeInstanceOf(MiddlewareGroupDoesNotExists)
             
         container.restore()
     })
@@ -416,40 +475,39 @@ describe('MiddlewareGroup в RouteModule', () => {
             .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
         const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)
 
+        const middlewareGroup = {
+            namespace: 'group1',
+            name: 'group1'
+        }
+
         await expect(middlewareGroupService.createIfNotExists({
             creator: {
                 type: CreatorType.System
             },
             isDefault: false,
-            name: 'group1'
+            ...middlewareGroup
         })).resolves.toBeUndefined()
 
         await expect(middlewareGroupRepository.findOne({
-            where: {
-                name: 'group1'
-            }
+            where: middlewareGroup
         })).resolves.toMatchObject({
             isCsrf: false
         })
 
-        await expect(middlewareGroupService.enableCsrf('group1')).resolves.toBeUndefined()
-        await expect(middlewareGroupService.enableCsrf('group1')).resolves.toBeUndefined()
+        await expect(middlewareGroupService.enableCsrf(middlewareGroup)).resolves.toBeUndefined()
+        await expect(middlewareGroupService.enableCsrf(middlewareGroup)).resolves.toBeUndefined()
 
         await expect(middlewareGroupRepository.findOne({
-            where: {
-                name: 'group1'
-            }
+            where: middlewareGroup
         })).resolves.toMatchObject({
             isCsrf: true
         })
 
-        await expect(middlewareGroupService.disableCsrf('group1')).resolves.toBeUndefined()
-        await expect(middlewareGroupService.disableCsrf('group1')).resolves.toBeUndefined()
+        await expect(middlewareGroupService.disableCsrf(middlewareGroup)).resolves.toBeUndefined()
+        await expect(middlewareGroupService.disableCsrf(middlewareGroup)).resolves.toBeUndefined()
 
         await expect(middlewareGroupRepository.findOne({
-            where: {
-                name: 'group1'
-            }
+            where: middlewareGroup
         })).resolves.toMatchObject({
             isCsrf: false
         })
@@ -473,6 +531,15 @@ describe('MiddlewareGroup в RouteModule', () => {
             const methodRepository = connection.getRepository(Method)
             const middlewareRepository = connection.getRepository(Middleware)
 
+            const middlewareGroup = {
+                namespace: 'group1',
+                name: 'group1'
+            }
+            const middleware = {
+                namespace: 'middleware1',
+                name: 'middleware1'
+            }
+
             const methodEntity = await methodRepository.save({
                 name: 'name1',
                 namespace: 'namespace1',
@@ -486,14 +553,14 @@ describe('MiddlewareGroup в RouteModule', () => {
                     }
                 },
                 method: methodEntity,
-                name: 'middleware1'
+                ...middleware
             })
             await middlewareGroupService.createIfNotExists({
                 creator: {
                     type: CreatorType.System
                 },
                 isDefault: false,
-                name: 'group1'
+                ...middlewareGroup
             })
         })
 
@@ -509,8 +576,16 @@ describe('MiddlewareGroup в RouteModule', () => {
         
             const middlewareGroupService = container
                 .get<IMiddlewareGroupService>(ROUTE_SYMBOL.MiddlewareGroupService)
+
+            const middleware = {
+                namespace: 'middleware1',
+                name: 'middleware1'
+            }
             
-            await expect(middlewareGroupService.setMiddlewareSerialNumber('incorrect', 'middleware1', 1))
+            await expect(middlewareGroupService.setMiddlewareSerialNumber({
+                namespace: 'incorrect',
+                name: 'incorrect'
+            }, middleware, 1))
                 .rejects
                 .toBeInstanceOf(MiddlewareGroupDoesNotExists)
         })
@@ -522,8 +597,16 @@ describe('MiddlewareGroup в RouteModule', () => {
         
             const middlewareGroupService = container
                 .get<IMiddlewareGroupService>(ROUTE_SYMBOL.MiddlewareGroupService)
+
+            const middlewareGroup = {
+                namespace: 'group1',
+                name: 'group1'
+            }
             
-            await expect(middlewareGroupService.setMiddlewareSerialNumber('group1', 'incorrect', 1))
+            await expect(middlewareGroupService.setMiddlewareSerialNumber(middlewareGroup, {
+                namespace: 'incorrect',
+                name: 'incorrect'
+            }, 1))
                 .rejects
                 .toBeInstanceOf(MiddlewareDoesNotExists)
         })
@@ -536,7 +619,16 @@ describe('MiddlewareGroup в RouteModule', () => {
             const middlewareGroupService = container
                 .get<IMiddlewareGroupService>(ROUTE_SYMBOL.MiddlewareGroupService)
 
-            await expect(middlewareGroupService.setMiddlewareSerialNumber('group1', 'middleware1', 1))
+            const middlewareGroup = {
+                namespace: 'group1',
+                name: 'group1'
+            }
+            const middleware = {
+                namespace: 'middleware1',
+                name: 'middleware1'
+            }
+
+            await expect(middlewareGroupService.setMiddlewareSerialNumber(middlewareGroup, middleware, 1))
                 .rejects
                 .toBeInstanceOf(MiddlewareGroupDoesNotHaveMiddleware)
         })
@@ -558,6 +650,15 @@ describe('MiddlewareGroup в RouteModule', () => {
         const middlewareRepository = connection.getRepository(Middleware)
         const middlewareGroupMiddlewareRepository = connection.getRepository(MiddlewareGroupMiddleware)
 
+        const middlewareGroup = {
+            namespace: 'group1',
+            name: 'group1'
+        }
+        const middleware = {
+            namespace: 'middleware1',
+            name: 'middleware1'
+        }
+
         const methodEntity = await methodRepository.save({
             name: 'name1',
             namespace: 'namespace1',
@@ -571,18 +672,18 @@ describe('MiddlewareGroup в RouteModule', () => {
                 }
             },
             method: methodEntity,
-            name: 'middleware1'
+            ...middleware
         })
         await middlewareGroupService.createIfNotExists({
             creator: {
                 type: CreatorType.System
             },
             isDefault: false,
-            name: 'group1'
+            ...middlewareGroup
         })
 
         
-        await expect(middlewareGroupService.addMiddleware('group1', 'middleware1')).resolves.toBeUndefined()
+        await expect(middlewareGroupService.addMiddleware(middlewareGroup, middleware)).resolves.toBeUndefined()
         await expect(middlewareGroupMiddlewareRepository.findOne({
             where: {
                 middlewareGroupId: 1,
@@ -591,7 +692,7 @@ describe('MiddlewareGroup в RouteModule', () => {
         })).resolves.toMatchObject({
             serialNumber: null
         })
-        await expect(middlewareGroupService.setMiddlewareSerialNumber('group1', 'middleware1', 1)).resolves.toBeUndefined()
+        await expect(middlewareGroupService.setMiddlewareSerialNumber(middlewareGroup, middleware, 1)).resolves.toBeUndefined()
         await expect(middlewareGroupMiddlewareRepository.findOne({
             where: {
                 middlewareGroupId: 1,

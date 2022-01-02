@@ -53,34 +53,37 @@ it(`
 
     const metadataEntityCount = await metadataRepository.count()
 
-    await expect(routeService.isExists('uniq1')).resolves.toBe(false)
+    const route = {
+        namespace: 'route1',
+        name: 'route1'
+    }
+
+    await expect(routeService.isExists(route)).resolves.toBe(false)
 
     await expect(routeService.createIfNotExists({
         creator: {
             type: CreatorType.System
         },
         method: 'POST',
-        name: 'uniq1',
-        path: '/uniq1'
+        path: '/uniq1',
+        ...route
     })).resolves.toBeUndefined()
     await expect(routeService.createIfNotExists({
         creator: {
             type: CreatorType.System
         },
         method: 'POST',
-        name: 'uniq1',
-        path: '/uniq1'
+        path: '/uniq1',
+        ...route
     })).resolves.toBeUndefined()
 
-    await expect(routeService.isExists('uniq1')).resolves.toBe(true)
+    await expect(routeService.isExists(route)).resolves.toBe(true)
     await expect(metadataRepository.count()).resolves.toBe(metadataEntityCount + 1)
 
     await expect(creatorService.isResourceCreator({
         type: ResourceType.Route,
         id: await routeRepository.findOne({
-            where: {
-                name: 'uniq1'
-            }
+            where: route
         }).then(routeEntity => {
             return type<Route>(routeEntity).id
         })
@@ -101,13 +104,18 @@ it(`
     const routeService = container
         .get<IRouteService>(ROUTE_SYMBOL.RouteService)
 
+    const route = {
+        namespace: 'route1',
+        name: 'route1'
+    }
+
     await expect(routeService.createIfNotExists({
         creator: {
             type: CreatorType.System
         },
         method: 'POST',
         path: '/',
-        name: 'route1'
+        ...route
     })).resolves.toBeUndefined()
 
     await expect(routeService.createIfNotExists({
@@ -116,7 +124,8 @@ it(`
         },
         method: 'POST',
         path: '/',
-        name: 'uniq1'
+        ...route,
+        name: 'route2'
     })).rejects.toBeInstanceOf(RoutePathAndMethodAlreadyExists)
 
     container.restore()
@@ -131,7 +140,12 @@ it(`
     const routeService = container
         .get<IRouteService>(ROUTE_SYMBOL.RouteService)
 
-    await expect(routeService.setMetadata('uniq1', {
+    const route = {
+        namespace: 'route1',
+        name: 'route1'
+    }
+
+    await expect(routeService.setMetadata(route, {
         metadata: {
             custom: null
         },
@@ -155,19 +169,22 @@ it(`
     const routeRepository = connection.getRepository(Route)
     const metadataRepository = connection.getRepository(Metadata)
 
+    const route = {
+        namespace: 'route1',
+        name: 'route1'
+    }
+
     await expect(routeService.createIfNotExists({
         creator: {
             type: CreatorType.System
         },
         method: 'POST',
         path: '/',
-        name: 'route1'
+        ...route
     })).resolves.toBeUndefined()
     await expect(metadataRepository.count()).resolves.toBe(1)
     await expect(routeRepository.findOne({
-        where: {
-            name: 'route1'
-        }
+        where: route
     }).then(routeEntity => {
         return type<Route>(routeEntity).metadata
     })).resolves.toMatchObject({
@@ -176,7 +193,7 @@ it(`
         },
         revisionNumber: 0
     })
-    await expect(routeService.setMetadata('route1', {
+    await expect(routeService.setMetadata(route, {
         metadata: {
             custom: {
                 test: 'test'
@@ -185,9 +202,7 @@ it(`
         revisionNumber: 0
     })).resolves.toBeUndefined()
     await expect(routeRepository.findOne({
-        where: {
-            name: 'route1'
-        }
+        where: route
     }).then(routeEntity => {
         return type<Route>(routeEntity).metadata
     })).resolves.toMatchObject({
@@ -198,16 +213,14 @@ it(`
         },
         revisionNumber: 1
     })
-    await expect(routeService.setMetadata('route1', {
+    await expect(routeService.setMetadata(route, {
         metadata: {
             custom: null
         },
         revisionNumber: 0
     })).rejects.toBeInstanceOf(RevisionNumberError)
     await expect(routeRepository.findOne({
-        where: {
-            name: 'route1'
-        }
+        where: route
     }).then(routeEntity => {
         return type<Route>(routeEntity).metadata
     })).resolves.toMatchObject({
@@ -232,6 +245,15 @@ it(`
 
     const routeService = container
         .get<IRouteService>(ROUTE_SYMBOL.RouteService)
+
+    const route = {
+        namespace: 'route1',
+        name: 'route1'
+    }
+    const middlewareGroup = {
+        namespace: 'group1',
+        name: 'group1'
+    }
     
     await routeService.createIfNotExists({
         creator: {
@@ -239,11 +261,11 @@ it(`
         },
         method: 'POST',
         path: '/',
-        name: 'route1'
+        ...route
     })
 
-    await expect(routeService.addMiddlewareGroup('route1', 'empty')).rejects.toBeInstanceOf(MiddlewareGroupDoesNotExists)
-    await expect(routeService.removeMiddlewareGroup('route1', 'empty')).rejects.toBeInstanceOf(MiddlewareGroupDoesNotExists)
+    await expect(routeService.addMiddlewareGroup(route, middlewareGroup)).rejects.toBeInstanceOf(MiddlewareGroupDoesNotExists)
+    await expect(routeService.removeMiddlewareGroup(route, middlewareGroup)).rejects.toBeInstanceOf(MiddlewareGroupDoesNotExists)
 
     container.restore()
 })
@@ -261,6 +283,15 @@ it(`
         .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
     const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)
 
+    const route = {
+        namespace: 'route1',
+        name: 'route1'
+    }
+    const middlewareGroup = {
+        namespace: 'group1',
+        name: 'group1'
+    }
+
     await middlewareGroupRepository.save({
         isCsrf: false,
         isDefault: false,
@@ -269,11 +300,11 @@ it(`
                 custom: null
             }
         },
-        name: 'group1'
+        ...middlewareGroup
     })
 
-    await expect(routeService.addMiddlewareGroup('empty', 'group1')).rejects.toBeInstanceOf(RouteDoesNotExists)
-    await expect(routeService.removeMiddlewareGroup('empty', 'group1')).rejects.toBeInstanceOf(RouteDoesNotExists)
+    await expect(routeService.addMiddlewareGroup(route, middlewareGroup)).rejects.toBeInstanceOf(RouteDoesNotExists)
+    await expect(routeService.removeMiddlewareGroup(route, middlewareGroup)).rejects.toBeInstanceOf(RouteDoesNotExists)
 
     container.restore()
 })
@@ -292,6 +323,15 @@ it(`
     const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)
     const routeMiddlewareGroupRepository = connection.getRepository(RouteMiddlewareGroup)
 
+    const route = {
+        namespace: 'route1',
+        name: 'route1'
+    }
+    const middlewareGroup = {
+        namespace: 'group1',
+        name: 'group1'
+    }
+
     await middlewareGroupRepository.save({
         isCsrf: false,
         isDefault: false,
@@ -300,7 +340,7 @@ it(`
                 custom: null
             }
         },
-        name: 'group1'
+        ...middlewareGroup
     })
 
     await routeService.createIfNotExists({
@@ -309,12 +349,12 @@ it(`
         },
         method: 'POST',
         path: '/',
-        name: 'route1'
+        ...route
     })
 
     await expect(routeMiddlewareGroupRepository.count()).resolves.toBe(0)
-    await expect(routeService.addMiddlewareGroup('route1', 'group1')).resolves.toBeUndefined()
-    await expect(routeService.addMiddlewareGroup('route1', 'group1')).resolves.toBeUndefined()
+    await expect(routeService.addMiddlewareGroup(route, middlewareGroup)).resolves.toBeUndefined()
+    await expect(routeService.addMiddlewareGroup(route, middlewareGroup)).resolves.toBeUndefined()
     await expect(routeMiddlewareGroupRepository.count()).resolves.toBe(1)
 
     container.restore()
@@ -334,6 +374,15 @@ it(`
     const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)
     const routeMiddlewareGroupRepository = connection.getRepository(RouteMiddlewareGroup)
 
+    const route = {
+        namespace: 'route1',
+        name: 'route1'
+    }
+    const middlewareGroup = {
+        namespace: 'group1',
+        name: 'group1'
+    }
+
     await middlewareGroupRepository.save({
         isCsrf: false,
         isDefault: false,
@@ -342,7 +391,7 @@ it(`
                 custom: null
             }
         },
-        name: 'group1'
+        ...middlewareGroup
     })
 
     await routeService.createIfNotExists({
@@ -351,13 +400,13 @@ it(`
         },
         method: 'POST',
         path: '/',
-        name: 'route1'
+        ...route
     })
 
-    await expect(routeService.addMiddlewareGroup('route1', 'group1')).resolves.toBeUndefined()
+    await expect(routeService.addMiddlewareGroup(route, middlewareGroup)).resolves.toBeUndefined()
     await expect(routeMiddlewareGroupRepository.count()).resolves.toBe(1)
-    await expect(routeService.removeMiddlewareGroup('route1', 'group1')).resolves.toBeUndefined()
-    await expect(routeService.removeMiddlewareGroup('route1', 'group1')).resolves.toBeUndefined()
+    await expect(routeService.removeMiddlewareGroup(route, middlewareGroup)).resolves.toBeUndefined()
+    await expect(routeService.removeMiddlewareGroup(route, middlewareGroup)).resolves.toBeUndefined()
     await expect(routeMiddlewareGroupRepository.count()).resolves.toBe(0)
 
     container.restore()
@@ -378,6 +427,15 @@ describe(`
             .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
         const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)
 
+        const route = {
+            namespace: 'route1',
+            name: 'route1'
+        }
+        const middlewareGroup = {
+            namespace: 'group1',
+            name: 'group1'
+        }
+
         await middlewareGroupRepository.save({
             isCsrf: false,
             isDefault: false,
@@ -386,7 +444,7 @@ describe(`
                     custom: null
                 }
             },
-            name: 'group1'
+            ...middlewareGroup
         })
 
         await routeService.createIfNotExists({
@@ -395,7 +453,7 @@ describe(`
             },
             method: 'POST',
             path: '/',
-            name: 'route1'
+            ...route
         })
     })
 
@@ -413,7 +471,15 @@ describe(`
         const routeService = container
             .get<IRouteService>(ROUTE_SYMBOL.RouteService)
 
-        await expect(routeService.setMiddlewareGroupSerialNumber('empty', 'group1', 1))
+        const middlewareGroup = {
+            namespace: 'group1',
+            name: 'group1'
+        }
+
+        await expect(routeService.setMiddlewareGroupSerialNumber({
+            namespace: 'empty',
+            name: 'empty'
+        }, middlewareGroup, 1))
             .rejects
             .toBeInstanceOf(RouteDoesNotExists)
 
@@ -429,7 +495,15 @@ describe(`
         const routeService = container
             .get<IRouteService>(ROUTE_SYMBOL.RouteService)
 
-        await expect(routeService.setMiddlewareGroupSerialNumber('route1', 'empty', 1))
+        const route = {
+            namespace: 'route1',
+            name: 'route1'
+        }
+
+        await expect(routeService.setMiddlewareGroupSerialNumber(route, {
+            namespace: 'empty',
+            name: 'empty'
+        }, 1))
             .rejects
             .toBeInstanceOf(MiddlewareGroupDoesNotExists)
 
@@ -445,7 +519,16 @@ describe(`
         const routeService = container
             .get<IRouteService>(ROUTE_SYMBOL.RouteService)
 
-        await expect(routeService.setMiddlewareGroupSerialNumber('route1', 'group1', 1))
+        const route = {
+            namespace: 'route1',
+            name: 'route1'
+        }
+        const middlewareGroup = {
+            namespace: 'group1',
+            name: 'group1'
+        }
+
+        await expect(routeService.setMiddlewareGroupSerialNumber(route, middlewareGroup, 1))
             .rejects
             .toBeInstanceOf(RouteDoesNotHaveMiddlewareGroup)
 
@@ -468,6 +551,15 @@ it(`
     const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)
     const routeMiddlewareGroupRepository = connection.getRepository(RouteMiddlewareGroup)
 
+    const route = {
+        namespace: 'route1',
+        name: 'route1'
+    }
+    const middlewareGroup = {
+        namespace: 'group1',
+        name: 'group1'
+    }
+
     await middlewareGroupRepository.save({
         isCsrf: false,
         isDefault: false,
@@ -476,7 +568,7 @@ it(`
                 custom: null
             }
         },
-        name: 'group1'
+        ...middlewareGroup
     })
 
     await routeService.createIfNotExists({
@@ -485,10 +577,10 @@ it(`
         },
         method: 'POST',
         path: '/',
-        name: 'route1'
+        ...route
     })
 
-    await expect(routeService.addMiddlewareGroup('route1', 'group1')).resolves.toBeUndefined()
+    await expect(routeService.addMiddlewareGroup(route, middlewareGroup)).resolves.toBeUndefined()
     await expect(routeMiddlewareGroupRepository.findOne({
         where: {
             routeId: 1,
@@ -497,7 +589,7 @@ it(`
     })).resolves.toMatchObject({
         serialNumber: null
     })
-    await expect(routeService.setMiddlewareGroupSerialNumber('route1', 'group1', 1)).resolves.toBeUndefined()
+    await expect(routeService.setMiddlewareGroupSerialNumber(route, middlewareGroup, 1)).resolves.toBeUndefined()
     await expect(routeMiddlewareGroupRepository.findOne({
         where: {
             routeId: 1,
@@ -519,6 +611,15 @@ it(`
 
     const routeService = container
         .get<IRouteService>(ROUTE_SYMBOL.RouteService)
+
+    const route = {
+        namespace: 'route1',
+        name: 'route1'
+    }
+    const middleware = {
+        namespace: 'middleware1',
+        name: 'middleware1'
+    }
     
     await routeService.createIfNotExists({
         creator: {
@@ -526,11 +627,11 @@ it(`
         },
         method: 'POST',
         path: '/',
-        name: 'route1'
+        ...route
     })
 
-    await expect(routeService.addMiddleware('route1', 'empty')).rejects.toBeInstanceOf(MiddlewareDoesNotExists)
-    await expect(routeService.removeMiddleware('route1', 'empty')).rejects.toBeInstanceOf(MiddlewareDoesNotExists)
+    await expect(routeService.addMiddleware(route, middleware)).rejects.toBeInstanceOf(MiddlewareDoesNotExists)
+    await expect(routeService.removeMiddleware(route, middleware)).rejects.toBeInstanceOf(MiddlewareDoesNotExists)
 
     container.restore()
 })
@@ -549,6 +650,15 @@ it(`
     const methodRepository = connection.getRepository(Method)
     const middlewareRepository = connection.getRepository(Middleware)
 
+    const route = {
+        namespace: 'route1',
+        name: 'route1'
+    }
+    const middleware = {
+        namespace: 'middleware1',
+        name: 'middleware1'
+    }
+
     const methodEntity = await methodRepository.save({
         name: 'name1',
         namespace: 'namespace1',
@@ -562,11 +672,11 @@ it(`
             }
         },
         method: methodEntity,
-        name: 'middleware1'
+        ...middleware
     })
 
-    await expect(routeService.addMiddleware('empty', 'middleware1')).rejects.toBeInstanceOf(RouteDoesNotExists)
-    await expect(routeService.removeMiddleware('empty', 'middleware1')).rejects.toBeInstanceOf(RouteDoesNotExists)
+    await expect(routeService.addMiddleware(route, middleware)).rejects.toBeInstanceOf(RouteDoesNotExists)
+    await expect(routeService.removeMiddleware(route, middleware)).rejects.toBeInstanceOf(RouteDoesNotExists)
 
     container.restore()
 })
@@ -586,6 +696,15 @@ it(`
     const middlewareRepository = connection.getRepository(Middleware)
     const routeMiddlewareRepository = connection.getRepository(RouteMiddleware)
 
+    const route = {
+        namespace: 'route1',
+        name: 'route1'
+    }
+    const middleware = {
+        namespace: 'middleware1',
+        name: 'middleware1'
+    }
+
     const methodEntity = await methodRepository.save({
         name: 'name1',
         namespace: 'namespace1',
@@ -599,7 +718,7 @@ it(`
             }
         },
         method: methodEntity,
-        name: 'middleware1'
+        ...middleware
     })
 
     await routeService.createIfNotExists({
@@ -608,12 +727,12 @@ it(`
         },
         method: 'POST',
         path: '/',
-        name: 'route1'
+        ...route
     })
 
     await expect(routeMiddlewareRepository.count()).resolves.toBe(0)
-    await expect(routeService.addMiddleware('route1', 'middleware1')).resolves.toBeUndefined()
-    await expect(routeService.addMiddleware('route1', 'middleware1')).resolves.toBeUndefined()
+    await expect(routeService.addMiddleware(route, middleware)).resolves.toBeUndefined()
+    await expect(routeService.addMiddleware(route, middleware)).resolves.toBeUndefined()
     await expect(routeMiddlewareRepository.count()).resolves.toBe(1)
 
     container.restore()
@@ -634,6 +753,15 @@ it(`
     const middlewareRepository = connection.getRepository(Middleware)
     const routeMiddlewareRepository = connection.getRepository(RouteMiddleware)
 
+    const route = {
+        namespace: 'route1',
+        name: 'route1'
+    }
+    const middleware = {
+        namespace: 'middleware1',
+        name: 'middleware1'
+    }
+
     const methodEntity = await methodRepository.save({
         name: 'name1',
         namespace: 'namespace1',
@@ -647,7 +775,7 @@ it(`
             }
         },
         method: methodEntity,
-        name: 'middleware1'
+        ...middleware
     })
 
     await routeService.createIfNotExists({
@@ -656,13 +784,13 @@ it(`
         },
         method: 'POST',
         path: '/',
-        name: 'route1'
+        ...route
     })
 
-    await expect(routeService.addMiddleware('route1', 'middleware1')).resolves.toBeUndefined()
+    await expect(routeService.addMiddleware(route, middleware)).resolves.toBeUndefined()
     await expect(routeMiddlewareRepository.count()).resolves.toBe(1)
-    await expect(routeService.removeMiddleware('route1', 'middleware1')).resolves.toBeUndefined()
-    await expect(routeService.removeMiddleware('route1', 'middleware1')).resolves.toBeUndefined()
+    await expect(routeService.removeMiddleware(route, middleware)).resolves.toBeUndefined()
+    await expect(routeService.removeMiddleware(route, middleware)).resolves.toBeUndefined()
     await expect(routeMiddlewareRepository.count()).resolves.toBe(0)
 
     container.restore()
@@ -684,6 +812,15 @@ describe(`
         const methodRepository = connection.getRepository(Method)
         const middlewareRepository = connection.getRepository(Middleware)
 
+        const route = {
+            namespace: 'route1',
+            name: 'route1'
+        }
+        const middleware = {
+            namespace: 'middleware1',
+            name: 'middleware1'
+        }
+
         const methodEntity = await methodRepository.save({
             name: 'name1',
             namespace: 'namespace1',
@@ -697,7 +834,7 @@ describe(`
                 }
             },
             method: methodEntity,
-            name: 'middleware1'
+            ...middleware
         })
     
         await routeService.createIfNotExists({
@@ -706,7 +843,7 @@ describe(`
             },
             method: 'POST',
             path: '/',
-            name: 'route1'
+            ...route
         })
     })
 
@@ -724,7 +861,15 @@ describe(`
         const routeService = container
             .get<IRouteService>(ROUTE_SYMBOL.RouteService)
 
-        await expect(routeService.setMiddlewareSerialNumber('empty', 'middleware1', 1))
+        const middleware = {
+            namespace: 'middleware1',
+            name: 'middleware1'
+        }
+
+        await expect(routeService.setMiddlewareSerialNumber({
+            namespace: 'empty',
+            name: 'empty'
+        }, middleware, 1))
             .rejects
             .toBeInstanceOf(RouteDoesNotExists)
 
@@ -740,7 +885,15 @@ describe(`
         const routeService = container
             .get<IRouteService>(ROUTE_SYMBOL.RouteService)
 
-        await expect(routeService.setMiddlewareSerialNumber('route1', 'empty', 1))
+        const route = {
+            namespace: 'route1',
+            name: 'route1'
+        }
+
+        await expect(routeService.setMiddlewareSerialNumber(route, {
+            namespace: 'empty',
+            name: 'empty'
+        }, 1))
             .rejects
             .toBeInstanceOf(MiddlewareDoesNotExists)
 
@@ -756,7 +909,16 @@ describe(`
         const routeService = container
             .get<IRouteService>(ROUTE_SYMBOL.RouteService)
 
-        await expect(routeService.setMiddlewareSerialNumber('route1', 'middleware1', 1))
+        const route = {
+            namespace: 'route1',
+            name: 'route1'
+        }
+        const middleware = {
+            namespace: 'middleware1',
+            name: 'middleware1'
+        }
+
+        await expect(routeService.setMiddlewareSerialNumber(route, middleware, 1))
             .rejects
             .toBeInstanceOf(RouteDoesNotHaveMiddleware)
 
@@ -780,6 +942,15 @@ it(`
     const methodRepository = connection.getRepository(Method)
     const middlewareRepository = connection.getRepository(Middleware)
 
+    const route = {
+        namespace: 'route1',
+        name: 'route1'
+    }
+    const middleware = {
+        namespace: 'middleware1',
+        name: 'middleware1'
+    }
+
     const methodEntity = await methodRepository.save({
         name: 'name1',
         namespace: 'namespace1',
@@ -793,7 +964,7 @@ it(`
             }
         },
         method: methodEntity,
-        name: 'middleware1'
+        ...middleware
     })
 
     await routeService.createIfNotExists({
@@ -802,10 +973,10 @@ it(`
         },
         method: 'POST',
         path: '/',
-        name: 'route1'
+        ...route
     })
 
-    await expect(routeService.addMiddleware('route1', 'middleware1')).resolves.toBeUndefined()
+    await expect(routeService.addMiddleware(route, middleware)).resolves.toBeUndefined()
     await expect(routeMiddlewareRepository.findOne({
         where: {
             routeId: 1,
@@ -814,7 +985,7 @@ it(`
     })).resolves.toMatchObject({
         serialNumber: null
     })
-    await expect(routeService.setMiddlewareSerialNumber('route1', 'middleware1', 1)).resolves.toBeUndefined()
+    await expect(routeService.setMiddlewareSerialNumber(route, middleware, 1)).resolves.toBeUndefined()
     await expect(routeMiddlewareRepository.findOne({
         where: {
             routeId: 1,
@@ -836,8 +1007,13 @@ it(`
     const routeService = container
         .get<IRouteService>(ROUTE_SYMBOL.RouteService)
 
-    await expect(routeService.enableCsrf('route1')).rejects.toBeInstanceOf(RouteDoesNotExists)
-    await expect(routeService.disableCsrf('route1')).rejects.toBeInstanceOf(RouteDoesNotExists)
+    const route = {
+        namespace: 'route1',
+        name: 'route1'
+    }
+
+    await expect(routeService.enableCsrf(route)).rejects.toBeInstanceOf(RouteDoesNotExists)
+    await expect(routeService.disableCsrf(route)).rejects.toBeInstanceOf(RouteDoesNotExists)
         
     container.restore()
 })
@@ -855,41 +1031,40 @@ it(`
         .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
     const routeRepository = connection.getRepository(Route)
 
+    const route = {
+        namespace: 'route1',
+        name: 'route1'
+    }
+
     await expect(routeService.createIfNotExists({
         creator: {
             type: CreatorType.System
         },
         method: 'POST',
         path: '/',
-        name: 'route1'
+        ...route
     })).resolves.toBeUndefined()
 
     await expect(routeRepository.findOne({
-        where: {
-            name: 'route1'
-        }
+        where: route
     })).resolves.toMatchObject({
         isCsrf: false
     })
 
-    await expect(routeService.enableCsrf('route1')).resolves.toBeUndefined()
-    await expect(routeService.enableCsrf('route1')).resolves.toBeUndefined()
+    await expect(routeService.enableCsrf(route)).resolves.toBeUndefined()
+    await expect(routeService.enableCsrf(route)).resolves.toBeUndefined()
 
     await expect(routeRepository.findOne({
-        where: {
-            name: 'route1'
-        }
+        where: route
     })).resolves.toMatchObject({
         isCsrf: true
     })
 
-    await expect(routeService.disableCsrf('route1')).resolves.toBeUndefined()
-    await expect(routeService.disableCsrf('route1')).resolves.toBeUndefined()
+    await expect(routeService.disableCsrf(route)).resolves.toBeUndefined()
+    await expect(routeService.disableCsrf(route)).resolves.toBeUndefined()
 
     await expect(routeRepository.findOne({
-        where: {
-            name: 'route1'
-        }
+        where: route
     })).resolves.toMatchObject({
         isCsrf: false
     })
@@ -916,6 +1091,19 @@ it(`
     const routeMiddlewareGroupRepository = connection.getRepository(RouteMiddlewareGroup)
     const metadataRepository = connection.getRepository(Metadata)
 
+    const route = {
+        namespace: 'route1',
+        name: 'route1'
+    }
+    const middleware = {
+        namespace: 'middleware1',
+        name: 'middleware1'
+    }
+    const middlewareGroup = {
+        namespace: 'group1',
+        name: 'group1'
+    }
+
     const methodEntity = await methodRepository.save({
         name: 'name1',
         namespace: 'namespace1',
@@ -929,7 +1117,7 @@ it(`
             }
         },
         method: methodEntity,
-        name: 'middleware1'
+        ...middleware
     })
     await middlewareGroupRepository.save({
         isCsrf: false,
@@ -939,7 +1127,7 @@ it(`
                 custom: null
             }
         },
-        name: 'group1'
+        ...middlewareGroup
     })
     await routeService.createIfNotExists({
         creator: {
@@ -947,24 +1135,24 @@ it(`
         },
         method: 'POST',
         path: '/',
-        name: 'route1'
+        ...route
     })
 
-    await expect(routeService.addMiddleware('route1', 'middleware1')).resolves.toBeUndefined()
-    await expect(routeService.addMiddlewareGroup('route1', 'group1')).resolves.toBeUndefined()
+    await expect(routeService.addMiddleware(route, middleware)).resolves.toBeUndefined()
+    await expect(routeService.addMiddlewareGroup(route, middlewareGroup)).resolves.toBeUndefined()
 
     await expect(routeMiddlewareRepository.count()).resolves.toBe(1)
     await expect(routeMiddlewareGroupRepository.count()).resolves.toBe(1)
     await expect(metadataRepository.count()).resolves.toBe(3)
-    await expect(routeService.isExists('route1')).resolves.toBe(true)
+    await expect(routeService.isExists(route)).resolves.toBe(true)
 
-    await expect(routeService.remove('route1')).resolves.toBeUndefined()
-    await expect(routeService.remove('route1')).resolves.toBeUndefined()
+    await expect(routeService.remove(route)).resolves.toBeUndefined()
+    await expect(routeService.remove(route)).resolves.toBeUndefined()
 
     await expect(routeMiddlewareRepository.count()).resolves.toBe(0)
     await expect(routeMiddlewareGroupRepository.count()).resolves.toBe(0)
     await expect(metadataRepository.count()).resolves.toBe(2)
-    await expect(routeService.isExists('route1')).resolves.toBe(false)
+    await expect(routeService.isExists(route)).resolves.toBe(false)
 
     container.restore()
 })

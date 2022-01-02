@@ -21,7 +21,7 @@ import { MiddlewareMetadata } from '../route/middleware/middleware.types'
 
 @injectable()
 @Entity()
-@Unique(['name'])
+@Unique(['namespace', 'name'])
 @Unique(['method', 'path'])
 export class Route {
 
@@ -39,6 +39,11 @@ export class Route {
     })
     @JoinColumn()
     metadata: Metadata<RouteMetadata>
+
+    @Column({
+        nullable: false
+    })
+    namespace: string
 
     @Column({
         nullable: false
@@ -79,7 +84,7 @@ export class Route {
 
 @injectable()
 @Entity()
-@Unique(['name'])
+@Unique(['namespace', 'name'])
 export class Middleware {
 
     @PrimaryGeneratedColumn()
@@ -87,6 +92,11 @@ export class Middleware {
 
     @CreateDateColumn()
     createdAt: Date
+
+    @Column({
+        nullable: false
+    })
+    namespace: string
 
     @Column({
         nullable: false
@@ -121,7 +131,7 @@ export class Middleware {
 
 @injectable()
 @Entity()
-@Unique(['name'])
+@Unique(['namespace', 'name'])
 export class MiddlewareGroup {
 
     @PrimaryGeneratedColumn()
@@ -129,6 +139,11 @@ export class MiddlewareGroup {
 
     @CreateDateColumn()
     createdAt: Date
+
+    @Column({
+        nullable: false
+    })
+    namespace: string
 
     @Column({
         nullable: false
@@ -172,7 +187,7 @@ export class MiddlewareGroup {
 
 @injectable()
 @Entity()
-@Unique(['name'])
+@Unique(['namespace', 'name'])
 export class Controller {
 
     @PrimaryGeneratedColumn()
@@ -180,6 +195,11 @@ export class Controller {
 
     @CreateDateColumn()
     createdAt: Date
+
+    @Column({
+        nullable: false
+    })
+    namespace: string
 
     @Column({
         nullable: false

@@ -1,5 +1,5 @@
 import { SnapshotMetadata } from '../../metadata/metadata.types'
-import { ControllerMetadata, CreateController } from './controller.types'
+import { ControllerMetadata, CreateController, Controller } from './controller.types'
 
 export interface IControllerService {
 
@@ -11,16 +11,16 @@ export interface IControllerService {
     /**
      * Проверить существование контроллера с указанным именем
      */
-    isExists(name: string): Promise<boolean>
+    isExists(controller: Controller): Promise<boolean>
 
     /**
      * Изменить метаданные указанного контроллера
      */
-    setMetadata(name: string, snapshotMetadata: SnapshotMetadata<ControllerMetadata>, nestedTransaction?: boolean): Promise<void>
+    setMetadata(controller: Controller, snapshotMetadata: SnapshotMetadata<ControllerMetadata>, nestedTransaction?: boolean): Promise<void>
 
     /**
      * Удалить указанный контроллер. Попытаться удалить метод контроллера, если получится
      */
-    remove(name: string, nestedTransaction?: boolean): Promise<void>
+    remove(controller: Controller, nestedTransaction?: boolean): Promise<void>
 
 }

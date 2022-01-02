@@ -10,7 +10,11 @@ import { Connection, Repository } from 'typeorm'
 import { Middleware } from '../../entities/route.entity'
 import { CREATOR_SYMBOL, ResourceType } from '../../creator/creator.types'
 import { ICreatorService } from '../../creator/creator.interface'
-import { CreateMiddleware, MiddlewareMetadata } from './middleware.types'
+import { 
+    CreateMiddleware, 
+    MiddlewareMetadata, 
+    Middleware as MiddlewareType 
+} from './middleware.types'
 import { SnapshotMetadata } from '../../metadata/metadata.types'
 import { MetadataRepository } from '../../metadata/repositories/metadata.repository'
 import {
@@ -46,7 +50,7 @@ export class MiddlewareService implements IMiddlewareService {
         const middlewareRepository = await this.middlewareRepository
         const connection = await this.connection
 
-        if (await this.isExists(options.name)) {
+        if (await this.isExists(options)) {
             return
         }
 
@@ -66,6 +70,7 @@ export class MiddlewareService implements IMiddlewareService {
                     isCsrf: false,
                     method: { id: methodId },
                     name: options.name,
+                    namespace: options.namespace,
                     metadata: {
                         metadata: {
                             custom: null
@@ -81,23 +86,25 @@ export class MiddlewareService implements IMiddlewareService {
         })
     }
 
-    public async isExists(name: string): Promise<boolean> {
+    public async isExists(middleware: MiddlewareType): Promise<boolean> {
         const middlewareRepository = await this.middlewareRepository
         return await middlewareRepository.count({
             where: {
-                name: name
+                namespace: middleware.namespace,
+                name: middleware.name
             }
         }) > 0
     }
 
-    public async setMetadata(name: string, snapshotMetadata: SnapshotMetadata<MiddlewareMetadata>, nestedTransaction = false): Promise<void> {
+    public async setMetadata(middleware: MiddlewareType, snapshotMetadata: SnapshotMetadata<MiddlewareMetadata>, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const middlewareRepository = await this.middlewareRepository
         const metadataRepository = getCustomRepository(connection, MetadataRepository)
 
         const middlewareEntity = await middlewareRepository.findOne({
             where: {
-                name: name
+                namespace: middleware.namespace,
+                name: middleware.name
             }
         })
 
@@ -112,14 +119,15 @@ export class MiddlewareService implements IMiddlewareService {
         }, nestedTransaction)
     }
 
-    public async remove(name: string, nestedTransaction = false): Promise<void> {
+    public async remove(middleware: MiddlewareType, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const middlewareRepository = await this.middlewareRepository
         const metadataRepository = connection.getRepository(Metadata)
 
         const middlewareEntity = await middlewareRepository.findOne({
             where: {
-                name: name
+                namespace: middleware.namespace,
+                name: middleware.name
             },
             relations: ['method']
         })
@@ -154,12 +162,13 @@ export class MiddlewareService implements IMiddlewareService {
         })
     }
 
-    public async enableCsrf(name: string, nestedTransaction = false): Promise<void> {
+    public async enableCsrf(middleware: MiddlewareType, nestedTransaction = false): Promise<void> {
         const middlewareRepository = await this.middlewareRepository
 
         const updateResult = await mutationQuery(nestedTransaction, () => {
             return middlewareRepository.update({
-                name: name
+                namespace: middleware.namespace,
+                name: middleware.name
             }, {
                 isCsrf: true
             })
@@ -170,12 +179,13 @@ export class MiddlewareService implements IMiddlewareService {
         }
     }
 
-    public async disableCsrf(name: string, nestedTransaction = false): Promise<void> {
+    public async disableCsrf(middleware: MiddlewareType, nestedTransaction = false): Promise<void> {
         const middlewareRepository = await this.middlewareRepository
 
         const updateResult = await mutationQuery(nestedTransaction, () => {
             return middlewareRepository.update({
-                name: name
+                namespace: middleware.namespace,
+                name: middleware.name
             }, {
                 isCsrf: false
             })

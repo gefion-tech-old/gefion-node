@@ -1,5 +1,16 @@
 import { BindableCreator } from '../../creator/creator.types'
 
+export interface MiddlewareGroup {
+    /**
+     * Пространство имён
+     */
+    readonly namespace: string
+    /**
+     * Название
+     */
+    readonly name: string
+}
+
 export interface MiddlewareGroupMetadata {
     /**
      * Метаданные, которые можно изменить в любой момент времени без особых ограничений
@@ -12,6 +23,10 @@ export interface CreateMiddlewareGroup {
      * Название группы промежуточного ПО
      */
     readonly name: string
+    /**
+     * Пространство имён группы промежуточного ПО
+     */
+    readonly namespace: string
     /**
      * Создатель
      */

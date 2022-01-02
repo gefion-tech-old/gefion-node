@@ -1,6 +1,10 @@
 import { injectable, inject } from 'inversify'
 import { IControllerService } from './controller.interface'
-import { ControllerMetadata, CreateController } from './controller.types'
+import { 
+    ControllerMetadata, 
+    CreateController,
+    Controller as ControllerType
+} from './controller.types'
 import { METHOD_SYMBOL } from '../../method/method.types'
 import { Connection, Repository } from 'typeorm'
 import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
@@ -46,7 +50,7 @@ export class ControllerService implements IControllerService {
         const controllerRepository = await this.controllerRepository
         const connection = await this.connection
 
-        if (await this.isExists(options.name)) {
+        if (await this.isExists(options)) {
             return
         }
 
@@ -64,6 +68,7 @@ export class ControllerService implements IControllerService {
             const controllerEntity = await mutationQuery(true, () => {
                 return controllerRepository.save({
                     name: options.name,
+                    namespace: options.namespace,
                     metadata: {
                         metadata: {
                             custom: null
@@ -80,23 +85,25 @@ export class ControllerService implements IControllerService {
         })
     }
 
-    public async isExists(name: string): Promise<boolean> {
+    public async isExists(controller: ControllerType): Promise<boolean> {
         const controllerRepository = await this.controllerRepository
         return await controllerRepository.count({
             where: {
-                name: name
+                namespace: controller.namespace,
+                name: controller.name
             }
         }) > 0
     }
 
-    public async setMetadata(name: string, snapshotMetadata: SnapshotMetadata<ControllerMetadata>, nestedTransaction = false): Promise<void> {
+    public async setMetadata(controller: ControllerType, snapshotMetadata: SnapshotMetadata<ControllerMetadata>, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const metadataRepository = getCustomRepository(connection, MetadataRepository)
         const controllerRepository = await this.controllerRepository
 
         const controllerEntity = await controllerRepository.findOne({
             where: {
-                name: name
+                namespace: controller.namespace,
+                name: controller.name
             }
         })
 
@@ -111,14 +118,15 @@ export class ControllerService implements IControllerService {
         }, nestedTransaction)
     }
 
-    public async remove(name: string, nestedTransaction = false): Promise<void> {
+    public async remove(controller: ControllerType, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const controllerRepository = await this.controllerRepository
         const metadataRepository = connection.getRepository(Metadata)
 
         const controllerEntity = await controllerRepository.findOne({
             where: {
-                name: name
+                namespace: controller.namespace,
+                name: controller.name
             },
             relations: ['method']
         })

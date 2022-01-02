@@ -35,16 +35,21 @@ describe('ControllerService в RouteModule', () => {
         const controllerService = container
             .get<IControllerService>(ROUTE_SYMBOL.ControllerService)
 
+        const controller = {
+            name: 'controller1',
+            namespace: 'controller1'
+        }
+
         await expect(controllerService.createIfNotExists({
             creator: {
                 type: CreatorType.System
             },
-            name: 'controller1',
             method: {
                 name: 'method1',
                 type: 'type1',
                 namespace: 'namespace1'
-            }
+            },
+            ...controller
         })).rejects.toBeInstanceOf(ControllerMethodNotDefined)
 
         container.restore()
@@ -70,23 +75,27 @@ describe('ControllerService в RouteModule', () => {
             type: 'type1',
             namespace: 'namespace1'
         })
+        const controller = {
+            namespace: 'controller1',
+            name: 'controller1'
+        }
 
-        await expect(controllerService.isExists('controller1')).resolves.toBe(false)
+        await expect(controllerService.isExists(controller)).resolves.toBe(false)
         await expect(controllerService.createIfNotExists({
             creator: {
                 type: CreatorType.System
             },
             method: methodEntity,
-            name: 'controller1'
+            ...controller
         })).resolves.toBeUndefined()
         await expect(controllerService.createIfNotExists({
             creator: {
                 type: CreatorType.System
             },
             method: methodEntity,
-            name: 'controller1'
+            ...controller
         })).resolves.toBeUndefined()
-        await expect(controllerService.isExists('controller1')).resolves.toBe(true)
+        await expect(controllerService.isExists(controller)).resolves.toBe(true)
         await expect(creatorService.isResourceCreator({
             type: ResourceType.Controller,
             id: 1
@@ -119,15 +128,19 @@ describe('ControllerService в RouteModule', () => {
             type: 'type1',
             namespace: 'namespace1'
         })
+        const controller = {
+            name: 'controller1',
+            namespace: 'controller1'
+        }
         await controllerService.createIfNotExists({
             creator: {
                 type: CreatorType.System
             },
             method: methodEntity,
-            name: 'controller1'
+            ...controller
         })
         
-        await expect(controllerService.isExists('controller1')).resolves.toBe(true)
+        await expect(controllerService.isExists(controller)).resolves.toBe(true)
         await expect(metadataRepository.count()).resolves.toBe(1)
         await expect(methodRepository.count()).resolves.toBe(1)
         await expect(creatorService.isResourceCreator({
@@ -137,10 +150,10 @@ describe('ControllerService в RouteModule', () => {
             type: CreatorType.System
         })).resolves.toBe(true)
 
-        await expect(controllerService.remove('controller1')).resolves.toBeUndefined()
-        await expect(controllerService.remove('controller1')).resolves.toBeUndefined()
+        await expect(controllerService.remove(controller)).resolves.toBeUndefined()
+        await expect(controllerService.remove(controller)).resolves.toBeUndefined()
         
-        await expect(controllerService.isExists('controller1')).resolves.toBe(false)
+        await expect(controllerService.isExists(controller)).resolves.toBe(false)
         await expect(metadataRepository.count()).resolves.toBe(0)
         await expect(methodRepository.count()).resolves.toBe(0)
         await expect(creatorService.isResourceCreator({
@@ -162,7 +175,12 @@ describe('ControllerService в RouteModule', () => {
         const controllerService = container
             .get<IControllerService>(ROUTE_SYMBOL.ControllerService)
 
-        await expect(controllerService.setMetadata('controller1', {
+        const controller = {
+            name: 'controller1',
+            namespace: 'controller1'
+        }
+
+        await expect(controllerService.setMetadata(controller, {
             metadata: {
                 custom: true
             },
@@ -193,19 +211,22 @@ describe('ControllerService в RouteModule', () => {
             namespace: 'namespace1'
         })
 
+        const controller = {
+            name: 'controller1',
+            namespace: 'controller1'
+        }
+
         await expect(controllerService.createIfNotExists({
             creator: {
                 type: CreatorType.System
             },
             method: methodEntity,
-            name: 'controller1'
+            ...controller
         })).resolves.toBeUndefined()
         await expect(metadataRepository.count()).resolves.toBe(1)
         await expect((async () => {
             const controllerEntity = await controllerRepository.findOne({
-                where: {
-                    name: 'controller1'
-                }
+                where: controller
             })
             return controllerEntity?.metadata
         })()).resolves.toMatchObject({
@@ -214,7 +235,7 @@ describe('ControllerService в RouteModule', () => {
             },
             revisionNumber: 0
         })
-        await expect(controllerService.setMetadata('controller1', {
+        await expect(controllerService.setMetadata(controller, {
             metadata: {
                 custom: {
                     test: 'test'
@@ -224,9 +245,7 @@ describe('ControllerService в RouteModule', () => {
         })).resolves.toBeUndefined()
         await expect((async () => {
             const controllerEntity = await controllerRepository.findOne({
-                where: {
-                    name: 'controller1'
-                }
+                where: controller
             })
             return controllerEntity?.metadata
         })()).resolves.toMatchObject({
@@ -237,7 +256,7 @@ describe('ControllerService в RouteModule', () => {
             },
             revisionNumber: 1
         })
-        await expect(controllerService.setMetadata('controller1', {
+        await expect(controllerService.setMetadata(controller, {
             metadata: {
                 custom: null
             },
@@ -245,9 +264,7 @@ describe('ControllerService в RouteModule', () => {
         })).rejects.toBeInstanceOf(RevisionNumberError)
         await expect((async () => {
             const controllerEntity = await controllerRepository.findOne({
-                where: {
-                    name: 'controller1'
-                }
+                where: controller
             })
             return controllerEntity?.metadata
         })()).resolves.toMatchObject({

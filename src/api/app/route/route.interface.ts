@@ -1,5 +1,7 @@
-import { CreateRoute, RouteMetadata } from './route.types'
+import { CreateRoute, RouteMetadata, Route } from './route.types'
 import { SnapshotMetadata } from '../metadata/metadata.types'
+import { Middleware } from './middleware/middleware.types'
+import { MiddlewareGroup } from './middleware-group/middleware-group.types'
 
 export interface IRouteService {
 
@@ -11,56 +13,56 @@ export interface IRouteService {
     /**
      * Проверить существование указанного маршрута
      */
-    isExists(name: string): Promise<boolean>
+    isExists(route: Route): Promise<boolean>
 
     /**
      * Изменить метаданные маршрута
      */
-    setMetadata(name: string, snapshotMetadata: SnapshotMetadata<RouteMetadata>, nestedTransaction?: boolean): Promise<void>
+    setMetadata(route: Route, snapshotMetadata: SnapshotMetadata<RouteMetadata>, nestedTransaction?: boolean): Promise<void>
 
     /**
      * Добавить группу промежуточного ПО в указанный маршрут
      */
-    addMiddlewareGroup(routeName: string, groupName: string, nestedTransaction?: boolean): Promise<void>
+    addMiddlewareGroup(route: Route, group: MiddlewareGroup, nestedTransaction?: boolean): Promise<void>
 
     /**
      * Удалить указанную группу промежуточного ПО из указанного маршрута
      */
-    removeMiddlewareGroup(routeName: string, groupName: string, nestedTransaction?: boolean): Promise<void>
+    removeMiddlewareGroup(route: Route, group: MiddlewareGroup, nestedTransaction?: boolean): Promise<void>
 
     /**
      * Изменить порядковый номер указанной группы промежуточного ПО в указанном маршрута
      */
-    setMiddlewareGroupSerialNumber(routeName: string, groupName: string, serialNumber: number, nestedTransaction?: boolean): Promise<void>
+    setMiddlewareGroupSerialNumber(route: Route, group: MiddlewareGroup, serialNumber: number, nestedTransaction?: boolean): Promise<void>
 
     /**
      * Добавить указанное промежуточное ПО напрямую к указанному маршрута
      */
-    addMiddleware(routeName: string, middlewareName: string, nestedTransaction?: boolean): Promise<void>
+    addMiddleware(route: Route, middleware: Middleware, nestedTransaction?: boolean): Promise<void>
 
     /**
      * Удалить указанное промежуточное ПО из указанного маршрута 
      */
-    removeMiddleware(routeName: string, middlewareName: string, nestedTransaction?: boolean): Promise<void>
+    removeMiddleware(route: Route, middleware: Middleware, nestedTransaction?: boolean): Promise<void>
 
     /**
      * Изменить порядковый номер указанного промежуточного ПО в указанном маршрута
      */
-    setMiddlewareSerialNumber(routeName: string, middlewareName: string, serialNumber: number, nestedTransaction?: boolean): Promise<void>
+    setMiddlewareSerialNumber(route: Route, middleware: Middleware, serialNumber: number, nestedTransaction?: boolean): Promise<void>
 
     /**
      * Включить флаг csrf в указанном маршруте
      */
-    enableCsrf(name: string, nestedTransaction?: boolean): Promise<void>
+    enableCsrf(route: Route, nestedTransaction?: boolean): Promise<void>
 
     /**
      * Выключить флаг csrf в указанном машруте
      */
-    disableCsrf(name: string, nestedTransaction?: boolean): Promise<void>
+    disableCsrf(route: Route, nestedTransaction?: boolean): Promise<void>
 
     /**
      * Удалить указанный маршрут
      */
-    remove(name: string, nestedTransaction?: boolean): Promise<void>
+    remove(route: Route, nestedTransaction?: boolean): Promise<void>
 
 }

@@ -3,7 +3,11 @@ import { IMiddlewareGroupService } from './middleware-group.interface'
 import { Connection, Repository } from 'typeorm'
 import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
 import { MiddlewareGroup, Middleware, MiddlewareGroupMiddleware } from '../../entities/route.entity'
-import { CreateMiddlewareGroup, MiddlewareGroupMetadata } from './middleware-group.types'
+import { 
+    CreateMiddlewareGroup, 
+    MiddlewareGroupMetadata,
+    MiddlewareGroup as MiddlewareGroupType
+} from './middleware-group.types'
 import { getCustomRepository } from '../../../../core/typeorm/utils/custom-repository'
 import { transaction } from '../../../../core/typeorm/utils/transaction'
 import { mutationQuery } from '../../../../core/typeorm/utils/mutation-query'
@@ -18,6 +22,7 @@ import {
 } from './middleware-group.errors'
 import { Metadata } from '../../entities/metadata.entity'
 import { MiddlewareDoesNotExists } from '../middleware/middleware.errors'
+import { Middleware as MiddlewareType } from '../middleware/middleware.types'
 
 @injectable()
 export class MiddlewareGroupService implements IMiddlewareGroupService {
@@ -42,7 +47,7 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
         const middlewareGroupRepository = await this.middlewareGroupRepository
         const connection = await this.connection
 
-        if (await this.isExists(options.name)) {
+        if (await this.isExists(options)) {
             return
         }
 
@@ -60,7 +65,8 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
                             custom: null
                         }
                     },
-                    name: options.name
+                    name: options.name,
+                    namespace: options.namespace
                 })
             })
 
@@ -71,23 +77,25 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
         })
     }
 
-    public async isExists(name: string): Promise<boolean> {
+    public async isExists(group: MiddlewareGroupType): Promise<boolean> {
         const middlewareGroupRepository = await this.middlewareGroupRepository
         return await middlewareGroupRepository.count({
             where: {
-                name: name
+                namespace: group.namespace,
+                name: group.name
             }
         }) > 0
     }
 
-    public async setMetadata(name: string, snapshotMetadata: SnapshotMetadata<MiddlewareGroupMetadata>, nestedTransaction = false): Promise<void> {
+    public async setMetadata(group: MiddlewareGroupType, snapshotMetadata: SnapshotMetadata<MiddlewareGroupMetadata>, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const middlewareGroupRepository = await this.middlewareGroupRepository
         const metadataRepository = getCustomRepository(connection, MetadataRepository)
 
         const middlewareGroupEntity = await middlewareGroupRepository.findOne({
             where: {
-                name: name
+                namespace: group.namespace,
+                name: group.name
             }
         })
 
@@ -102,14 +110,15 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
         }, nestedTransaction)
     }
 
-    public async addMiddleware(groupName: string, middlewareName: string, nestedTransaction = false): Promise<void> {
+    public async addMiddleware(group: MiddlewareGroupType, middleware: MiddlewareType, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const middlewareGroupRepository = await this.middlewareGroupRepository
         const middlewareRepository = connection.getRepository(Middleware)
 
         const middlewareGroupEntity = await middlewareGroupRepository.findOne({
             where: {
-                name: groupName
+                namespace: group.namespace,
+                name: group.name
             }
         })
 
@@ -119,7 +128,8 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
 
         const middlewareEntity = await middlewareRepository.findOne({
             where: {
-                name: middlewareName
+                namespace: middleware.namespace,
+                name: middleware.name
             }
         })
 
@@ -146,14 +156,15 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
         }
     }
 
-    public async removeMiddleware(groupName: string, middlewareName: string, nestedTransaction = false): Promise<void> {
+    public async removeMiddleware(group: MiddlewareGroupType, middleware: MiddlewareType, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const middlewareGroupRepository = await this.middlewareGroupRepository
         const middlewareRepository = connection.getRepository(Middleware)
 
         const middlewareGroupEntity = await middlewareGroupRepository.findOne({
             where: {
-                name: groupName
+                namespace: group.namespace,
+                name: group.name
             }
         })
 
@@ -163,7 +174,8 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
 
         const middlewareEntity = await middlewareRepository.findOne({
             where: {
-                name: middlewareName
+                namespace: middleware.namespace,
+                name: middleware.name
             }
         })
 
@@ -181,8 +193,8 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
     }
 
     public async setMiddlewareSerialNumber(
-        groupName: string, 
-        middlewareName: string, 
+        group: MiddlewareGroupType, 
+        middleware: MiddlewareType, 
         serialNumber: number, 
         nestedTransaction = false
     ): Promise<void> {
@@ -193,7 +205,8 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
 
         const middlewareGroupEntity = await middlewareGroupRepository.findOne({
             where: {
-                name: groupName
+                namespace: group.namespace,
+                name: group.name
             }
         })
 
@@ -203,7 +216,8 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
 
         const middlewareEntity = await middlewareRepository.findOne({
             where: {
-                name: middlewareName
+                namespace: middleware.namespace,
+                name: middleware.name
             }
         })
 
@@ -225,14 +239,15 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
         }
     }
 
-    public async remove(name: string, nestedTransaction = false): Promise<void> {
+    public async remove(group: MiddlewareGroupType, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const middlewareGroupRepository = await this.middlewareGroupRepository
         const metadataRepository = connection.getRepository(Metadata)
 
         const middlewareGroupEntity = await middlewareGroupRepository.findOne({
             where: {
-                name: name
+                namespace: group.namespace,
+                name: group.name
             }
         })
 
@@ -251,12 +266,13 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
         })
     }
 
-    public async enableCsrf(name: string, nestedTransaction = false): Promise<void> {
+    public async enableCsrf(group: MiddlewareGroupType, nestedTransaction = false): Promise<void> {
         const middlewareGroupRepository = await this.middlewareGroupRepository
 
         const updateResult = await mutationQuery(nestedTransaction, () => {
             return middlewareGroupRepository.update({
-                name: name
+                namespace: group.namespace,
+                name: group.name
             }, {
                 isCsrf: true
             })
@@ -267,12 +283,13 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
         }
     }
 
-    public async disableCsrf(name: string, nestedTransaction = false): Promise<void> {
+    public async disableCsrf(group: MiddlewareGroupType, nestedTransaction = false): Promise<void> {
         const middlewareGroupRepository = await this.middlewareGroupRepository
 
         const updateResult = await mutationQuery(nestedTransaction, () => {
             return middlewareGroupRepository.update({
-                name: name
+                namespace: group.namespace,
+                name: group.name
             }, {
                 isCsrf: false
             })

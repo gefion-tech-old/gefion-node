@@ -34,6 +34,11 @@ describe('MiddlewareService в RouteModule', () => {
 
         const middlewareService = container
             .get<IMiddlewareService>(ROUTE_SYMBOL.MiddlewareService)
+
+        const middleware = {
+            namespace: 'middleware1',
+            name: 'middleware1'
+        }
         
         await expect(middlewareService.createIfNotExists({
             creator: {
@@ -44,7 +49,7 @@ describe('MiddlewareService в RouteModule', () => {
                 namespace: 'namespace1',
                 type: 'type1'
             },
-            name: 'middleware1'
+            ...middleware
         })).rejects.toBeInstanceOf(MiddlewareMethodNotDefined)
 
         container.restore()
@@ -71,22 +76,27 @@ describe('MiddlewareService в RouteModule', () => {
             namespace: 'namespace1'
         })
 
-        await expect(middlewareService.isExists('middleware1')).resolves.toBe(false)
+        const middleware = {
+            namespace: 'middleware1',
+            name: 'middleware1'
+        }
+
+        await expect(middlewareService.isExists(middleware)).resolves.toBe(false)
         await expect(middlewareService.createIfNotExists({
             creator: {
                 type: CreatorType.System
             },
             method: methodEntity,
-            name: 'middleware1'
+            ...middleware
         })).resolves.toBeUndefined()
         await expect(middlewareService.createIfNotExists({
             creator: {
                 type: CreatorType.System
             },
             method: methodEntity,
-            name: 'middleware1'
+            ...middleware
         })).resolves.toBeUndefined()
-        await expect(middlewareService.isExists('middleware1')).resolves.toBe(true)
+        await expect(middlewareService.isExists(middleware)).resolves.toBe(true)
         await expect(creatorService.isResourceCreator({
             type: ResourceType.Middleware,
             id: 1
@@ -119,15 +129,19 @@ describe('MiddlewareService в RouteModule', () => {
             type: 'type1',
             namespace: 'namespace1'
         })
+        const middleware = {
+            namespace: 'middleware1',
+            name: 'middleware1'
+        }
         await middlewareService.createIfNotExists({
             creator: {
                 type: CreatorType.System
             },
             method: methodEntity,
-            name: 'middleware1'
+            ...middleware
         })
 
-        await expect(middlewareService.isExists('middleware1')).resolves.toBe(true)
+        await expect(middlewareService.isExists(middleware)).resolves.toBe(true)
         await expect(metadataRepository.count()).resolves.toBe(1)
         await expect(methodRepository.count()).resolves.toBe(1)
         await expect(creatorService.isResourceCreator({
@@ -137,10 +151,10 @@ describe('MiddlewareService в RouteModule', () => {
             type: CreatorType.System
         })).resolves.toBe(true)
 
-        await expect(middlewareService.remove('middleware1')).resolves.toBeUndefined()
-        await expect(middlewareService.remove('middleware1')).resolves.toBeUndefined()
+        await expect(middlewareService.remove(middleware)).resolves.toBeUndefined()
+        await expect(middlewareService.remove(middleware)).resolves.toBeUndefined()
         
-        await expect(middlewareService.isExists('middleware1')).resolves.toBe(false)
+        await expect(middlewareService.isExists(middleware)).resolves.toBe(false)
         await expect(metadataRepository.count()).resolves.toBe(0)
         await expect(methodRepository.count()).resolves.toBe(0)
         await expect(creatorService.isResourceCreator({
@@ -162,7 +176,12 @@ describe('MiddlewareService в RouteModule', () => {
         const middlewareService = container
             .get<IMiddlewareService>(ROUTE_SYMBOL.MiddlewareService)
 
-        await expect(middlewareService.setMetadata('middleware1', {
+        const middleware = {
+            namespace: 'middleware1',
+            name: 'middleware1'
+        }
+
+        await expect(middlewareService.setMetadata(middleware, {
             metadata: {
                 custom: true
             },
@@ -193,19 +212,22 @@ describe('MiddlewareService в RouteModule', () => {
             namespace: 'namespace1'
         })
 
+        const middleware = {
+            namespace: 'middleware1',
+            name: 'middleware1'
+        }
+
         await expect(middlewareService.createIfNotExists({
             creator: {
                 type: CreatorType.System
             },
             method: methodEntity,
-            name: 'middleware1'
+            ...middleware
         })).resolves.toBeUndefined()
         await expect(metadataRepository.count()).resolves.toBe(1)
         await expect((async () => {
             const middlewareEntity = await middlewareRepository.findOne({
-                where: {
-                    name: 'middleware1'
-                }
+                where: middleware
             })
             return middlewareEntity?.metadata
         })()).resolves.toMatchObject({
@@ -214,7 +236,7 @@ describe('MiddlewareService в RouteModule', () => {
             },
             revisionNumber: 0
         })
-        await expect(middlewareService.setMetadata('middleware1', {
+        await expect(middlewareService.setMetadata(middleware, {
             metadata: {
                 custom: {
                     test: 'test'
@@ -224,9 +246,7 @@ describe('MiddlewareService в RouteModule', () => {
         })).resolves.toBeUndefined()
         await expect((async () => {
             const middlewareEntity = await middlewareRepository.findOne({
-                where: {
-                    name: 'middleware1'
-                }
+                where: middleware
             })
             return middlewareEntity?.metadata
         })()).resolves.toMatchObject({
@@ -237,7 +257,7 @@ describe('MiddlewareService в RouteModule', () => {
             },
             revisionNumber: 1
         })
-        await expect(middlewareService.setMetadata('middleware1', {
+        await expect(middlewareService.setMetadata(middleware, {
             metadata: {
                 custom: null
             },
@@ -245,9 +265,7 @@ describe('MiddlewareService в RouteModule', () => {
         })).rejects.toBeInstanceOf(RevisionNumberError)
         await expect((async () => {
             const middlewareEntity = await middlewareRepository.findOne({
-                where: {
-                    name: 'middleware1'
-                }
+                where: middleware
             })
             return middlewareEntity?.metadata
         })()).resolves.toMatchObject({
@@ -272,8 +290,13 @@ describe('MiddlewareService в RouteModule', () => {
         const middlewareService = container
             .get<IMiddlewareService>(ROUTE_SYMBOL.MiddlewareService)
 
-        await expect(middlewareService.enableCsrf('middleware1')).rejects.toBeInstanceOf(MiddlewareDoesNotExists)
-        await expect(middlewareService.disableCsrf('middleware1')).rejects.toBeInstanceOf(MiddlewareDoesNotExists)
+        const middleware = {
+            namespace: 'middleware1',
+            name: 'middleware1'
+        }
+
+        await expect(middlewareService.enableCsrf(middleware)).rejects.toBeInstanceOf(MiddlewareDoesNotExists)
+        await expect(middlewareService.disableCsrf(middleware)).rejects.toBeInstanceOf(MiddlewareDoesNotExists)
             
         container.restore()
     })
@@ -298,40 +321,39 @@ describe('MiddlewareService в RouteModule', () => {
             namespace: 'namespace1'
         })
 
+        const middleware = {
+            namespace: 'middleware1',
+            name: 'middleware1'
+        }
+
         await expect(middlewareService.createIfNotExists({
             creator: {
                 type: CreatorType.System
             },
             method: methodEntity,
-            name: 'middleware1'
+            ...middleware
         })).resolves.toBeUndefined()
 
         await expect(middlewareRepository.findOne({
-            where: {
-                name: 'middleware1'
-            }
+            where: middleware
         })).resolves.toMatchObject({
             isCsrf: false
         })
 
-        await expect(middlewareService.enableCsrf('middleware1')).resolves.toBeUndefined()
-        await expect(middlewareService.enableCsrf('middleware1')).resolves.toBeUndefined()
+        await expect(middlewareService.enableCsrf(middleware)).resolves.toBeUndefined()
+        await expect(middlewareService.enableCsrf(middleware)).resolves.toBeUndefined()
 
         await expect(middlewareRepository.findOne({
-            where: {
-                name: 'middleware1'
-            }
+            where: middleware
         })).resolves.toMatchObject({
             isCsrf: true
         })
 
-        await expect(middlewareService.disableCsrf('middleware1')).resolves.toBeUndefined()
-        await expect(middlewareService.disableCsrf('middleware1')).resolves.toBeUndefined()
+        await expect(middlewareService.disableCsrf(middleware)).resolves.toBeUndefined()
+        await expect(middlewareService.disableCsrf(middleware)).resolves.toBeUndefined()
 
         await expect(middlewareRepository.findOne({
-            where: {
-                name: 'middleware1'
-            }
+            where: middleware
         })).resolves.toMatchObject({
             isCsrf: false
         })

@@ -14,6 +14,17 @@ export const ROUTE_SYMBOL = {
     RouteService: Symbol('RouteService')
 }
 
+export interface Route {
+    /**
+     * Пространство имён
+     */
+    readonly namespace: string
+    /**
+     * Название
+     */
+    readonly name: string
+}
+
 export interface RouteMetadata {
     /**
      * Метаданные, которые можно изменить в любой момент времени без особых ограничений
@@ -28,6 +39,10 @@ export interface CreateRoute {
      * Название маршрута
      */
     readonly name: string
+    /**
+     * Пространство имён маршрута
+     */
+    readonly namespace: string
     /**
      * Метод маршрута
      */
