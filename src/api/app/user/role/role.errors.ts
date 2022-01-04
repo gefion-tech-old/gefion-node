@@ -2,6 +2,13 @@ import { UserError } from '../user.errors'
 
 export class RoleError extends UserError {}
 
+export class RoleAlreadyExists extends RoleError {
+
+    public name = 'RoleAlreadyExists'
+    public message = 'Указанная роль уже существует'
+
+}
+
 export class RoleDoesNotExists extends RoleError {
 
     public name = 'RoleDoesNotExists'

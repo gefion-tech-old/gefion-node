@@ -3,7 +3,7 @@ import { USER_SYMBOL } from './user.types'
 import { IUserService } from './user.interface'
 import { IRoleService } from './role/role.interface'
 import { RoleDoesNotExists } from './role/role.errors'
-import { UserDoesNotExists } from './user.errors'
+import { UserDoesNotExists, UserAlreadyExists } from './user.errors'
 import { CreatorType } from '../creator/creator.types'
 
 beforeAll(async () => {
@@ -20,7 +20,7 @@ describe('UserService в UserModule', () => {
 
     it(`
         Пользователь корректно создаётся. Попытка создать уже существующего пользователя 
-        ни к чему не приводит
+        приводит к исключению
     `, async () => {
         const container = await getContainer()
         container.snapshot()
@@ -30,7 +30,7 @@ describe('UserService в UserModule', () => {
 
         await expect(userService.isExists('username1')).resolves.toBe(false)
         await expect(userService.create('username1')).resolves.toBeUndefined()
-        await expect(userService.create('username1')).resolves.toBeUndefined()
+        await expect(userService.create('username1')).rejects.toBeInstanceOf(UserAlreadyExists)
         await expect(userService.isExists('username1')).resolves.toBe(true)
 
         container.restore()

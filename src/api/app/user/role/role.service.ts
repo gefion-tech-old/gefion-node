@@ -15,7 +15,7 @@ import { Metadata } from '../../entities/metadata.entity'
 import { SnapshotMetadata } from '../../metadata/metadata.types'
 import { RoleMetadata, RolePermissionMetadata, CreateRole } from './role.types'
 import { MetadataRepository } from '../../metadata/repositories/metadata.repository'
-import { RoleDoesNotExists, RoleDoesNotHavePermission } from './role.errors'
+import { RoleDoesNotExists, RoleDoesNotHavePermission, RoleAlreadyExists } from './role.errors'
 import { getCustomRepository } from '../../../../core/typeorm/utils/custom-repository'
 import { PermissionDoesNotExist } from '../permission/permission.errors'
 import { CREATOR_SYMBOL, ResourceType } from '../../creator/creator.types'
@@ -54,7 +54,7 @@ export class RoleService implements IRoleService {
         const roleRepository = await this.roleRepository
 
         if (await this.isExists(options.name)) {
-            return
+            throw new RoleAlreadyExists
         }
 
         /**

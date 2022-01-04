@@ -6,7 +6,7 @@ import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
 import { mutationQuery } from '../../../../core/typeorm/utils/mutation-query'
 import { PermissionMetadata, CreatePermission } from './permission.types'
 import { SnapshotMetadata } from '../../metadata/metadata.types'
-import { PermissionDoesNotExist } from './permission.errors'
+import { PermissionDoesNotExist, PermissionAlreadyExists } from './permission.errors'
 import { MetadataRepository } from '../../metadata/repositories/metadata.repository'
 import { getCustomRepository } from '../../../../core/typeorm/utils/custom-repository'
 import { transaction } from '../../../../core/typeorm/utils/transaction'
@@ -39,7 +39,7 @@ export class PermissionService implements IPermissionService {
         const permissionRepository = await this.permissionRepository
 
         if (await this.isExists(options.name)) {
-            return
+            throw new PermissionAlreadyExists
         }
 
         /**

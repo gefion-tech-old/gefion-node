@@ -7,7 +7,7 @@ import { mutationQuery } from '../../../core/typeorm/utils/mutation-query'
 import { SqliteErrorCode, isErrorCode } from '../../../core/typeorm/utils/error-code'
 import { IRoleService } from './role/role.interface'
 import { USER_SYMBOL } from './user.types'
-import { UserDoesNotExists } from './user.errors'
+import { UserDoesNotExists, UserAlreadyExists } from './user.errors'
 import { RoleDoesNotExists } from './role/role.errors'
 
 @injectable()
@@ -38,13 +38,11 @@ export class UserService implements IUserService {
                 })
             })
         } catch (error) {
-            block: {
-                if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_UNIQUE)) {
-                    break block
-                }
-    
-                throw error
+            if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_UNIQUE)) {
+                throw new UserAlreadyExists
             }
+
+            throw error
         }
     }
 

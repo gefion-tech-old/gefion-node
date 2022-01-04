@@ -4,7 +4,7 @@ import { USER_SYMBOL } from '../user.types'
 import { Metadata } from '../../entities/metadata.entity'
 import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
 import { Connection } from 'typeorm'
-import { RoleDoesNotExists, RoleDoesNotHavePermission } from './role.errors'
+import { RoleDoesNotExists, RoleDoesNotHavePermission, RoleAlreadyExists } from './role.errors'
 import { RevisionNumberError } from '../../metadata/metadata.errors'
 import { PermissionDoesNotExist } from '../permission/permission.errors'
 import { IPermissionService } from '../permission/permission.interface'
@@ -26,7 +26,7 @@ describe('RoleService в UserModule', () => {
 
     it(`
         Новая роль корректно создаётся. Попытка создать уже существующую роль
-        ни к чему не приводит
+        приводит к исключению
     `, async () => {
         const container = await getContainer()
         container.snapshot()
@@ -48,7 +48,7 @@ describe('RoleService в UserModule', () => {
             creator: {
                 type: CreatorType.System
             }
-        })).resolves.toBeUndefined()
+        })).rejects.toBeInstanceOf(RoleAlreadyExists)
         await expect(roleService.isExists('role1')).resolves.toBe(true)
         await expect(creatorService.isResourceCreator({
             type: ResourceType.Role,

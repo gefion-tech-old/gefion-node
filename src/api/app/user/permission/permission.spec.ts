@@ -1,7 +1,7 @@
 import { getContainer } from '../../../../inversify.config'
 import { IPermissionService } from './permission.interface'
 import { USER_SYMBOL } from '../user.types'
-import { PermissionDoesNotExist } from './permission.errors'
+import { PermissionDoesNotExist, PermissionAlreadyExists } from './permission.errors'
 import { RevisionNumberError } from '../../metadata/metadata.errors'
 import { Metadata } from '../../entities/metadata.entity'
 import { Connection } from 'typeorm'
@@ -24,7 +24,7 @@ describe('PermissionService в UserModule', () => {
 
     it(`
         Полномочие корректно создаётся. Попытка создать уже существующее полномочие
-        ни к чему не приводит
+        приводит к исключению
     `, async () => {
         const container = await getContainer()
         container.snapshot()
@@ -46,7 +46,7 @@ describe('PermissionService в UserModule', () => {
             creator: {
                 type: CreatorType.System
             }
-        })).resolves.toBeUndefined()
+        })).rejects.toBeInstanceOf(PermissionAlreadyExists)
         await expect(permissionService.isExists('permission1')).resolves.toBe(true)
         await expect(creatorService.isResourceCreator({
             type: ResourceType.Permission,
