@@ -6,7 +6,7 @@ export interface IMiddlewareService {
     /**
      * Создать промежуточное ПО, если его ещё не существует
      */
-    createIfNotExists(options: CreateMiddleware, nestedTransaction?: boolean): Promise<void>
+    create(options: CreateMiddleware, nestedTransaction?: boolean): Promise<void>
 
     /**
      * Проверить существование указанного промежуточного ПО

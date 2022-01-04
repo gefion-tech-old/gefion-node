@@ -11,7 +11,7 @@ export interface IMiddlewareGroupService {
     /**
      * Создать группу промежуточного ПО, если её ещё не существует
      */
-    createIfNotExists(options: CreateMiddlewareGroup, nestedTransaction?: boolean): Promise<void>
+    create(options: CreateMiddlewareGroup, nestedTransaction?: boolean): Promise<void>
 
     /**
      * Проверить существование группы ПО с указанным названием

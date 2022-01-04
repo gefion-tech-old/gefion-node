@@ -3,7 +3,8 @@ import { IMiddlewareService } from './middleware.interface'
 import { ROUTE_SYMBOL } from '../route.types'
 import {
     MiddlewareMethodNotDefined,
-    MiddlewareDoesNotExists
+    MiddlewareDoesNotExists,
+    MiddlewareAlreadyExists
 } from './middleware.errors'
 import { CreatorType, CREATOR_SYMBOL, ResourceType } from '../../creator/creator.types'
 import { ICreatorService } from '../../creator/creator.interface'
@@ -40,7 +41,7 @@ describe('MiddlewareService в RouteModule', () => {
             name: 'middleware1'
         }
         
-        await expect(middlewareService.createIfNotExists({
+        await expect(middlewareService.create({
             creator: {
                 type: CreatorType.System
             },
@@ -57,7 +58,7 @@ describe('MiddlewareService в RouteModule', () => {
     
     it(`
         Middleware корректно создаётся. Попытка создания уже созданного middleware
-        ни к чему не приводит
+        приводит к исключению
     `, async () => {
         const container = await getContainer()
         container.snapshot()
@@ -82,20 +83,20 @@ describe('MiddlewareService в RouteModule', () => {
         }
 
         await expect(middlewareService.isExists(middleware)).resolves.toBe(false)
-        await expect(middlewareService.createIfNotExists({
+        await expect(middlewareService.create({
             creator: {
                 type: CreatorType.System
             },
             method: methodEntity,
             ...middleware
         })).resolves.toBeUndefined()
-        await expect(middlewareService.createIfNotExists({
+        await expect(middlewareService.create({
             creator: {
                 type: CreatorType.System
             },
             method: methodEntity,
             ...middleware
-        })).resolves.toBeUndefined()
+        })).rejects.toBeInstanceOf(MiddlewareAlreadyExists)
         await expect(middlewareService.isExists(middleware)).resolves.toBe(true)
         await expect(creatorService.isResourceCreator({
             type: ResourceType.Middleware,
@@ -133,7 +134,7 @@ describe('MiddlewareService в RouteModule', () => {
             namespace: 'middleware1',
             name: 'middleware1'
         }
-        await middlewareService.createIfNotExists({
+        await middlewareService.create({
             creator: {
                 type: CreatorType.System
             },
@@ -217,7 +218,7 @@ describe('MiddlewareService в RouteModule', () => {
             name: 'middleware1'
         }
 
-        await expect(middlewareService.createIfNotExists({
+        await expect(middlewareService.create({
             creator: {
                 type: CreatorType.System
             },
@@ -326,7 +327,7 @@ describe('MiddlewareService в RouteModule', () => {
             name: 'middleware1'
         }
 
-        await expect(middlewareService.createIfNotExists({
+        await expect(middlewareService.create({
             creator: {
                 type: CreatorType.System
             },

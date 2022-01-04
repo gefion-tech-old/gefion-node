@@ -8,7 +8,8 @@ import { Connection } from 'typeorm'
 import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
 import {
     MiddlewareGroupDoesNotExists,
-    MiddlewareGroupDoesNotHaveMiddleware
+    MiddlewareGroupDoesNotHaveMiddleware,
+    MiddlewareGroupAlreadyExists
 } from './middleware-group.errors'
 import { RevisionNumberError } from '../../metadata/metadata.errors'
 import { 
@@ -33,7 +34,7 @@ describe('MiddlewareGroup в RouteModule', () => {
 
     it(`
         Группа middleware корректно создаётся. Попытка создания уже созданной группы
-        ни к чему не приводит
+        приводит к исключению
     `, async () => {
         const container = await getContainer()
         container.snapshot()
@@ -54,20 +55,20 @@ describe('MiddlewareGroup в RouteModule', () => {
         await expect(middlewareGroupService.isExists(middlewareGroup)).resolves.toBe(false)
         await expect(metadataRepository.count()).resolves.toBe(0)
 
-        await expect(middlewareGroupService.createIfNotExists({
+        await expect(middlewareGroupService.create({
             isDefault: false,
             creator: {
                 type: CreatorType.System
             },
             ...middlewareGroup
         })).resolves.toBeUndefined()
-        await expect(middlewareGroupService.createIfNotExists({
+        await expect(middlewareGroupService.create({
             isDefault: false,
             creator: {
                 type: CreatorType.System
             },
             ...middlewareGroup
-        })).resolves.toBeUndefined()
+        })).rejects.toBeInstanceOf(MiddlewareGroupAlreadyExists)
 
         await expect(middlewareGroupService.isExists(middlewareGroup)).resolves.toBe(true)
         await expect(metadataRepository.count()).resolves.toBe(1)
@@ -125,7 +126,7 @@ describe('MiddlewareGroup в RouteModule', () => {
             name: 'group1'
         }
 
-        await expect(middlewareGroupService.createIfNotExists({
+        await expect(middlewareGroupService.create({
             creator: {
                 type: CreatorType.System
             },
@@ -253,7 +254,7 @@ describe('MiddlewareGroup в RouteModule', () => {
             name: 'middleware1'
         }
 
-        await middlewareGroupService.createIfNotExists({
+        await middlewareGroupService.create({
             creator: {
                 type: CreatorType.System
             },
@@ -306,7 +307,7 @@ describe('MiddlewareGroup в RouteModule', () => {
             method: methodEntity,
             ...middleware
         })
-        await middlewareGroupService.createIfNotExists({
+        await middlewareGroupService.create({
             creator: {
                 type: CreatorType.System
             },
@@ -361,7 +362,7 @@ describe('MiddlewareGroup в RouteModule', () => {
             method: methodEntity,
             ...middleware
         })
-        await middlewareGroupService.createIfNotExists({
+        await middlewareGroupService.create({
             creator: {
                 type: CreatorType.System
             },
@@ -418,7 +419,7 @@ describe('MiddlewareGroup в RouteModule', () => {
             method: methodEntity,
             ...middleware
         })
-        await middlewareGroupService.createIfNotExists({
+        await middlewareGroupService.create({
             creator: {
                 type: CreatorType.System
             },
@@ -480,7 +481,7 @@ describe('MiddlewareGroup в RouteModule', () => {
             name: 'group1'
         }
 
-        await expect(middlewareGroupService.createIfNotExists({
+        await expect(middlewareGroupService.create({
             creator: {
                 type: CreatorType.System
             },
@@ -555,7 +556,7 @@ describe('MiddlewareGroup в RouteModule', () => {
                 method: methodEntity,
                 ...middleware
             })
-            await middlewareGroupService.createIfNotExists({
+            await middlewareGroupService.create({
                 creator: {
                     type: CreatorType.System
                 },
@@ -674,7 +675,7 @@ describe('MiddlewareGroup в RouteModule', () => {
             method: methodEntity,
             ...middleware
         })
-        await middlewareGroupService.createIfNotExists({
+        await middlewareGroupService.create({
             creator: {
                 type: CreatorType.System
             },

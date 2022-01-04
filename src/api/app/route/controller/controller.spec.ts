@@ -5,7 +5,8 @@ import { IControllerService } from './controller.interface'
 import { ROUTE_SYMBOL } from '../route.types'
 import {
     ControllerDoesNotExists,
-    ControllerMethodNotDefined
+    ControllerMethodNotDefined,
+    ControllerAlreadyExists
 } from './controller.errors'
 import { CreatorType, CREATOR_SYMBOL, ResourceType } from '../../creator/creator.types'
 import { Method } from '../../entities/method.entity'
@@ -40,7 +41,7 @@ describe('ControllerService в RouteModule', () => {
             namespace: 'controller1'
         }
 
-        await expect(controllerService.createIfNotExists({
+        await expect(controllerService.create({
             creator: {
                 type: CreatorType.System
             },
@@ -57,7 +58,7 @@ describe('ControllerService в RouteModule', () => {
 
     it(`
         Контроллер корректно создаётся. Попытка создания уже созданного контроллера
-        ни к чему не приводит
+        приводит к исключению
     `, async () => {
         const container = await getContainer()
         container.snapshot()
@@ -81,20 +82,20 @@ describe('ControllerService в RouteModule', () => {
         }
 
         await expect(controllerService.isExists(controller)).resolves.toBe(false)
-        await expect(controllerService.createIfNotExists({
+        await expect(controllerService.create({
             creator: {
                 type: CreatorType.System
             },
             method: methodEntity,
             ...controller
         })).resolves.toBeUndefined()
-        await expect(controllerService.createIfNotExists({
+        await expect(controllerService.create({
             creator: {
                 type: CreatorType.System
             },
             method: methodEntity,
             ...controller
-        })).resolves.toBeUndefined()
+        })).rejects.toBeInstanceOf(ControllerAlreadyExists)
         await expect(controllerService.isExists(controller)).resolves.toBe(true)
         await expect(creatorService.isResourceCreator({
             type: ResourceType.Controller,
@@ -132,7 +133,7 @@ describe('ControllerService в RouteModule', () => {
             name: 'controller1',
             namespace: 'controller1'
         }
-        await controllerService.createIfNotExists({
+        await controllerService.create({
             creator: {
                 type: CreatorType.System
             },
@@ -216,7 +217,7 @@ describe('ControllerService в RouteModule', () => {
             namespace: 'controller1'
         }
 
-        await expect(controllerService.createIfNotExists({
+        await expect(controllerService.create({
             creator: {
                 type: CreatorType.System
             },

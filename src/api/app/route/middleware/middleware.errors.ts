@@ -1,5 +1,12 @@
 export class MiddlewareError extends Error {}
 
+export class MiddlewareAlreadyExists extends MiddlewareError {
+
+    public name = 'MiddlewareAlreadyExists'
+    public message = 'Указанный middleware уже существует'
+
+}
+
 export class MiddlewareMethodNotDefined extends MiddlewareError {
 
     public name = 'MiddlewareMethodNotDefined'

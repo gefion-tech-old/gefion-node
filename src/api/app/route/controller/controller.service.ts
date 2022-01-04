@@ -19,7 +19,8 @@ import { MetadataRepository } from '../../metadata/repositories/metadata.reposit
 import { IMethodService } from '../../method/method.interface'
 import {
     ControllerMethodNotDefined,
-    ControllerDoesNotExists
+    ControllerDoesNotExists,
+    ControllerAlreadyExists
 } from './controller.errors'
 import { Metadata } from '../../entities/metadata.entity'
 import { MethodUsedError } from '../../method/method.errors'
@@ -46,12 +47,12 @@ export class ControllerService implements IControllerService {
         })
     }
 
-    public async createIfNotExists(options: CreateController, nestedTransaction = false): Promise<void> {
+    public async create(options: CreateController, nestedTransaction = false): Promise<void> {
         const controllerRepository = await this.controllerRepository
         const connection = await this.connection
 
         if (await this.isExists(options)) {
-            return
+            throw new ControllerAlreadyExists
         }
 
         const methodId = await this.methodService.getMethodId(options.method)

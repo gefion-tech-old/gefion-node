@@ -19,7 +19,8 @@ import { SnapshotMetadata } from '../../metadata/metadata.types'
 import { MetadataRepository } from '../../metadata/repositories/metadata.repository'
 import {
     MiddlewareMethodNotDefined,
-    MiddlewareDoesNotExists
+    MiddlewareDoesNotExists,
+    MiddlewareAlreadyExists
 } from './middleware.errors'
 import { Metadata } from '../../entities/metadata.entity'
 import { MethodUsedError } from '../../method/method.errors'
@@ -46,12 +47,12 @@ export class MiddlewareService implements IMiddlewareService {
         })
     }
 
-    public async createIfNotExists(options: CreateMiddleware, nestedTransaction = false): Promise<void> {
+    public async create(options: CreateMiddleware, nestedTransaction = false): Promise<void> {
         const middlewareRepository = await this.middlewareRepository
         const connection = await this.connection
 
         if (await this.isExists(options)) {
-            return
+            throw new MiddlewareAlreadyExists
         }
 
         const methodId = await this.methodService.getMethodId(options.method)

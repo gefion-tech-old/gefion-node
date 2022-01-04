@@ -18,7 +18,8 @@ import { ICreatorService } from '../../creator/creator.interface'
 import { ResourceType, CREATOR_SYMBOL } from '../../creator/creator.types'
 import { 
     MiddlewareGroupDoesNotExists,
-    MiddlewareGroupDoesNotHaveMiddleware
+    MiddlewareGroupDoesNotHaveMiddleware,
+    MiddlewareGroupAlreadyExists
 } from './middleware-group.errors'
 import { Metadata } from '../../entities/metadata.entity'
 import { MiddlewareDoesNotExists } from '../middleware/middleware.errors'
@@ -43,12 +44,12 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
         })
     }
 
-    public async createIfNotExists(options: CreateMiddlewareGroup, nestedTransaction = false): Promise<void> {
+    public async create(options: CreateMiddlewareGroup, nestedTransaction = false): Promise<void> {
         const middlewareGroupRepository = await this.middlewareGroupRepository
         const connection = await this.connection
 
         if (await this.isExists(options)) {
-            return
+            throw new MiddlewareGroupAlreadyExists
         }
 
         /**

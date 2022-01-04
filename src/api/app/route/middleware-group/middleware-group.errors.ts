@@ -1,5 +1,12 @@
 export class MiddlewareGroupError extends Error {}
 
+export class MiddlewareGroupAlreadyExists extends MiddlewareGroupError {
+
+    public name = 'MiddlewareGroupAlreadyExists'
+    public message = 'Указанная группа middleware уже существует'
+
+}
+
 export class MiddlewareGroupDoesNotExists extends MiddlewareGroupError {
 
     public name = 'MiddlewareGroupDoesNotExists'

@@ -1,5 +1,12 @@
 export class ControllerError extends Error {}
 
+export class ControllerAlreadyExists extends ControllerError {
+
+    public name = 'ControllerAlreadyExists'
+    public message = 'Указанный контроллер уже существует'
+
+}
+
 export class ControllerMethodNotDefined extends ControllerError {
 
     public name = 'ControllerMethodNotDefined'

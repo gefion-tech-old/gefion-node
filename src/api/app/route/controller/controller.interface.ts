@@ -6,7 +6,7 @@ export interface IControllerService {
     /**
      * Создать контроллер, если его ещё не существует
      */
-    createIfNotExists(options: CreateController, nestedTransaction?: boolean): Promise<void>
+    create(options: CreateController, nestedTransaction?: boolean): Promise<void>
 
     /**
      * Проверить существование контроллера с указанным именем
