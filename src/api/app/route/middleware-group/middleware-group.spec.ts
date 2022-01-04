@@ -9,7 +9,8 @@ import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
 import {
     MiddlewareGroupDoesNotExists,
     MiddlewareGroupDoesNotHaveMiddleware,
-    MiddlewareGroupAlreadyExists
+    MiddlewareGroupAlreadyExists,
+    MiddlewareAlreadyBound
 } from './middleware-group.errors'
 import { RevisionNumberError } from '../../metadata/metadata.errors'
 import { 
@@ -270,7 +271,7 @@ describe('MiddlewareGroup в RouteModule', () => {
 
     it(`
         Новый middleware корректно добавляется в группу middleware. Попытка добавить уже
-        состоящий в группе middleware ни к чему не приводит
+        состоящий в группе middleware приводит к исключению
     `, async () => {
         const container = await getContainer()
         container.snapshot()
@@ -317,7 +318,7 @@ describe('MiddlewareGroup в RouteModule', () => {
 
         await expect(middlewareGroupMiddlewareRepository.count()).resolves.toBe(0)
         await expect(middlewareGroupService.addMiddleware(middlewareGroup, middleware)).resolves.toBeUndefined()
-        await expect(middlewareGroupService.addMiddleware(middlewareGroup, middleware)).resolves.toBeUndefined()
+        await expect(middlewareGroupService.addMiddleware(middlewareGroup, middleware)).rejects.toBeInstanceOf(MiddlewareAlreadyBound)
         await expect(middlewareGroupMiddlewareRepository.count()).resolves.toBe(1)
 
         container.restore()

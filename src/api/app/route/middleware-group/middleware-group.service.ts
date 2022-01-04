@@ -19,7 +19,8 @@ import { ResourceType, CREATOR_SYMBOL } from '../../creator/creator.types'
 import { 
     MiddlewareGroupDoesNotExists,
     MiddlewareGroupDoesNotHaveMiddleware,
-    MiddlewareGroupAlreadyExists
+    MiddlewareGroupAlreadyExists,
+    MiddlewareAlreadyBound
 } from './middleware-group.errors'
 import { Metadata } from '../../entities/metadata.entity'
 import { MiddlewareDoesNotExists } from '../middleware/middleware.errors'
@@ -147,13 +148,11 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
                     .add(middlewareEntity)
             })
         } catch(error) {
-            block: {
-                if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_PRIMARYKEY)) {
-                    break block
-                }
-
-                throw error
+            if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_PRIMARYKEY)) {
+                throw new MiddlewareAlreadyBound
             }
+
+            throw error
         }
     }
 
