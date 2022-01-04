@@ -1,4 +1,4 @@
-import { CreateRoute, RouteMetadata, Route } from './route.types'
+import { CreateRoute, RouteMetadata, Route, EventContext } from './route.types'
 import { SnapshotMetadata } from '../metadata/metadata.types'
 import { Middleware } from './middleware/middleware.types'
 import { MiddlewareGroup } from './middleware-group/middleware-group.types'
@@ -75,5 +75,10 @@ export interface IRouteService {
      * Отвязать у указанного маршрута его текущий контроллер
      */
     unbindController(route: Route, nestedTransaction?: boolean): Promise<void>
+
+    /**
+     * Поставить обработчик для прослушивания события мутации роута
+     */
+    onMutation(handler: (context: EventContext) => void): void
 
 }

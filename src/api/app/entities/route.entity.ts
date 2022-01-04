@@ -87,6 +87,11 @@ export class Route {
     @JoinColumn()
     controller: Controller | null
 
+    @Column({
+        nullable: true
+    })
+    controllerId: number | null
+
 }
 
 @injectable()

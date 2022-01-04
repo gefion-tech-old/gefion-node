@@ -7,6 +7,20 @@ export class RouteAlreadyExists extends RouteError {
 
 }
 
+export class MiddlewareGroupAlreadyBound extends RouteError {
+
+    public name = 'MiddlewareGroupAlreadyBound'
+    public message = 'Указанная группа middleware уже привязана к указанному маршруту'
+
+}
+
+export class MiddlewareAlreadyBound extends RouteError {
+
+    public name = 'MiddlewareAlreadyBound'
+    public message = 'Указанный middleware уже привязан к указанному маршруту'
+
+}
+
 export class RoutePathAndMethodAlreadyExists extends RouteError {
 
     public name = 'RoutePathAndMethodAlreadyExists'

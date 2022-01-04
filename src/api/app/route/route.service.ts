@@ -10,13 +10,22 @@ import {
     Controller
 } from '../entities/route.entity'
 import { TYPEORM_SYMBOL } from '../../../core/typeorm/typeorm.types'
-import { CreateRoute, RouteMetadata, Route as RouteType } from './route.types'
+import { 
+    CreateRoute, 
+    RouteMetadata, 
+    Route as RouteType,
+    EventContext,
+    RouteEventMutationName,
+    RouteEventMutation
+} from './route.types'
 import {
     RoutePathAndMethodAlreadyExists,
     RouteDoesNotExists,
     RouteDoesNotHaveMiddleware,
     RouteDoesNotHaveMiddlewareGroup,
-    RouteAlreadyExists
+    RouteAlreadyExists,
+    MiddlewareGroupAlreadyBound,
+    MiddlewareAlreadyBound
 } from './route.errors'
 import { MiddlewareDoesNotExists } from './middleware/middleware.errors'
 import { MiddlewareGroupDoesNotExists } from './middleware-group/middleware-group.errors'
@@ -33,12 +42,14 @@ import { Middleware as MiddlewareType } from './middleware/middleware.types'
 import { MiddlewareGroup as MiddlewareGroupType } from './middleware-group/middleware-group.types'
 import { ControllerDoesNotExists } from './controller/controller.errors'
 import { Controller as ControllerType } from './controller/controller.types'
+import { EventEmitter } from 'events'
 
 @injectable()
 export class RouteService implements IRouteService {
 
     private connection: Promise<Connection>
     private routeRepository: Promise<Repository<Route>>
+    private eventEmitter = new EventEmitter()
 
     public constructor(
         @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
@@ -61,10 +72,10 @@ export class RouteService implements IRouteService {
             throw new RouteAlreadyExists
         }
 
-        try {
-            await transaction(nestedTransaction, connection, async () => {
-                const routeEntity = await mutationQuery(true, () => {
-                    return routeRepository.save({
+        const routeEntity = await transaction(nestedTransaction, connection, async () => {
+            const routeEntity = await mutationQuery(true, async () => {
+                try {
+                    return await routeRepository.save({
                         isCsrf: false,
                         metadata: {
                             metadata: {
@@ -76,22 +87,30 @@ export class RouteService implements IRouteService {
                         namespace: options.namespace,
                         path: options.path
                     })
-                })
-    
-                await this.creatorService.bind({
-                    type: ResourceType.Route,
-                    id: routeEntity.id
-                }, options.creator, true)
-            })
-        } catch(error) {
-            if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_UNIQUE)) {
-                if ((error as any)?.message === 'SqliteError: UNIQUE constraint failed: route.method, route.path') {
-                    throw new RoutePathAndMethodAlreadyExists
+                } catch(error) {
+                    if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_UNIQUE)) {
+                        if ((error as any)?.message === 'SqliteError: UNIQUE constraint failed: route.method, route.path') {
+                            throw new RoutePathAndMethodAlreadyExists
+                        }
+                    }
+        
+                    throw error
                 }
-            }
+            })
 
-            throw error
+            await this.creatorService.bind({
+                type: ResourceType.Route,
+                id: routeEntity.id
+            }, options.creator, true)
+
+            return routeEntity
+        })
+
+        const eventContext: EventContext = {
+            type: RouteEventMutation.Create,
+            routeId: routeEntity.id
         }
+        this.eventEmitter.emit(RouteEventMutationName, eventContext)
     }
 
     public async isExists(route: RouteType): Promise<boolean> {
@@ -125,6 +144,12 @@ export class RouteService implements IRouteService {
             metadata: routeEntity.metadata.metadata,
             revisionNumber: snapshotMetadata.revisionNumber
         }, nestedTransaction)
+
+        const eventContext: EventContext = {
+            type: RouteEventMutation.SetMetadata,
+            routeId: routeEntity.id
+        }
+        this.eventEmitter.emit(RouteEventMutationName, eventContext)
     }
 
     public async addMiddlewareGroup(route: RouteType, group: MiddlewareGroupType, nestedTransaction = false): Promise<void> {
@@ -163,20 +188,26 @@ export class RouteService implements IRouteService {
                     .add(middlewareGroupEntity)
             })
         } catch(error) {
-            block: {
-                if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_PRIMARYKEY)) {
-                    break block
-                }
-
-                throw error
+            if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_PRIMARYKEY)) {
+                throw new MiddlewareGroupAlreadyBound
             }
+
+            throw error
         }
+
+        const eventContext: EventContext = {
+            type: RouteEventMutation.AddMiddlewareGroup,
+            routeId: routeEntity.id,
+            middlewareGroupId: middlewareGroupEntity.id
+        }
+        this.eventEmitter.emit(RouteEventMutationName, eventContext)
     }
 
     public async removeMiddlewareGroup(route: RouteType, group: MiddlewareGroupType, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const routeRepository = await this.routeRepository
         const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)
+        const routeMiddlewareGroupRepository = connection.getRepository(RouteMiddlewareGroup)
 
         const routeEntity = await routeRepository.findOne({
             where: {
@@ -200,6 +231,18 @@ export class RouteService implements IRouteService {
             throw new MiddlewareGroupDoesNotExists
         }
 
+        /**
+         * Если связи с маршрутом изначально не было, то выйти из функции
+         */
+        if (!await routeMiddlewareGroupRepository.count({
+            where: {
+                routeId: routeEntity.id,
+                middlewareGroupId: middlewareGroupEntity.id
+            }
+        })) {
+            return
+        }
+
         await mutationQuery(nestedTransaction, () => {
             return connection
                 .createQueryBuilder()
@@ -207,6 +250,13 @@ export class RouteService implements IRouteService {
                 .of(routeEntity)
                 .remove(middlewareGroupEntity)
         })
+
+        const eventContext: EventContext = {
+            type: RouteEventMutation.RemoveMiddlewareGroup,
+            routeId: routeEntity.id,
+            middlewareGroupId: middlewareGroupEntity.id
+        }
+        this.eventEmitter.emit(RouteEventMutationName, eventContext)
     }
 
     public async setMiddlewareGroupSerialNumber(
@@ -254,6 +304,13 @@ export class RouteService implements IRouteService {
         if (updateResult.affected === 0) {
             throw new RouteDoesNotHaveMiddlewareGroup
         }
+
+        const eventContext: EventContext = {
+            type: RouteEventMutation.SetMiddlewareGroupSerialNumber,
+            routeId: routeEntity.id,
+            middlewareGroupId: middlewareGroupEntity.id
+        }
+        this.eventEmitter.emit(RouteEventMutationName, eventContext)
     }
 
     public async addMiddleware(route: RouteType, middleware: MiddlewareType, nestedTransaction = false): Promise<void> {
@@ -292,20 +349,26 @@ export class RouteService implements IRouteService {
                     .add(middlewareEntity)
             })
         } catch(error) {
-            block: {
-                if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_PRIMARYKEY)) {
-                    break block
-                }
-
-                throw error
+            if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_PRIMARYKEY)) {
+                throw new MiddlewareAlreadyBound
             }
+
+            throw error
         }
+
+        const eventContext: EventContext = {
+            type: RouteEventMutation.AddMiddleware,
+            routeId: routeEntity.id,
+            middlewareId: middlewareEntity.id
+        }
+        this.eventEmitter.emit(RouteEventMutationName, eventContext)
     }
 
     public async removeMiddleware(route: RouteType, middleware: MiddlewareType, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const routeRepository = await this.routeRepository
         const middlewareRepository = connection.getRepository(Middleware)
+        const routeMiddlewareRepository = connection.getRepository(RouteMiddleware)
 
         const routeEntity = await routeRepository.findOne({
             where: {
@@ -329,6 +392,18 @@ export class RouteService implements IRouteService {
             throw new MiddlewareDoesNotExists
         }
 
+        /**
+         * Если связи с маршрутом изначально не было, то выйти из функции
+         */
+        if (!await routeMiddlewareRepository.count({
+            where: {
+                routeId: routeEntity.id,
+                middlewareId: middlewareEntity.id
+            }
+        })) {
+            return
+        }
+
         await mutationQuery(nestedTransaction, () => {
             return connection
                 .createQueryBuilder()
@@ -336,6 +411,13 @@ export class RouteService implements IRouteService {
                 .of(routeEntity)
                 .remove(middlewareEntity)
         })
+
+        const eventContext: EventContext = {
+            type: RouteEventMutation.RemoveMiddleware,
+            routeId: routeEntity.id,
+            middlewareId: middlewareEntity.id
+        }
+        this.eventEmitter.emit(RouteEventMutationName, eventContext)
     }
 
     public async setMiddlewareSerialNumber(
@@ -383,12 +465,30 @@ export class RouteService implements IRouteService {
         if (updateResult.affected === 0) {
             throw new RouteDoesNotHaveMiddleware
         }
+
+        const eventContext: EventContext = {
+            type: RouteEventMutation.SetMiddlewareSerialNumber,
+            routeId: routeEntity.id,
+            middlewareId: middlewareEntity.id
+        }
+        this.eventEmitter.emit(RouteEventMutationName, eventContext)
     }
 
     public async enableCsrf(route: RouteType, nestedTransaction = false): Promise<void> {
         const routeRepository = await this.routeRepository
 
-        const updateResult = await mutationQuery(nestedTransaction, () => {
+        const routeEntity = await routeRepository.findOne({
+            where: {
+                namespace: route.namespace,
+                name: route.name
+            }
+        })
+
+        if (!routeEntity) {
+            throw new RouteDoesNotExists
+        }
+
+        await mutationQuery(nestedTransaction, () => {
             return routeRepository.update({
                 namespace: route.namespace,
                 name: route.name
@@ -397,15 +497,28 @@ export class RouteService implements IRouteService {
             })
         })
 
-        if (updateResult.affected === 0) {
-            throw new RouteDoesNotExists
+        const eventContext: EventContext = {
+            type: RouteEventMutation.EnableCsrf,
+            routeId: routeEntity.id
         }
+        this.eventEmitter.emit(RouteEventMutationName, eventContext)
     }
 
     public async disableCsrf(route: RouteType, nestedTransaction = false): Promise<void> {
         const routeRepository = await this.routeRepository
 
-        const updateResult = await mutationQuery(nestedTransaction, () => {
+        const routeEntity = await routeRepository.findOne({
+            where: {
+                namespace: route.namespace,
+                name: route.name
+            }
+        })
+
+        if (!routeEntity) {
+            throw new RouteDoesNotExists
+        }
+
+        await mutationQuery(nestedTransaction, () => {
             return routeRepository.update({
                 namespace: route.namespace,
                 name: route.name
@@ -414,9 +527,11 @@ export class RouteService implements IRouteService {
             })
         })
 
-        if (updateResult.affected === 0) {
-            throw new RouteDoesNotExists
+        const eventContext: EventContext = {
+            type: RouteEventMutation.DisableCsrf,
+            routeId: routeEntity.id
         }
+        this.eventEmitter.emit(RouteEventMutationName, eventContext)
     }
 
     public async remove(route: RouteType, nestedTransaction = false): Promise<void> {
@@ -430,10 +545,15 @@ export class RouteService implements IRouteService {
                 name: route.name
             }
         })
-
+        
         if (!routeEntity) {
             return
         }
+
+        /**
+         * Идентификатор маршрута для события
+         */
+        const routeId = routeEntity.id
 
         await transaction(nestedTransaction, connection, async () => {
             await mutationQuery(true, () => {
@@ -444,6 +564,12 @@ export class RouteService implements IRouteService {
                 return metadataRepository.remove(routeEntity.metadata)
             })
         })
+
+        const eventContext: EventContext = {
+            type: RouteEventMutation.Remove,
+            routeId: routeId
+        }
+        this.eventEmitter.emit(RouteEventMutationName, eventContext)
     }
 
     public async bindController(route: RouteType, controller: ControllerType, nestedTransaction = false): Promise<void> {
@@ -473,10 +599,20 @@ export class RouteService implements IRouteService {
             throw new ControllerDoesNotExists()
         }
 
-        routeEntity.controller = controllerEntity
         await mutationQuery(nestedTransaction, () => {
-            return routeRepository.save(routeEntity)
+            return routeRepository.update({
+                id: routeEntity.id
+            }, {
+                controllerId: controllerEntity.id
+            })
         })
+
+        const eventContext: EventContext = {
+            type: RouteEventMutation.BindController,
+            routeId: routeEntity.id,
+            controllerId: controllerEntity.id
+        }
+        this.eventEmitter.emit(RouteEventMutationName, eventContext)
     }
 
     public async unbindController(route: RouteType, nestedTransaction = false): Promise<void> {
@@ -493,10 +629,23 @@ export class RouteService implements IRouteService {
             throw new RouteDoesNotExists()
         }
 
-        routeEntity.controller = null
         await mutationQuery(nestedTransaction, () => {
-            return routeRepository.save(routeEntity)
+            return routeRepository.update({
+                id: routeEntity.id
+            }, {
+                controllerId: null
+            })
         })
+
+        const eventContext: EventContext = {
+            type: RouteEventMutation.UnbindController,
+            routeId: routeEntity.id
+        }
+        this.eventEmitter.emit(RouteEventMutationName, eventContext)
+    }
+
+    public onMutation(handler: (context: EventContext) => void): void {
+        this.eventEmitter.on(RouteEventMutationName, handler)
     }
 
 }
