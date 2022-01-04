@@ -53,9 +53,9 @@ export interface CreateSignal {
 /**
  * Идентификатор события мутации
  */
-export const EventMutation = Symbol('Mutation')
+export const SignalEventMutationName = Symbol('Mutation')
 
-export enum EventType {
+export enum SignalEventMutation {
     /**
      * Событие создания сигнала
      */
@@ -106,7 +106,7 @@ export interface EventContext {
     /**
      * Тип мутации
      */
-    type: EventType
+    type: SignalEventMutation
     /**
      * Идентификатор сигнала над которым происходит мутация
      */

@@ -1,6 +1,6 @@
 import { getContainer } from '../../../../inversify.config'
 import { IGraphCacheService } from './graph-cache.interface'
-import { SIGNAL_SYMBOL, Signal, EventType } from '../signal.type'
+import { SIGNAL_SYMBOL, Signal, SignalEventMutation } from '../signal.type'
 import { ISignalService } from '../signal.interface'
 import { CREATOR_SYMBOL, CreatorType } from '../../creator/creator.types'
 import { getCreatorService } from '../../creator/__mock/getCreatorService.mock'
@@ -465,7 +465,7 @@ describe('GraphCacheInit в SignalModule', () => {
     })
 
     it(`
-        При инициализации корректно обновление кэша сигналов корректно привязывается к
+        При инициализации обновление кэша сигналов корректно привязывается к
         событиям обновления сигналов
     `, async () => {
         const container = await getContainer()
@@ -505,7 +505,7 @@ describe('GraphCacheInit в SignalModule', () => {
                     onSignalMutationFn()
                     handler({
                         signalId: 1,
-                        type: EventType.Create
+                        type: SignalEventMutation.Create
                     })
                 }
             }))

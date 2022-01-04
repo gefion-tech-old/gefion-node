@@ -7,8 +7,8 @@ import {
     Signal, 
     SignalMetadata,
     CreateSignal,
-    EventType,
-    EventMutation,
+    SignalEventMutation,
+    SignalEventMutationName,
     EventContext
 } from './signal.type'
 import { 
@@ -92,10 +92,10 @@ export class SignalService implements ISignalService {
         })
 
         const eventContext: EventContext = {
-            type: EventType.Create,
+            type: SignalEventMutation.Create,
             signalId: signalEntity.id
         }
-        this.eventEmitter.emit(EventMutation, eventContext)
+        this.eventEmitter.emit(SignalEventMutationName, eventContext)
     }
 
     public async isExists(signal: Signal): Promise<boolean> {
@@ -142,10 +142,10 @@ export class SignalService implements ISignalService {
         }, nestedTransaction)
 
         const eventContext: EventContext = {
-            type: EventType.SetCustomMetadata,
+            type: SignalEventMutation.SetCustomMetadata,
             signalId: signalEntity.id
         }
-        this.eventEmitter.emit(EventMutation, eventContext)
+        this.eventEmitter.emit(SignalEventMutationName, eventContext)
     }
 
     public async addValidator(signal: Signal, method: Method, nestedTransaction = false): Promise<void> {
@@ -185,10 +185,10 @@ export class SignalService implements ISignalService {
         }
 
         const eventContext: EventContext = {
-            type: EventType.AddValidator,
+            type: SignalEventMutation.AddValidator,
             signalId: signalEntity.id
         }
-        this.eventEmitter.emit(EventMutation, eventContext)
+        this.eventEmitter.emit(SignalEventMutationName, eventContext)
     }
 
     public async removeValidator(signal: Signal, method: Method, nestedTransaction = false): Promise<void> {
@@ -236,10 +236,10 @@ export class SignalService implements ISignalService {
         }
 
         const eventContext: EventContext = {
-            type: EventType.RemoveValidator,
+            type: SignalEventMutation.RemoveValidator,
             signalId: signalEntity.id
         }
-        this.eventEmitter.emit(EventMutation, eventContext)
+        this.eventEmitter.emit(SignalEventMutationName, eventContext)
     }
 
     public async addGuard(signal: Signal, method: Method, nestedTransaction = false): Promise<void> {
@@ -279,10 +279,10 @@ export class SignalService implements ISignalService {
         }
 
         const eventContext: EventContext = {
-            type: EventType.AddGuard,
+            type: SignalEventMutation.AddGuard,
             signalId: signalEntity.id
         }
-        this.eventEmitter.emit(EventMutation, eventContext)
+        this.eventEmitter.emit(SignalEventMutationName, eventContext)
     }
 
     public async removeGuard(signal: Signal, method: Method, nestedTransaction = false): Promise<void> {
@@ -330,10 +330,10 @@ export class SignalService implements ISignalService {
         }
 
         const eventContext: EventContext = {
-            type: EventType.RemoveGuard,
+            type: SignalEventMutation.RemoveGuard,
             signalId: signalEntity.id
         }
-        this.eventEmitter.emit(EventMutation, eventContext)
+        this.eventEmitter.emit(SignalEventMutationName, eventContext)
     }
 
     public async addFilter(signal: Signal, method: Method, nestedTransaction = false): Promise<void> {
@@ -373,10 +373,10 @@ export class SignalService implements ISignalService {
         }
 
         const eventContext: EventContext = {
-            type: EventType.AddFilter,
+            type: SignalEventMutation.AddFilter,
             signalId: signalEntity.id
         }
-        this.eventEmitter.emit(EventMutation, eventContext)
+        this.eventEmitter.emit(SignalEventMutationName, eventContext)
     }
 
     public async removeFilter(signal: Signal, method: Method, nestedTransaction = false): Promise<void> {
@@ -424,10 +424,10 @@ export class SignalService implements ISignalService {
         }
 
         const eventContext: EventContext = {
-            type: EventType.RemoveFilter,
+            type: SignalEventMutation.RemoveFilter,
             signalId: signalEntity.id
         }
-        this.eventEmitter.emit(EventMutation, eventContext)
+        this.eventEmitter.emit(SignalEventMutationName, eventContext)
     }
 
     public async connect(outSignal: Signal, intoSignal: Signal, nestedTransaction = false): Promise<void> {
@@ -486,10 +486,10 @@ export class SignalService implements ISignalService {
         }
 
         const eventContext: EventContext = {
-            type: EventType.Connect,
+            type: SignalEventMutation.Connect,
             signalId: outSignalEntity.id
         }
-        this.eventEmitter.emit(EventMutation, eventContext)
+        this.eventEmitter.emit(SignalEventMutationName, eventContext)
     }
 
     public async unconnect(outSignal: Signal, intoSignal: Signal, nestedTransaction = false): Promise<void> {
@@ -538,10 +538,10 @@ export class SignalService implements ISignalService {
         await graphRepository.unconnect(outSignalEntity, intoSignalEntity, nestedTransaction)
 
         const eventContext: EventContext = {
-            type: EventType.Unconnect,
+            type: SignalEventMutation.Unconnect,
             signalId: outSignalEntity.id
         }
-        this.eventEmitter.emit(EventMutation, eventContext)
+        this.eventEmitter.emit(SignalEventMutationName, eventContext)
     }
 
     public async remove(signal: Signal, nestedTransaction = false): Promise<void> {
@@ -616,14 +616,14 @@ export class SignalService implements ISignalService {
         })
 
         const eventContext: EventContext = {
-            type: EventType.Remove,
+            type: SignalEventMutation.Remove,
             signalId: signalEntity.id
         }
-        this.eventEmitter.emit(EventMutation, eventContext)
+        this.eventEmitter.emit(SignalEventMutationName, eventContext)
     }
 
     public onSignalMutation(handler: (context: EventContext) => void): void {
-        this.eventEmitter.on(EventMutation, handler)
+        this.eventEmitter.on(SignalEventMutationName, handler)
     }
 
 }

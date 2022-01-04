@@ -1,5 +1,5 @@
 import { getContainer } from '../../../inversify.config'
-import { SIGNAL_SYMBOL, EventType, EventContext } from './signal.type'
+import { SIGNAL_SYMBOL, SignalEventMutation, EventContext } from './signal.type'
 import { ISignalService } from './signal.interface'
 import { METHOD_SYMBOL } from '../method/method.types'
 import { IMethodService } from '../method/method.interface'
@@ -114,7 +114,7 @@ describe('SignalService в SignalModule', () => {
         })).rejects.toBeInstanceOf(SignalAlreadyExists)
         
         const eventContext: EventContext = {
-            type: EventType.Create,
+            type: SignalEventMutation.Create,
             signalId: await signalService.getSignalId(signal1) as number
         }
         expect(signalMutationFn).toHaveBeenNthCalledWith(1, expect.objectContaining(eventContext))
@@ -230,7 +230,7 @@ describe('SignalService в SignalModule', () => {
         })).rejects.toBeInstanceOf(RevisionNumberError)
 
         const eventContext: EventContext = {
-            type: EventType.SetCustomMetadata,
+            type: SignalEventMutation.SetCustomMetadata,
             signalId: await signalService.getSignalId(signal1) as number
         }
         expect(signalMutationFn).toHaveBeenNthCalledWith(2, expect.objectContaining(eventContext))
@@ -550,15 +550,15 @@ describe('SignalService в SignalModule', () => {
         expect(signalEntity.filters).toHaveLength(3)
 
         const eventContext1: EventContext = {
-            type: EventType.AddValidator,
+            type: SignalEventMutation.AddValidator,
             signalId: await signalService.getSignalId(signal1) as number
         }
         const eventContext2: EventContext = {
-            type: EventType.AddGuard,
+            type: SignalEventMutation.AddGuard,
             signalId: await signalService.getSignalId(signal1) as number
         }
         const eventContext3: EventContext = {
-            type: EventType.AddFilter,
+            type: SignalEventMutation.AddFilter,
             signalId: await signalService.getSignalId(signal1) as number
         }
         expect(signalMutationFn).toHaveBeenNthCalledWith(2, expect.objectContaining(eventContext1))
@@ -830,15 +830,15 @@ describe('SignalService в SignalModule', () => {
         expect(methodService.isAvailable(method1)).toBe(false)
 
         const eventContext1: EventContext = {
-            type: EventType.RemoveValidator,
+            type: SignalEventMutation.RemoveValidator,
             signalId: await signalService.getSignalId(signal1) as number
         }
         const eventContext2: EventContext = {
-            type: EventType.RemoveGuard,
+            type: SignalEventMutation.RemoveGuard,
             signalId: await signalService.getSignalId(signal1) as number
         }
         const eventContext3: EventContext = {
-            type: EventType.RemoveFilter,
+            type: SignalEventMutation.RemoveFilter,
             signalId: await signalService.getSignalId(signal1) as number
         }
         expect(signalMutationFn).toHaveBeenNthCalledWith(12, expect.objectContaining(eventContext1))
@@ -1106,11 +1106,11 @@ describe('SignalService в SignalModule', () => {
         await expect(signalGraphRepository.find()).resolves.toHaveLength(0)
 
         const eventContext1: EventContext = {
-            type: EventType.Connect,
+            type: SignalEventMutation.Connect,
             signalId: await signalService.getSignalId(signal1) as number
         }
         const eventContext2: EventContext = {
-            type: EventType.Unconnect,
+            type: SignalEventMutation.Unconnect,
             signalId: await signalService.getSignalId(signal1) as number
         }
         expect(signalMutationFn).toHaveBeenNthCalledWith(6, expect.objectContaining(eventContext1))
@@ -1261,7 +1261,7 @@ describe('SignalService в SignalModule', () => {
         await expect(signalRepository.find()).resolves.toHaveLength(0)
 
         const eventContext: EventContext = {
-            type: EventType.Remove,
+            type: SignalEventMutation.Remove,
             signalId: await signalService.getSignalId(signal1) as number
         }
         expect(signalMutationFn).toHaveBeenNthCalledWith(13, expect.objectContaining(eventContext))
