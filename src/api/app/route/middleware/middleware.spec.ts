@@ -14,6 +14,7 @@ import { Method } from '../../entities/method.entity'
 import { Metadata } from '../../entities/metadata.entity'
 import { Middleware } from '../../entities/route.entity'
 import { RevisionNumberError } from '../../metadata/metadata.errors'
+import { MiddlewareEventMutation } from './middleware.types'
 
 beforeAll(async () => {
     const container = await getContainer()
@@ -40,6 +41,9 @@ describe('MiddlewareService в RouteModule', () => {
             namespace: 'middleware1',
             name: 'middleware1'
         }
+
+        const eventMutationFn = jest.fn()
+        middlewareService.onMutation(eventMutationFn)
         
         await expect(middlewareService.create({
             creator: {
@@ -52,6 +56,8 @@ describe('MiddlewareService в RouteModule', () => {
             },
             ...middleware
         })).rejects.toBeInstanceOf(MiddlewareMethodNotDefined)
+
+        expect(eventMutationFn).toBeCalledTimes(0)
 
         container.restore()
     })
@@ -82,6 +88,9 @@ describe('MiddlewareService в RouteModule', () => {
             name: 'middleware1'
         }
 
+        const eventMutationFn = jest.fn()
+        middlewareService.onMutation(eventMutationFn)
+
         await expect(middlewareService.isExists(middleware)).resolves.toBe(false)
         await expect(middlewareService.create({
             creator: {
@@ -104,6 +113,12 @@ describe('MiddlewareService в RouteModule', () => {
         }, {
             type: CreatorType.System
         })).resolves.toBe(true)
+
+        expect(eventMutationFn).toBeCalledTimes(1)
+        expect(eventMutationFn).nthCalledWith(1, {
+            type: MiddlewareEventMutation.Create,
+            middlewareId: 1
+        })
 
         container.restore()
     })
@@ -134,6 +149,10 @@ describe('MiddlewareService в RouteModule', () => {
             namespace: 'middleware1',
             name: 'middleware1'
         }
+
+        const eventMutationFn = jest.fn()
+        middlewareService.onMutation(eventMutationFn)
+
         await middlewareService.create({
             creator: {
                 type: CreatorType.System
@@ -165,6 +184,12 @@ describe('MiddlewareService в RouteModule', () => {
             type: CreatorType.System
         })).resolves.toBe(false)
 
+        expect(eventMutationFn).toBeCalledTimes(2)
+        expect(eventMutationFn).nthCalledWith(2, {
+            type: MiddlewareEventMutation.Remove,
+            middlewareId: 1
+        })
+
         container.restore()
     })
     
@@ -182,12 +207,17 @@ describe('MiddlewareService в RouteModule', () => {
             name: 'middleware1'
         }
 
+        const eventMutationFn = jest.fn()
+        middlewareService.onMutation(eventMutationFn)
+
         await expect(middlewareService.setMetadata(middleware, {
             metadata: {
                 custom: true
             },
             revisionNumber: 0
         })).rejects.toBeInstanceOf(MiddlewareDoesNotExists)
+
+        expect(eventMutationFn).toBeCalledTimes(0)
 
         container.restore()
     })
@@ -217,6 +247,9 @@ describe('MiddlewareService в RouteModule', () => {
             namespace: 'middleware1',
             name: 'middleware1'
         }
+
+        const eventMutationFn = jest.fn()
+        middlewareService.onMutation(eventMutationFn)
 
         await expect(middlewareService.create({
             creator: {
@@ -279,6 +312,12 @@ describe('MiddlewareService в RouteModule', () => {
         })
         await expect(metadataRepository.count()).resolves.toBe(1)
 
+        expect(eventMutationFn).toBeCalledTimes(2)
+        expect(eventMutationFn).nthCalledWith(2, {
+            type: MiddlewareEventMutation.SetMetadata,
+            middlewareId: 1
+        })
+
         container.restore()
     })
     
@@ -296,8 +335,13 @@ describe('MiddlewareService в RouteModule', () => {
             name: 'middleware1'
         }
 
+        const eventMutationFn = jest.fn()
+        middlewareService.onMutation(eventMutationFn)
+
         await expect(middlewareService.enableCsrf(middleware)).rejects.toBeInstanceOf(MiddlewareDoesNotExists)
         await expect(middlewareService.disableCsrf(middleware)).rejects.toBeInstanceOf(MiddlewareDoesNotExists)
+
+        expect(eventMutationFn).toBeCalledTimes(0)
             
         container.restore()
     })
@@ -326,6 +370,9 @@ describe('MiddlewareService в RouteModule', () => {
             namespace: 'middleware1',
             name: 'middleware1'
         }
+
+        const eventMutationFn = jest.fn()
+        middlewareService.onMutation(eventMutationFn)
 
         await expect(middlewareService.create({
             creator: {
@@ -358,6 +405,20 @@ describe('MiddlewareService в RouteModule', () => {
         })).resolves.toMatchObject({
             isCsrf: false
         })
+
+        expect(eventMutationFn).toBeCalledTimes(5)
+        const eventContextEnableCsrf = {
+            type: MiddlewareEventMutation.EnableCsrf,
+            middlewareId: 1
+        }
+        expect(eventMutationFn).nthCalledWith(2, eventContextEnableCsrf)
+        expect(eventMutationFn).nthCalledWith(3, eventContextEnableCsrf)
+        const eventContextDisableCsrf = {
+            type: MiddlewareEventMutation.DisableCsrf,
+            middlewareId: 1
+        }
+        expect(eventMutationFn).nthCalledWith(4, eventContextDisableCsrf)
+        expect(eventMutationFn).nthCalledWith(5, eventContextDisableCsrf)
 
         container.restore()
     })

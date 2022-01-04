@@ -13,7 +13,10 @@ import { ICreatorService } from '../../creator/creator.interface'
 import { 
     CreateMiddleware, 
     MiddlewareMetadata, 
-    Middleware as MiddlewareType 
+    Middleware as MiddlewareType,
+    EventContext,
+    MiddlewareEventMutation,
+    MiddlewareEventMutationName
 } from './middleware.types'
 import { SnapshotMetadata } from '../../metadata/metadata.types'
 import { MetadataRepository } from '../../metadata/repositories/metadata.repository'
@@ -24,12 +27,14 @@ import {
 } from './middleware.errors'
 import { Metadata } from '../../entities/metadata.entity'
 import { MethodUsedError } from '../../method/method.errors'
+import { EventEmitter } from 'events'
 
 @injectable()
 export class MiddlewareService implements IMiddlewareService {
 
     private connection: Promise<Connection>
     private middlewareRepository: Promise<Repository<Middleware>>
+    private eventEmitter = new EventEmitter
 
     public constructor(
         @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
@@ -65,7 +70,7 @@ export class MiddlewareService implements IMiddlewareService {
          * Оборачиваю запрос в транзакцию в том числе из-за каскадного сохранения
          * метаданных
          */
-        await transaction(nestedTransaction, connection, async () => {
+        const middlewareEntity = await transaction(nestedTransaction, connection, async () => {
             const middlewareEntity = await mutationQuery(true, () => {
                 return middlewareRepository.save({
                     isCsrf: false,
@@ -84,7 +89,15 @@ export class MiddlewareService implements IMiddlewareService {
                 type: ResourceType.Middleware,
                 id: middlewareEntity.id
             }, options.creator, true)
+
+            return middlewareEntity
         })
+
+        const eventContext: EventContext = {
+            type: MiddlewareEventMutation.Create,
+            middlewareId: middlewareEntity.id
+        }
+        this.eventEmitter.emit(MiddlewareEventMutationName, eventContext)
     }
 
     public async isExists(middleware: MiddlewareType): Promise<boolean> {
@@ -118,6 +131,12 @@ export class MiddlewareService implements IMiddlewareService {
             metadata: middlewareEntity.metadata.metadata,
             revisionNumber: snapshotMetadata.revisionNumber
         }, nestedTransaction)
+
+        const eventContext: EventContext = {
+            type: MiddlewareEventMutation.SetMetadata,
+            middlewareId: middlewareEntity.id
+        }
+        this.eventEmitter.emit(MiddlewareEventMutationName, eventContext)
     }
 
     public async remove(middleware: MiddlewareType, nestedTransaction = false): Promise<void> {
@@ -136,6 +155,11 @@ export class MiddlewareService implements IMiddlewareService {
         if (!middlewareEntity) {
             return
         }
+
+        /**
+         * Идентификатор контроллера для события
+         */
+        const middlewareId = middlewareEntity.id
 
         await transaction(nestedTransaction, connection, async () => {
             await mutationQuery(true, () => {
@@ -161,12 +185,29 @@ export class MiddlewareService implements IMiddlewareService {
                 }
             }
         })
+
+        const eventContext: EventContext = {
+            type: MiddlewareEventMutation.Remove,
+            middlewareId: middlewareId
+        }
+        this.eventEmitter.emit(MiddlewareEventMutationName, eventContext)
     }
 
     public async enableCsrf(middleware: MiddlewareType, nestedTransaction = false): Promise<void> {
         const middlewareRepository = await this.middlewareRepository
 
-        const updateResult = await mutationQuery(nestedTransaction, () => {
+        const middlewareEntity = await middlewareRepository.findOne({
+            where: {
+                namespace: middleware.namespace,
+                name: middleware.name
+            }
+        })
+
+        if (!middlewareEntity) {
+            throw new MiddlewareDoesNotExists
+        }
+
+        await mutationQuery(nestedTransaction, () => {
             return middlewareRepository.update({
                 namespace: middleware.namespace,
                 name: middleware.name
@@ -175,15 +216,28 @@ export class MiddlewareService implements IMiddlewareService {
             })
         })
 
-        if (updateResult.affected === 0) {
-            throw new MiddlewareDoesNotExists
+        const eventContext: EventContext = {
+            type: MiddlewareEventMutation.EnableCsrf,
+            middlewareId: middlewareEntity.id
         }
+        this.eventEmitter.emit(MiddlewareEventMutationName, eventContext)
     }
 
     public async disableCsrf(middleware: MiddlewareType, nestedTransaction = false): Promise<void> {
         const middlewareRepository = await this.middlewareRepository
 
-        const updateResult = await mutationQuery(nestedTransaction, () => {
+        const middlewareEntity = await middlewareRepository.findOne({
+            where: {
+                namespace: middleware.namespace,
+                name: middleware.name
+            }
+        })
+
+        if (!middlewareEntity) {
+            throw new MiddlewareDoesNotExists
+        }
+
+        await mutationQuery(nestedTransaction, () => {
             return middlewareRepository.update({
                 namespace: middleware.namespace,
                 name: middleware.name
@@ -192,9 +246,15 @@ export class MiddlewareService implements IMiddlewareService {
             })
         })
 
-        if (updateResult.affected === 0) {
-            throw new MiddlewareDoesNotExists
+        const eventContext: EventContext = {
+            type: MiddlewareEventMutation.DisableCsrf,
+            middlewareId: middlewareEntity.id
         }
+        this.eventEmitter.emit(MiddlewareEventMutationName, eventContext)
+    }
+
+    public onMutation(handler: (context: EventContext) => void): void {
+        this.eventEmitter.on(MiddlewareEventMutationName, handler)
     }
 
 }

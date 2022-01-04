@@ -1,5 +1,10 @@
 import { SnapshotMetadata } from '../../metadata/metadata.types'
-import { CreateMiddleware, MiddlewareMetadata, Middleware } from './middleware.types'
+import { 
+    CreateMiddleware, 
+    MiddlewareMetadata, 
+    Middleware,
+    EventContext
+} from './middleware.types'
 
 export interface IMiddlewareService {
 
@@ -32,5 +37,10 @@ export interface IMiddlewareService {
      * Выключить флаг csrf в указанном промежуточном ПО
      */
     disableCsrf(middleware: Middleware, nestedTransaction?: boolean): Promise<void>
+
+    /**
+     * Поставить обработчик для прослушивания события мутации middleware
+     */
+    onMutation(handler: (context: EventContext) => void): void
 
 }

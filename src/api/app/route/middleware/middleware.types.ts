@@ -37,3 +37,36 @@ export interface CreateMiddleware {
      */
     readonly creator: BindableCreator
 }
+
+/**
+ * Идентификатор события мутации
+ */
+export const MiddlewareEventMutationName = Symbol('MiddlewareMutationEvent')
+
+export enum MiddlewareEventMutation {
+    /**
+     * Событие создания middleware
+     */
+    Create = 'Create',
+    /**
+     * Событие изменения метаданных middleware
+     */
+    SetMetadata = 'SetMetadata',
+    /**
+     * Событие удаления middleware
+     */
+    Remove = 'Remove',
+    /**
+     * Событие включения csrf флага в middleware
+     */
+    EnableCsrf = 'EnableCsrf',
+    /**
+     * Событие выключения csrf флага в middleware
+     */
+    DisableCsrf = 'DisableCsrf'
+}
+
+export interface EventContext {
+    type: MiddlewareEventMutation
+    middlewareId: number
+}
