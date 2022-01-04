@@ -777,6 +777,7 @@ describe('CreatorService в CreatorModule', () => {
                 type: 'type'
             })
             const controllerEntity = await controllerRepository.save({
+                namespace: 'namespace',
                 name: 'name',
                 metadata: {
                     metadata: {
@@ -839,6 +840,7 @@ describe('CreatorService в CreatorModule', () => {
                 type: 'type'
             })
             const controllerEntity = await controllerRepository.save({
+                namespace: 'namespace',
                 name: 'name',
                 metadata: {
                     metadata: {
@@ -898,6 +900,7 @@ describe('CreatorService в CreatorModule', () => {
                 type: 'type'
             })
             const controllerEntity = await controllerRepository.save({
+                namespace: 'namespace',
                 name: 'name',
                 metadata: {
                     metadata: {
@@ -943,6 +946,7 @@ describe('CreatorService в CreatorModule', () => {
                 type: 'type'
             })
             const controllerEntity = await controllerRepository.save({
+                namespace: 'namespace',
                 name: 'name',
                 metadata: {
                     metadata: {
@@ -1001,6 +1005,7 @@ describe('CreatorService в CreatorModule', () => {
                     }
                 },
                 name: 'middleware1',
+                namespace: 'namespace',
                 method: methodEntity
             })
     
@@ -1064,6 +1069,7 @@ describe('CreatorService в CreatorModule', () => {
                     }
                 },
                 name: 'middleware1',
+                namespace: 'namespace',
                 method: methodEntity
             })
     
@@ -1114,6 +1120,7 @@ describe('CreatorService в CreatorModule', () => {
                     }
                 },
                 name: 'middleware1',
+                namespace: 'namespace',
                 method: methodEntity
             })
     
@@ -1168,6 +1175,7 @@ describe('CreatorService в CreatorModule', () => {
                     }
                 },
                 name: 'middleware1',
+                namespace: 'namespace',
                 method: methodEntity
             })
 
@@ -1222,6 +1230,7 @@ describe('CreatorService в CreatorModule', () => {
                         custom: null
                     }
                 },
+                namespace: 'namespace',
                 name: 'middlewareGroup1'
             })
     
@@ -1270,6 +1279,7 @@ describe('CreatorService в CreatorModule', () => {
                         custom: null
                     }
                 },
+                namespace: 'namespace',
                 name: 'middlewareGroup1'
             })
     
@@ -1322,6 +1332,7 @@ describe('CreatorService в CreatorModule', () => {
                         custom: null
                     }
                 },
+                namespace: 'namespace',
                 name: 'middlewareGroup1'
             })
 
@@ -1361,6 +1372,7 @@ describe('CreatorService в CreatorModule', () => {
                         custom: null
                     }
                 },
+                namespace: 'namespace',
                 name: 'middlewareGroup1'
             })
 
@@ -1415,6 +1427,7 @@ describe('CreatorService в CreatorModule', () => {
                     }
                 },
                 method: 'POST',
+                namespace: 'namespace',
                 name: 'route1',
                 path: '/'
             })
@@ -1464,6 +1477,7 @@ describe('CreatorService в CreatorModule', () => {
                     }
                 },
                 method: 'POST',
+                namespace: 'namespace',
                 name: 'route1',
                 path: '/'
             })
@@ -1517,6 +1531,7 @@ describe('CreatorService в CreatorModule', () => {
                     }
                 },
                 method: 'POST',
+                namespace: 'namespace',
                 name: 'route1',
                 path: '/'
             })
@@ -1557,6 +1572,7 @@ describe('CreatorService в CreatorModule', () => {
                     }
                 },
                 method: 'POST',
+                namespace: 'namespace',
                 name: 'route1',
                 path: '/'
             })
