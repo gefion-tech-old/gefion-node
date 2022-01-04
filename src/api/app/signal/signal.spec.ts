@@ -6,9 +6,9 @@ import { IMethodService } from '../method/method.interface'
 import {
     SignalDoesNotExist,
     SignalMethodNotDefined,
-    ValidatorAlreadyExist,
-    GuardAlreadyExists,
-    FilterAlreadyExists,
+    ValidatorAlreadyBound,
+    GuardAlreadyBound,
+    FilterAlreadyBound,
     OutputSignalDoesNotExist,
     InputSignalDoesNotExist,
     CyclicSignalsNotAllowed,
@@ -421,19 +421,19 @@ describe('SignalService в SignalModule', () => {
             .toBeUndefined()
         await expect(signalService.addValidator(signal1, method1))
             .rejects
-            .toBeInstanceOf(ValidatorAlreadyExist)
+            .toBeInstanceOf(ValidatorAlreadyBound)
         await expect(signalService.addGuard(signal1, method1))
             .resolves
             .toBeUndefined()
         await expect(signalService.addGuard(signal1, method1))
             .rejects
-            .toBeInstanceOf(GuardAlreadyExists)
+            .toBeInstanceOf(GuardAlreadyBound)
         await expect(signalService.addFilter(signal1, method1))
             .resolves
             .toBeUndefined()
         await expect(signalService.addFilter(signal1, method1))
             .rejects
-            .toBeInstanceOf(FilterAlreadyExists)
+            .toBeInstanceOf(FilterAlreadyBound)
 
         container.restore()
     })

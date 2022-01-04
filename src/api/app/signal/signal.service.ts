@@ -14,9 +14,9 @@ import {
 import { 
     SignalDoesNotExist,
     SignalMethodNotDefined,
-    ValidatorAlreadyExist,
-    GuardAlreadyExists,
-    FilterAlreadyExists,
+    ValidatorAlreadyBound,
+    GuardAlreadyBound,
+    FilterAlreadyBound,
     InputSignalDoesNotExist,
     OutputSignalDoesNotExist,
     SignalUsedError,
@@ -178,7 +178,7 @@ export class SignalService implements ISignalService {
             })
         } catch(error) {
             if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_PRIMARYKEY)) {
-                throw new ValidatorAlreadyExist
+                throw new ValidatorAlreadyBound
             }
 
             throw error
@@ -272,7 +272,7 @@ export class SignalService implements ISignalService {
             })
         } catch(error) {
             if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_PRIMARYKEY)) {
-                throw new GuardAlreadyExists
+                throw new GuardAlreadyBound
             }
 
             throw error
@@ -366,7 +366,7 @@ export class SignalService implements ISignalService {
             })
         } catch(error) {
             if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_PRIMARYKEY)) {
-                throw new FilterAlreadyExists
+                throw new FilterAlreadyBound
             }
 
             throw error

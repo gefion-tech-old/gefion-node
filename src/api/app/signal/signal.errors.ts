@@ -21,23 +21,23 @@ export class SignalMethodNotDefined extends SignalError {
 
 }
 
-export class ValidatorAlreadyExist extends SignalError {
+export class ValidatorAlreadyBound extends SignalError {
 
-    public name = 'ValidatorAlreadyExist'
+    public name = 'ValidatorAlreadyBound'
     public message = 'Указанный метод валидатора уже привязан к данному сигналу'
 
 }
 
-export class GuardAlreadyExists extends SignalError {
+export class GuardAlreadyBound extends SignalError {
 
-    public name = 'GuardAlreadyExists'
+    public name = 'GuardAlreadyBound'
     public message = 'Указанный метод охранника уже привязан к данному сигналу'
 
 }
 
-export class FilterAlreadyExists extends SignalError {
+export class FilterAlreadyBound extends SignalError {
 
-    public name = 'FilterAlreadyExists'
+    public name = 'FilterAlreadyBound'
     public message = 'Указанный метод фильтра уже привязан к данному сигналу'
     
 }
