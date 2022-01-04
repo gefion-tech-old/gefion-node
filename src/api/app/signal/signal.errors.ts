@@ -1,5 +1,12 @@
 export class SignalError extends Error {}
 
+export class SignalAlreadyExists extends SignalError {
+
+    public name = 'SignalAlreadyExists'
+    public message = 'Указанный сигнал уже существует'
+
+}
+
 export class SignalDoesNotExist extends SignalError {
 
     public name = 'SignalDoesNotExist'

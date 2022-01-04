@@ -56,7 +56,7 @@ describe('GraphCacheService в SignalModule', () => {
         }) as any
 
         await Promise.all([signal1, signal2, signal3, signal4, signal5, signal6].map(signal => {
-            return signalService.createIfNotCreated({
+            return signalService.create({
                 creator: {
                     type: CreatorType.System
                 },
@@ -495,7 +495,7 @@ describe('GraphCacheInit в SignalModule', () => {
                 removeGuard: async () => {},
                 removeValidator: async () => {},
                 isExists: async () => false,
-                createIfNotCreated: async () => {},
+                create: async () => {},
                 getSignalId: async () => undefined,
                 remove: async () => {},
                 connect: async () => {},

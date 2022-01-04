@@ -19,7 +19,8 @@ import {
     FilterAlreadyExists,
     InputSignalDoesNotExist,
     OutputSignalDoesNotExist,
-    SignalUsedError
+    SignalUsedError,
+    SignalAlreadyExists
 } from './signal.errors'
 import { METHOD_SYMBOL, Method } from '../method/method.types'
 import { IMethodService } from '../method/method.interface'
@@ -60,12 +61,12 @@ export class SignalService implements ISignalService {
             })
     }
 
-    public async createIfNotCreated(options: CreateSignal, nestedTransaction = false): Promise<void> {
+    public async create(options: CreateSignal, nestedTransaction = false): Promise<void> {
         const signalRepository = await this.signalRepository
         const connection = await this.connection
 
         if (await this.isExists(options.signal)) {
-            return
+            throw new SignalAlreadyExists
         }
 
         const signalEntity = await transaction(nestedTransaction, connection, async () => {

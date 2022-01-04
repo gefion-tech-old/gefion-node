@@ -12,7 +12,8 @@ import {
     OutputSignalDoesNotExist,
     InputSignalDoesNotExist,
     CyclicSignalsNotAllowed,
-    SignalUsedError
+    SignalUsedError,
+    SignalAlreadyExists
 } from './signal.errors'
 import { Connection, Entity, PrimaryGeneratedColumn, OneToOne, JoinColumn } from 'typeorm'
 import { Signal, SignalGraph } from '../entities/signal.entity'
@@ -63,7 +64,8 @@ afterAll(async () => {
 describe('SignalService в SignalModule', () => {
 
     it(`
-        Сигнал корректно создаётся и к нему привязывается создатель
+        Сигнал корректно создаётся и к нему привязывается создатель. Попытка создания уже созданного
+        сигнала приводит к исключению
     `, async () => {
         const container = await getContainer()
         container.snapshot()
@@ -96,20 +98,20 @@ describe('SignalService в SignalModule', () => {
         const signalMutationFn = jest.fn()
         expect(signalService.onSignalMutation(signalMutationFn)).toBeUndefined()
 
-        await expect(signalService.createIfNotCreated({
+        await expect(signalService.create({
             signal: signal1,
             defaultMetadata: metadata,
             creator: {
                 type: CreatorType.System
             }
         })).resolves.toBeUndefined()
-        await expect(signalService.createIfNotCreated({
+        await expect(signalService.create({
             signal: signal1,
             defaultMetadata: undefined,
             creator: {
                 type: CreatorType.System
             }
-        })).resolves.toBeUndefined()
+        })).rejects.toBeInstanceOf(SignalAlreadyExists)
         
         const eventContext: EventContext = {
             type: EventType.Create,
@@ -180,7 +182,7 @@ describe('SignalService в SignalModule', () => {
         const signalMutationFn = jest.fn()
         expect(signalService.onSignalMutation(signalMutationFn)).toBeUndefined()
 
-        await signalService.createIfNotCreated({
+        await signalService.create({
             signal: signal1,
             defaultMetadata: defaultMetadata,
             creator: {
@@ -341,7 +343,7 @@ describe('SignalService в SignalModule', () => {
         }
         const defaultMetadata = null
 
-        await signalService.createIfNotCreated({
+        await signalService.create({
             signal: signal1,
             defaultMetadata: defaultMetadata,
             creator: {
@@ -406,7 +408,7 @@ describe('SignalService в SignalModule', () => {
         }
         const defaultMetadata = true
         
-        await signalService.createIfNotCreated({
+        await signalService.create({
             signal: signal1,
             defaultMetadata: defaultMetadata,
             creator: {
@@ -514,7 +516,7 @@ describe('SignalService в SignalModule', () => {
         const signalMutationFn = jest.fn()
         expect(signalService.onSignalMutation(signalMutationFn)).toBeUndefined()
 
-        await signalService.createIfNotCreated({
+        await signalService.create({
             signal: signal1,
             defaultMetadata: defaultMetadata,
             creator: {
@@ -642,7 +644,7 @@ describe('SignalService в SignalModule', () => {
         }
         const defaultMetadata = null
 
-        await signalService.createIfNotCreated({
+        await signalService.create({
             signal: signal1,
             defaultMetadata: defaultMetadata,
             creator: {
@@ -715,14 +717,14 @@ describe('SignalService в SignalModule', () => {
         const signalMutationFn = jest.fn()
         expect(signalService.onSignalMutation(signalMutationFn)).toBeUndefined()
 
-        await signalService.createIfNotCreated({
+        await signalService.create({
             signal: signal1,
             defaultMetadata: defaultMetadata,
             creator: {
                 type: CreatorType.System
             }
         })
-        await signalService.createIfNotCreated({
+        await signalService.create({
             signal: signal2,
             defaultMetadata: defaultMetadata,
             creator: {
@@ -874,7 +876,7 @@ describe('SignalService в SignalModule', () => {
         }
         const defaultMetadata = null
 
-        await signalService.createIfNotCreated({
+        await signalService.create({
             signal: signal1,
             defaultMetadata: defaultMetadata,
             creator: {
@@ -926,14 +928,14 @@ describe('SignalService в SignalModule', () => {
         const defaultMetadata = null
         
         await Promise.all([
-            signalService.createIfNotCreated({
+            signalService.create({
                 signal: signal1,
                 defaultMetadata: defaultMetadata,
                 creator: {
                     type: CreatorType.System
                 }
             }),
-            signalService.createIfNotCreated({
+            signalService.create({
                 signal: signal2,
                 defaultMetadata: defaultMetadata,
                 creator: {
@@ -999,35 +1001,35 @@ describe('SignalService в SignalModule', () => {
         expect(signalService.onSignalMutation(signalMutationFn)).toBeUndefined()
 
         await Promise.all([
-            signalService.createIfNotCreated({
+            signalService.create({
                 signal: signal1,
                 defaultMetadata: defaultMetadata,
                 creator: {
                     type: CreatorType.System
                 }
             }),
-            signalService.createIfNotCreated({
+            signalService.create({
                 signal: signal2,
                 defaultMetadata: defaultMetadata,
                 creator: {
                     type: CreatorType.System
                 }
             }),
-            signalService.createIfNotCreated({
+            signalService.create({
                 signal: signal3,
                 defaultMetadata: defaultMetadata,
                 creator: {
                     type: CreatorType.System
                 }
             }),
-            signalService.createIfNotCreated({
+            signalService.create({
                 signal: signal4,
                 defaultMetadata: defaultMetadata,
                 creator: {
                     type: CreatorType.System
                 }
             }),
-            signalService.createIfNotCreated({
+            signalService.create({
                 signal: signal5,
                 defaultMetadata: defaultMetadata,
                 creator: {
@@ -1136,7 +1138,7 @@ describe('SignalService в SignalModule', () => {
         }
         const defaultMetadata = null
 
-        await signalService.createIfNotCreated({
+        await signalService.create({
             signal: signal1,
             defaultMetadata: defaultMetadata,
             creator: {
@@ -1208,14 +1210,14 @@ describe('SignalService в SignalModule', () => {
         const signalMutationFn = jest.fn()
         expect(signalService.onSignalMutation(signalMutationFn)).toBeUndefined()
 
-        await signalService.createIfNotCreated({
+        await signalService.create({
             signal: signal1,
             defaultMetadata: defaultMetadata,
             creator: {
                 type: CreatorType.System
             }
         })
-        await signalService.createIfNotCreated({
+        await signalService.create({
             signal: signal2,
             defaultMetadata: defaultMetadata,
             creator: {

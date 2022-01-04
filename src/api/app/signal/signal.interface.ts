@@ -12,7 +12,7 @@ export interface ISignalService {
     /**
      * Создать сигнал, если он ещё не создан и сохранить метаданные по умолчанию
      */
-    createIfNotCreated(options: CreateSignal, nestedTransaction?: boolean): Promise<void>
+    create(options: CreateSignal, nestedTransaction?: boolean): Promise<void>
 
     /**
      * Узнать существует ли указанный сигнал
