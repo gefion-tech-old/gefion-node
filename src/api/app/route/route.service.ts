@@ -6,7 +6,8 @@ import {
     MiddlewareGroup, 
     Middleware, 
     RouteMiddlewareGroup, 
-    RouteMiddleware 
+    RouteMiddleware,
+    Controller
 } from '../entities/route.entity'
 import { TYPEORM_SYMBOL } from '../../../core/typeorm/typeorm.types'
 import { CreateRoute, RouteMetadata, Route as RouteType } from './route.types'
@@ -14,7 +15,8 @@ import {
     RoutePathAndMethodAlreadyExists,
     RouteDoesNotExists,
     RouteDoesNotHaveMiddleware,
-    RouteDoesNotHaveMiddlewareGroup
+    RouteDoesNotHaveMiddlewareGroup,
+    RouteAlreadyExists
 } from './route.errors'
 import { MiddlewareDoesNotExists } from './middleware/middleware.errors'
 import { MiddlewareGroupDoesNotExists } from './middleware-group/middleware-group.errors'
@@ -29,6 +31,8 @@ import { SnapshotMetadata } from '../metadata/metadata.types'
 import { Metadata } from '../entities/metadata.entity'
 import { Middleware as MiddlewareType } from './middleware/middleware.types'
 import { MiddlewareGroup as MiddlewareGroupType } from './middleware-group/middleware-group.types'
+import { ControllerDoesNotExists } from './controller/controller.errors'
+import { Controller as ControllerType } from './controller/controller.types'
 
 @injectable()
 export class RouteService implements IRouteService {
@@ -49,12 +53,12 @@ export class RouteService implements IRouteService {
         })
     }
 
-    public async createIfNotExists(options: CreateRoute, nestedTransaction = false): Promise<void> {
+    public async create(options: CreateRoute, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const routeRepository = await this.routeRepository
 
         if (await this.isExists(options)) {
-            return
+            throw new RouteAlreadyExists
         }
 
         try {
@@ -439,6 +443,59 @@ export class RouteService implements IRouteService {
             await mutationQuery(true, () => {
                 return metadataRepository.remove(routeEntity.metadata)
             })
+        })
+    }
+
+    public async bindController(route: RouteType, controller: ControllerType, nestedTransaction = false): Promise<void> {
+        const connection = await this.connection
+        const routeRepository = await this.routeRepository
+        const controllerRepository = connection.getRepository(Controller)
+
+        const routeEntity = await routeRepository.findOne({
+            where: {
+                namespace: route.namespace,
+                name: route.name
+            }
+        })
+
+        if (!routeEntity) {
+            throw new RouteDoesNotExists()
+        }
+
+        const controllerEntity = await controllerRepository.findOne({
+            where: {
+                namespace: controller.namespace,
+                name: controller.name
+            }
+        })
+
+        if (!controllerEntity) {
+            throw new ControllerDoesNotExists()
+        }
+
+        routeEntity.controller = controllerEntity
+        await mutationQuery(nestedTransaction, () => {
+            return routeRepository.save(routeEntity)
+        })
+    }
+
+    public async unbindController(route: RouteType, nestedTransaction = false): Promise<void> {
+        const routeRepository = await this.routeRepository
+
+        const routeEntity = await routeRepository.findOne({
+            where: {
+                namespace: route.namespace,
+                name: route.name
+            }
+        })
+
+        if (!routeEntity) {
+            throw new RouteDoesNotExists()
+        }
+
+        routeEntity.controller = null
+        await mutationQuery(nestedTransaction, () => {
+            return routeRepository.save(routeEntity)
         })
     }
 

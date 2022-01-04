@@ -2,13 +2,14 @@ import { CreateRoute, RouteMetadata, Route } from './route.types'
 import { SnapshotMetadata } from '../metadata/metadata.types'
 import { Middleware } from './middleware/middleware.types'
 import { MiddlewareGroup } from './middleware-group/middleware-group.types'
+import { Controller } from './controller/controller.types'
 
 export interface IRouteService {
 
     /**
      * Создать маршрут, если его ещё не существует
      */
-    createIfNotExists(options: CreateRoute, nestedTransaction?: boolean): Promise<void>
+    create(options: CreateRoute, nestedTransaction?: boolean): Promise<void>
 
     /**
      * Проверить существование указанного маршрута
@@ -64,5 +65,15 @@ export interface IRouteService {
      * Удалить указанный маршрут
      */
     remove(route: Route, nestedTransaction?: boolean): Promise<void>
+
+    /**
+     * Привязать к указанному маршруту указанный контроллер
+     */
+    bindController(route: Route, controller: Controller, nestedTransaction?: boolean): Promise<void>
+
+    /**
+     * Отвязать у указанного маршрута его текущий контроллер
+     */
+    unbindController(route: Route, nestedTransaction?: boolean): Promise<void>
 
 }

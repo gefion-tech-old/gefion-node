@@ -50,13 +50,17 @@ export const RouteModule = new AsyncContainerModule(async (bind: interfaces.Bind
 
     bind<IControllerService>(ROUTE_SYMBOL.ControllerService)
         .to(ControllerService)
+        .inSingletonScope()
 
     bind<IMiddlewareService>(ROUTE_SYMBOL.MiddlewareService)
         .to(MiddlewareService)
+        .inSingletonScope()
 
     bind<IMiddlewareGroupService>(ROUTE_SYMBOL.MiddlewareGroupService)
         .to(MiddlewareGroupService)
+        .inSingletonScope()
 
     bind<IRouteService>(ROUTE_SYMBOL.RouteService)
         .to(RouteService)
+        .inSingletonScope()
 })

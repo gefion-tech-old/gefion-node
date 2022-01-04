@@ -1,5 +1,12 @@
 export class RouteError extends Error {}
 
+export class RouteAlreadyExists extends RouteError {
+
+    public name = 'RouteAlreadyExists'
+    public message = 'Указанный маршрут уже существует'
+
+}
+
 export class RoutePathAndMethodAlreadyExists extends RouteError {
 
     public name = 'RoutePathAndMethodAlreadyExists'

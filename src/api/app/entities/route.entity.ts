@@ -80,6 +80,13 @@ export class Route {
     })
     middlewares: Middleware[]
 
+    @OneToOne(() => Controller, {
+        onDelete: 'RESTRICT',
+        nullable: true
+    })
+    @JoinColumn()
+    controller: Controller | null
+
 }
 
 @injectable()

@@ -4,7 +4,8 @@ import {
     Middleware,
     MiddlewareGroup,
     RouteMiddleware,
-    RouteMiddlewareGroup
+    RouteMiddlewareGroup,
+    Controller
 } from '../entities/route.entity'
 import { Method } from '../entities/method.entity'
 import { Metadata } from '../entities/metadata.entity'
@@ -18,12 +19,14 @@ import {
     RoutePathAndMethodAlreadyExists,
     RouteDoesNotExists,
     RouteDoesNotHaveMiddlewareGroup,
-    RouteDoesNotHaveMiddleware
+    RouteDoesNotHaveMiddleware,
+    RouteAlreadyExists
 } from './route.errors'
 import { MiddlewareGroupDoesNotExists } from './middleware-group/middleware-group.errors'
 import { MiddlewareDoesNotExists } from './middleware/middleware.errors'
 import { type } from '../../../utils/type'
 import { RevisionNumberError } from '../metadata/metadata.errors'
+import { ControllerDoesNotExists } from './controller/controller.errors'
 
 beforeAll(async () => {
     const container = await getContainer()
@@ -36,8 +39,8 @@ afterAll(async () => {
 })
 
 it(`
-    Маршрут корректно создаётся. Попытка создания уже существующего маршрута ни к чему
-    не приводит
+    Маршрут корректно создаётся. Попытка создания уже существующего маршрута приводит к
+    исключению
 `, async () => {
     const container = await getContainer()
     container.snapshot()
@@ -60,7 +63,7 @@ it(`
 
     await expect(routeService.isExists(route)).resolves.toBe(false)
 
-    await expect(routeService.createIfNotExists({
+    await expect(routeService.create({
         creator: {
             type: CreatorType.System
         },
@@ -68,14 +71,14 @@ it(`
         path: '/uniq1',
         ...route
     })).resolves.toBeUndefined()
-    await expect(routeService.createIfNotExists({
+    await expect(routeService.create({
         creator: {
             type: CreatorType.System
         },
         method: 'POST',
         path: '/uniq1',
         ...route
-    })).resolves.toBeUndefined()
+    })).rejects.toBeInstanceOf(RouteAlreadyExists)
 
     await expect(routeService.isExists(route)).resolves.toBe(true)
     await expect(metadataRepository.count()).resolves.toBe(metadataEntityCount + 1)
@@ -109,7 +112,7 @@ it(`
         name: 'route1'
     }
 
-    await expect(routeService.createIfNotExists({
+    await expect(routeService.create({
         creator: {
             type: CreatorType.System
         },
@@ -118,7 +121,7 @@ it(`
         ...route
     })).resolves.toBeUndefined()
 
-    await expect(routeService.createIfNotExists({
+    await expect(routeService.create({
         creator: {
             type: CreatorType.System
         },
@@ -174,7 +177,7 @@ it(`
         name: 'route1'
     }
 
-    await expect(routeService.createIfNotExists({
+    await expect(routeService.create({
         creator: {
             type: CreatorType.System
         },
@@ -255,7 +258,7 @@ it(`
         name: 'group1'
     }
     
-    await routeService.createIfNotExists({
+    await routeService.create({
         creator: {
             type: CreatorType.System
         },
@@ -343,7 +346,7 @@ it(`
         ...middlewareGroup
     })
 
-    await routeService.createIfNotExists({
+    await routeService.create({
         creator: {
             type: CreatorType.System
         },
@@ -394,7 +397,7 @@ it(`
         ...middlewareGroup
     })
 
-    await routeService.createIfNotExists({
+    await routeService.create({
         creator: {
             type: CreatorType.System
         },
@@ -447,7 +450,7 @@ describe(`
             ...middlewareGroup
         })
 
-        await routeService.createIfNotExists({
+        await routeService.create({
             creator: {
                 type: CreatorType.System
             },
@@ -571,7 +574,7 @@ it(`
         ...middlewareGroup
     })
 
-    await routeService.createIfNotExists({
+    await routeService.create({
         creator: {
             type: CreatorType.System
         },
@@ -621,7 +624,7 @@ it(`
         name: 'middleware1'
     }
     
-    await routeService.createIfNotExists({
+    await routeService.create({
         creator: {
             type: CreatorType.System
         },
@@ -721,7 +724,7 @@ it(`
         ...middleware
     })
 
-    await routeService.createIfNotExists({
+    await routeService.create({
         creator: {
             type: CreatorType.System
         },
@@ -778,7 +781,7 @@ it(`
         ...middleware
     })
 
-    await routeService.createIfNotExists({
+    await routeService.create({
         creator: {
             type: CreatorType.System
         },
@@ -837,7 +840,7 @@ describe(`
             ...middleware
         })
     
-        await routeService.createIfNotExists({
+        await routeService.create({
             creator: {
                 type: CreatorType.System
             },
@@ -967,7 +970,7 @@ it(`
         ...middleware
     })
 
-    await routeService.createIfNotExists({
+    await routeService.create({
         creator: {
             type: CreatorType.System
         },
@@ -1036,7 +1039,7 @@ it(`
         name: 'route1'
     }
 
-    await expect(routeService.createIfNotExists({
+    await expect(routeService.create({
         creator: {
             type: CreatorType.System
         },
@@ -1129,7 +1132,7 @@ it(`
         },
         ...middlewareGroup
     })
-    await routeService.createIfNotExists({
+    await routeService.create({
         creator: {
             type: CreatorType.System
         },
@@ -1153,6 +1156,142 @@ it(`
     await expect(routeMiddlewareGroupRepository.count()).resolves.toBe(0)
     await expect(metadataRepository.count()).resolves.toBe(2)
     await expect(routeService.isExists(route)).resolves.toBe(false)
+
+    container.restore()
+})
+
+it(`
+    Попытка привязать в несуществующий маршрут существующий контроллер приводит к исключению. То же
+    исключение и при попытке отвязать контроллер от несуществующего маршрута
+`, async () => {
+    const container = await getContainer()
+    container.snapshot()
+
+    const routeService = container
+        .get<IRouteService>(ROUTE_SYMBOL.RouteService)
+    const connection = await container
+        .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+    const controllerRepository = connection.getRepository(Controller)
+    const methodRepository = connection.getRepository(Method)
+
+    const controller = {
+        namespace: 'controller1',
+        name: 'controller1',
+        metadata: {
+            metadata: {
+                custom: null
+            }
+        },
+        method: {
+            type: 'method1',
+            namespace: 'method1',
+            name: 'method1'
+        }
+    }
+    const route = {
+        namespace: 'route1',
+        name: 'route1'
+    }
+
+    await methodRepository.save(controller.method)
+    await controllerRepository.save(controller)
+
+    await expect(routeService.bindController(route, controller)).rejects.toBeInstanceOf(RouteDoesNotExists)
+    await expect(routeService.unbindController(route)).rejects.toBeInstanceOf(RouteDoesNotExists)
+
+    container.restore()
+})
+
+it(`
+    Попытка привязать в существующий маршрут несуществующий контроллер приводит к исключению
+`, async () => {
+    const container = await getContainer()
+    container.snapshot()
+
+    const routeService = container
+        .get<IRouteService>(ROUTE_SYMBOL.RouteService)
+
+    const controller = {
+        namespace: 'controller1',
+        name: 'controller1'
+    }
+    const route = {
+        namespace: 'route1',
+        name: 'route1'
+    }
+
+    await routeService.create({
+        creator: {
+            type: CreatorType.System
+        },
+        method: 'POST',
+        path: '/',
+        ...route
+    })
+
+    await expect(routeService.bindController(route, controller)).rejects.toBeInstanceOf(ControllerDoesNotExists)
+
+    container.restore()
+})
+
+it(`
+    Контроллер корректно привязывается к маршруту и отвязывается от него
+`, async () => {
+    const container = await getContainer()
+    container.snapshot()
+
+    const routeService = container
+        .get<IRouteService>(ROUTE_SYMBOL.RouteService)
+    const connection = await container
+        .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+    const controllerRepository = connection.getRepository(Controller)
+    const methodRepository = connection.getRepository(Method)
+    const routeRepository = connection.getRepository(Route)
+
+    const controller = {
+        namespace: 'controller1',
+        name: 'controller1',
+        metadata: {
+            metadata: {
+                custom: null
+            }
+        },
+        method: {
+            type: 'method1',
+            namespace: 'method1',
+            name: 'method1'
+        }
+    }
+    const route = {
+        namespace: 'route1',
+        name: 'route1'
+    }
+
+    await methodRepository.save(controller.method)
+    await controllerRepository.save(controller)
+    await routeService.create({
+        creator: {
+            type: CreatorType.System
+        },
+        method: 'POST',
+        path: '/',
+        ...route
+    })
+
+    await expect(routeRepository.findOne({ where: route, relations: ['controller'] })).resolves.toMatchObject({
+        controller: null
+    })
+    await expect(routeService.bindController(route, controller)).resolves.toBeUndefined()
+    await expect(routeRepository.findOne({ where: route, relations: ['controller']})).resolves.toMatchObject({
+        controller: {
+            namespace: controller.namespace,
+            name: controller.name
+        }
+    })
+    await expect(routeService.unbindController(route)).resolves.toBeUndefined()
+    await expect(routeRepository.findOne({ where: route, relations: ['controller'] })).resolves.toMatchObject({
+        controller: null
+    })
 
     container.restore()
 })
