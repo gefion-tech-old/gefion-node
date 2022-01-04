@@ -1262,7 +1262,7 @@ describe('SignalService в SignalModule', () => {
 
         const eventContext: EventContext = {
             type: SignalEventMutation.Remove,
-            signalId: await signalService.getSignalId(signal1) as number
+            signalId: 1
         }
         expect(signalMutationFn).toHaveBeenNthCalledWith(13, expect.objectContaining(eventContext))
         expect(signalMutationFn).toBeCalledTimes(14)

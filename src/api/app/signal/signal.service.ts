@@ -568,6 +568,11 @@ export class SignalService implements ISignalService {
         }
 
         /**
+         * Идентификатор удаляемого сигнала для события
+         */
+        const signalId = signalEntity.id
+
+        /**
          * Удаление сигнала и попытка полностью удалить все привязанные к нему методы и
          * метаданные
          */
@@ -617,7 +622,7 @@ export class SignalService implements ISignalService {
 
         const eventContext: EventContext = {
             type: SignalEventMutation.Remove,
-            signalId: signalEntity.id
+            signalId: signalId
         }
         this.eventEmitter.emit(SignalEventMutationName, eventContext)
     }
