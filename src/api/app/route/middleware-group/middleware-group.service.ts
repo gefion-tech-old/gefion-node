@@ -6,7 +6,10 @@ import { MiddlewareGroup, Middleware, MiddlewareGroupMiddleware } from '../../en
 import { 
     CreateMiddlewareGroup, 
     MiddlewareGroupMetadata,
-    MiddlewareGroup as MiddlewareGroupType
+    MiddlewareGroup as MiddlewareGroupType,
+    EventContext,
+    MiddlewareGroupEventMutation,
+    MiddlewareGroupEventMutationName
 } from './middleware-group.types'
 import { getCustomRepository } from '../../../../core/typeorm/utils/custom-repository'
 import { transaction } from '../../../../core/typeorm/utils/transaction'
@@ -25,12 +28,14 @@ import {
 import { Metadata } from '../../entities/metadata.entity'
 import { MiddlewareDoesNotExists } from '../middleware/middleware.errors'
 import { Middleware as MiddlewareType } from '../middleware/middleware.types'
+import { EventEmitter } from 'events'
 
 @injectable()
 export class MiddlewareGroupService implements IMiddlewareGroupService {
 
     private connection: Promise<Connection>
     private middlewareGroupRepository: Promise<Repository<MiddlewareGroup>>
+    private eventEmitter = new EventEmitter
 
     public constructor(
         @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
@@ -57,7 +62,7 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
          * Оборачиваю запрос в транзакцию в том числе из-за каскадного сохранения
          * метаданных
          */
-        await transaction(nestedTransaction, connection, async () => {
+        const middlewareGroupEntity = await transaction(nestedTransaction, connection, async () => {
             const middlewareGroupEntity = await mutationQuery(true, () => {
                 return middlewareGroupRepository.save({
                     isCsrf: false,
@@ -76,7 +81,15 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
                 type: ResourceType.MiddlewareGroup,
                 id: middlewareGroupEntity.id
             }, options.creator, true)
+
+            return middlewareGroupEntity
         })
+
+        const eventContext: EventContext = {
+            type: MiddlewareGroupEventMutation.Create,
+            middlewareGroupId: middlewareGroupEntity.id
+        }
+        this.eventEmitter.emit(MiddlewareGroupEventMutationName, eventContext)
     }
 
     public async isExists(group: MiddlewareGroupType): Promise<boolean> {
@@ -110,6 +123,12 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
             metadata: middlewareGroupEntity.metadata.metadata,
             revisionNumber: snapshotMetadata.revisionNumber
         }, nestedTransaction)
+
+        const eventContext: EventContext = {
+            type: MiddlewareGroupEventMutation.SetMetadata,
+            middlewareGroupId: middlewareGroupEntity.id
+        }
+        this.eventEmitter.emit(MiddlewareGroupEventMutationName, eventContext)
     }
 
     public async addMiddleware(group: MiddlewareGroupType, middleware: MiddlewareType, nestedTransaction = false): Promise<void> {
@@ -154,12 +173,20 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
 
             throw error
         }
+
+        const eventContext: EventContext = {
+            type: MiddlewareGroupEventMutation.AddMiddleware,
+            middlewareGroupId: middlewareGroupEntity.id,
+            middlewareId: middlewareEntity.id
+        }
+        this.eventEmitter.emit(MiddlewareGroupEventMutationName, eventContext)
     }
 
     public async removeMiddleware(group: MiddlewareGroupType, middleware: MiddlewareType, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const middlewareGroupRepository = await this.middlewareGroupRepository
         const middlewareRepository = connection.getRepository(Middleware)
+        const middlewareGroupMiddlewareRepository = connection.getRepository(MiddlewareGroupMiddleware)
 
         const middlewareGroupEntity = await middlewareGroupRepository.findOne({
             where: {
@@ -183,6 +210,18 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
             throw new MiddlewareDoesNotExists
         }
 
+        /**
+         * Если связи с группой изначально не было, то выйти из функции
+         */
+        if (!await middlewareGroupMiddlewareRepository.count({
+            where: {
+                middlewareGroupId: middlewareGroupEntity.id,
+                middlewareId: middlewareEntity.id
+            }
+        })) {
+            return
+        }
+
         await mutationQuery(nestedTransaction, () => {
             return connection
                 .createQueryBuilder()
@@ -190,6 +229,13 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
                 .of(middlewareGroupEntity)
                 .remove(middlewareEntity)
         })
+
+        const eventContext: EventContext = {
+            type: MiddlewareGroupEventMutation.RemoveMiddleware,
+            middlewareGroupId: middlewareGroupEntity.id,
+            middlewareId: middlewareEntity.id
+        }
+        this.eventEmitter.emit(MiddlewareGroupEventMutationName, eventContext)
     }
 
     public async setMiddlewareSerialNumber(
@@ -237,6 +283,13 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
         if (updateResult.affected === 0) {
             throw new MiddlewareGroupDoesNotHaveMiddleware
         }
+
+        const eventContext: EventContext = {
+            type: MiddlewareGroupEventMutation.SetMiddlewareSerialNumber,
+            middlewareGroupId: middlewareGroupEntity.id,
+            middlewareId: middlewareEntity.id
+        }
+        this.eventEmitter.emit(MiddlewareGroupEventMutationName, eventContext)
     }
 
     public async remove(group: MiddlewareGroupType, nestedTransaction = false): Promise<void> {
@@ -255,6 +308,11 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
             return
         }
 
+        /**
+         * Идентификатор группы для события
+         */
+        const middlewareGroupId = middlewareGroupEntity.id
+
         await transaction(nestedTransaction, connection, async () => {
             await mutationQuery(true, () => {
                 return middlewareGroupRepository.remove(middlewareGroupEntity)
@@ -264,12 +322,29 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
                 return metadataRepository.remove(middlewareGroupEntity.metadata)
             })
         })
+
+        const eventContext: EventContext = {
+            type: MiddlewareGroupEventMutation.Remove,
+            middlewareGroupId: middlewareGroupId
+        }
+        this.eventEmitter.emit(MiddlewareGroupEventMutationName, eventContext)
     }
 
     public async enableCsrf(group: MiddlewareGroupType, nestedTransaction = false): Promise<void> {
         const middlewareGroupRepository = await this.middlewareGroupRepository
 
-        const updateResult = await mutationQuery(nestedTransaction, () => {
+        const middlewareGroupEntity = await middlewareGroupRepository.findOne({
+            where: {
+                namespace: group.namespace,
+                name: group.name
+            }
+        })
+
+        if (!middlewareGroupEntity) {
+            throw new MiddlewareGroupDoesNotExists
+        }
+
+        await mutationQuery(nestedTransaction, () => {
             return middlewareGroupRepository.update({
                 namespace: group.namespace,
                 name: group.name
@@ -278,15 +353,28 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
             })
         })
 
-        if (updateResult.affected === 0) {
-            throw new MiddlewareGroupDoesNotExists
+        const eventContext: EventContext = {
+            type: MiddlewareGroupEventMutation.EnableCsrf,
+            middlewareGroupId: middlewareGroupEntity.id
         }
+        this.eventEmitter.emit(MiddlewareGroupEventMutationName, eventContext)
     }
 
     public async disableCsrf(group: MiddlewareGroupType, nestedTransaction = false): Promise<void> {
         const middlewareGroupRepository = await this.middlewareGroupRepository
 
-        const updateResult = await mutationQuery(nestedTransaction, () => {
+        const middlewareGroupEntity = await middlewareGroupRepository.findOne({
+            where: {
+                namespace: group.namespace,
+                name: group.name
+            }
+        })
+
+        if (!middlewareGroupEntity) {
+            throw new MiddlewareGroupDoesNotExists
+        }
+
+        await mutationQuery(nestedTransaction, () => {
             return middlewareGroupRepository.update({
                 namespace: group.namespace,
                 name: group.name
@@ -295,9 +383,15 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
             })
         })
 
-        if (updateResult.affected === 0) {
-            throw new MiddlewareGroupDoesNotExists
+        const eventContext: EventContext = {
+            type: MiddlewareGroupEventMutation.DisableCsrf,
+            middlewareGroupId: middlewareGroupEntity.id
         }
+        this.eventEmitter.emit(MiddlewareGroupEventMutationName, eventContext)
+    }
+
+    public onMutation(handler: (context: EventContext) => void): void {
+        this.eventEmitter.on(MiddlewareGroupEventMutationName, handler)
     }
 
 }

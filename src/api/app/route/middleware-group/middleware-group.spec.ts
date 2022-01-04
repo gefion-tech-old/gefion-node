@@ -20,6 +20,7 @@ import {
 } from '../../entities/route.entity'
 import { Method } from '../../entities/method.entity'
 import { MiddlewareDoesNotExists } from '../middleware/middleware.errors'
+import { MiddlewareGroupEventMutation } from './middleware-group.types'
 
 beforeAll(async () => {
     const container = await getContainer()
@@ -53,6 +54,9 @@ describe('MiddlewareGroup в RouteModule', () => {
             name: 'group1'
         }
 
+        const eventMutationFn = jest.fn()
+        middlewareGroupService.onMutation(eventMutationFn)
+
         await expect(middlewareGroupService.isExists(middlewareGroup)).resolves.toBe(false)
         await expect(metadataRepository.count()).resolves.toBe(0)
 
@@ -81,6 +85,12 @@ describe('MiddlewareGroup в RouteModule', () => {
             type: CreatorType.System
         })).resolves.toBe(true)
 
+        expect(eventMutationFn).toBeCalledTimes(1)
+        expect(eventMutationFn).nthCalledWith(1, {
+            type: MiddlewareGroupEventMutation.Create,
+            middlewareGroupId: 1
+        })
+
         container.restore()
     })
 
@@ -98,12 +108,17 @@ describe('MiddlewareGroup в RouteModule', () => {
             name: 'group1'
         }
 
+        const eventMutationFn = jest.fn()
+        middlewareGroupService.onMutation(eventMutationFn)
+
         await expect(middlewareGroupService.setMetadata(middlewareGroup, {
             metadata: {
                 custom: null
             },
             revisionNumber: 0
         })).rejects.toBeInstanceOf(MiddlewareGroupDoesNotExists)
+
+        expect(eventMutationFn).toBeCalledTimes(0)
 
         container.restore()
     })
@@ -126,6 +141,9 @@ describe('MiddlewareGroup в RouteModule', () => {
             namespace: 'group1',
             name: 'group1'
         }
+
+        const eventMutationFn = jest.fn()
+        middlewareGroupService.onMutation(eventMutationFn)
 
         await expect(middlewareGroupService.create({
             creator: {
@@ -186,7 +204,13 @@ describe('MiddlewareGroup в RouteModule', () => {
             },
             revisionNumber: 1
         })
-        await expect(metadataRepository.count()).resolves.toBe(1)        
+        await expect(metadataRepository.count()).resolves.toBe(1)
+        
+        expect(eventMutationFn).toBeCalledTimes(2)
+        expect(eventMutationFn).nthCalledWith(2, {
+            type: MiddlewareGroupEventMutation.SetMetadata,
+            middlewareGroupId: 1
+        })
 
         container.restore()
     })
@@ -214,6 +238,9 @@ describe('MiddlewareGroup в RouteModule', () => {
             name: 'middleware1'
         }
 
+        const eventMutationFn = jest.fn()
+        middlewareGroupService.onMutation(eventMutationFn)
+
         const methodEntity = await methodRepository.save({
             name: 'name1',
             namespace: 'namespace1',
@@ -232,6 +259,8 @@ describe('MiddlewareGroup в RouteModule', () => {
 
         await expect(middlewareGroupService.addMiddleware(middlewareGroup, middleware)).rejects.toBeInstanceOf(MiddlewareGroupDoesNotExists)
         await expect(middlewareGroupService.removeMiddleware(middlewareGroup, middleware)).rejects.toBeInstanceOf(MiddlewareGroupDoesNotExists)
+
+        expect(eventMutationFn).toBeCalledTimes(0)
 
         container.restore()
     })
@@ -255,6 +284,9 @@ describe('MiddlewareGroup в RouteModule', () => {
             name: 'middleware1'
         }
 
+        const eventMutationFn = jest.fn()
+        middlewareGroupService.onMutation(eventMutationFn)
+
         await middlewareGroupService.create({
             creator: {
                 type: CreatorType.System
@@ -265,6 +297,8 @@ describe('MiddlewareGroup в RouteModule', () => {
 
         await expect(middlewareGroupService.addMiddleware(middlewareGroup, middleware)).rejects.toBeInstanceOf(MiddlewareDoesNotExists)
         await expect(middlewareGroupService.removeMiddleware(middlewareGroup, middleware)).rejects.toBeInstanceOf(MiddlewareDoesNotExists)
+
+        expect(eventMutationFn).toBeCalledTimes(1)
 
         container.restore()
     })
@@ -292,6 +326,9 @@ describe('MiddlewareGroup в RouteModule', () => {
             namespace: 'middleware1',
             name: 'middleware1'
         }
+
+        const eventMutationFn = jest.fn()
+        middlewareGroupService.onMutation(eventMutationFn)
 
         const methodEntity = await methodRepository.save({
             name: 'name1',
@@ -321,6 +358,13 @@ describe('MiddlewareGroup в RouteModule', () => {
         await expect(middlewareGroupService.addMiddleware(middlewareGroup, middleware)).rejects.toBeInstanceOf(MiddlewareAlreadyBound)
         await expect(middlewareGroupMiddlewareRepository.count()).resolves.toBe(1)
 
+        expect(eventMutationFn).toBeCalledTimes(2)
+        expect(eventMutationFn).nthCalledWith(2, {
+            type: MiddlewareGroupEventMutation.AddMiddleware,
+            middlewareGroupId: 1,
+            middlewareId: 1
+        })
+
         container.restore()
     })
 
@@ -347,6 +391,9 @@ describe('MiddlewareGroup в RouteModule', () => {
             namespace: 'middleware1',
             name: 'middleware1'
         }
+
+        const eventMutationFn = jest.fn()
+        middlewareGroupService.onMutation(eventMutationFn)
 
         const methodEntity = await methodRepository.save({
             name: 'name1',
@@ -377,6 +424,13 @@ describe('MiddlewareGroup в RouteModule', () => {
         await expect(middlewareGroupService.removeMiddleware(middlewareGroup, middleware)).resolves.toBeUndefined()
         await expect(middlewareGroupMiddlewareRepository.count()).resolves.toBe(0)
 
+        expect(eventMutationFn).toBeCalledTimes(3)
+        expect(eventMutationFn).nthCalledWith(3, {
+            type: MiddlewareGroupEventMutation.RemoveMiddleware,
+            middlewareGroupId: 1,
+            middlewareId: 1
+        })
+
         container.restore()
     })
 
@@ -404,6 +458,9 @@ describe('MiddlewareGroup в RouteModule', () => {
             namespace: 'middleware1',
             name: 'middleware1'
         }
+
+        const eventMutationFn = jest.fn()
+        middlewareGroupService.onMutation(eventMutationFn)
 
         const methodEntity = await methodRepository.save({
             name: 'name1',
@@ -441,6 +498,12 @@ describe('MiddlewareGroup в RouteModule', () => {
         await expect(metadataRepository.count()).resolves.toBe(1)
         await expect(middlewareGroupService.isExists(middlewareGroup)).resolves.toBe(false)
 
+        expect(eventMutationFn).toBeCalledTimes(3)
+        expect(eventMutationFn).nthCalledWith(3, {
+            type: MiddlewareGroupEventMutation.Remove,
+            middlewareGroupId: 1
+        })
+
         container.restore()
     })
 
@@ -458,8 +521,13 @@ describe('MiddlewareGroup в RouteModule', () => {
             name: 'group1'
         }
 
+        const eventMutationFn = jest.fn()
+        middlewareGroupService.onMutation(eventMutationFn)
+
         await expect(middlewareGroupService.enableCsrf(middlewareGroup)).rejects.toBeInstanceOf(MiddlewareGroupDoesNotExists)
         await expect(middlewareGroupService.disableCsrf(middlewareGroup)).rejects.toBeInstanceOf(MiddlewareGroupDoesNotExists)
+
+        expect(eventMutationFn).toBeCalledTimes(0)
             
         container.restore()
     })
@@ -481,6 +549,9 @@ describe('MiddlewareGroup в RouteModule', () => {
             namespace: 'group1',
             name: 'group1'
         }
+
+        const eventMutationFn = jest.fn()
+        middlewareGroupService.onMutation(eventMutationFn)
 
         await expect(middlewareGroupService.create({
             creator: {
@@ -513,6 +584,20 @@ describe('MiddlewareGroup в RouteModule', () => {
         })).resolves.toMatchObject({
             isCsrf: false
         })
+
+        expect(eventMutationFn).toBeCalledTimes(5)
+        const eventContextEnableCsrf = {
+            type: MiddlewareGroupEventMutation.EnableCsrf,
+            middlewareGroupId: 1
+        }
+        expect(eventMutationFn).nthCalledWith(2, eventContextEnableCsrf)
+        expect(eventMutationFn).nthCalledWith(3, eventContextEnableCsrf)
+        const eventContextDisableCsrf = {
+            type: MiddlewareGroupEventMutation.DisableCsrf,
+            middlewareGroupId: 1
+        }
+        expect(eventMutationFn).nthCalledWith(4, eventContextDisableCsrf)
+        expect(eventMutationFn).nthCalledWith(5, eventContextDisableCsrf)
 
         container.restore()
     })
@@ -583,13 +668,16 @@ describe('MiddlewareGroup в RouteModule', () => {
                 namespace: 'middleware1',
                 name: 'middleware1'
             }
+
+            const eventMutationFn = jest.fn()
+            middlewareGroupService.onMutation(eventMutationFn)
             
             await expect(middlewareGroupService.setMiddlewareSerialNumber({
                 namespace: 'incorrect',
                 name: 'incorrect'
-            }, middleware, 1))
-                .rejects
-                .toBeInstanceOf(MiddlewareGroupDoesNotExists)
+            }, middleware, 1)).rejects.toBeInstanceOf(MiddlewareGroupDoesNotExists)
+            
+            expect(eventMutationFn).toBeCalledTimes(0)
         })
 
         it(`
@@ -604,13 +692,16 @@ describe('MiddlewareGroup в RouteModule', () => {
                 namespace: 'group1',
                 name: 'group1'
             }
+
+            const eventMutationFn = jest.fn()
+            middlewareGroupService.onMutation(eventMutationFn)
             
             await expect(middlewareGroupService.setMiddlewareSerialNumber(middlewareGroup, {
                 namespace: 'incorrect',
                 name: 'incorrect'
-            }, 1))
-                .rejects
-                .toBeInstanceOf(MiddlewareDoesNotExists)
+            }, 1)).rejects.toBeInstanceOf(MiddlewareDoesNotExists)
+
+            expect(eventMutationFn).toBeCalledTimes(0)
         })
 
         it(`
@@ -630,9 +721,14 @@ describe('MiddlewareGroup в RouteModule', () => {
                 name: 'middleware1'
             }
 
+            const eventMutationFn = jest.fn()
+            middlewareGroupService.onMutation(eventMutationFn)
+
             await expect(middlewareGroupService.setMiddlewareSerialNumber(middlewareGroup, middleware, 1))
                 .rejects
                 .toBeInstanceOf(MiddlewareGroupDoesNotHaveMiddleware)
+
+            expect(eventMutationFn).toBeCalledTimes(0)
         })
 
     })
@@ -660,6 +756,9 @@ describe('MiddlewareGroup в RouteModule', () => {
             namespace: 'middleware1',
             name: 'middleware1'
         }
+
+        const eventMutationFn = jest.fn()
+        middlewareGroupService.onMutation(eventMutationFn)
 
         const methodEntity = await methodRepository.save({
             name: 'name1',
@@ -702,6 +801,13 @@ describe('MiddlewareGroup в RouteModule', () => {
             }
         })).resolves.toMatchObject({
             serialNumber: 1
+        })
+
+        expect(eventMutationFn).toBeCalledTimes(3)
+        expect(eventMutationFn).nthCalledWith(3, {
+            type: MiddlewareGroupEventMutation.SetMiddlewareSerialNumber,
+            middlewareGroupId: 1,
+            middlewareId: 1
         })
 
         container.restore()

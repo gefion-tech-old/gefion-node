@@ -1,7 +1,8 @@
 import { 
     CreateMiddlewareGroup, 
     MiddlewareGroupMetadata, 
-    MiddlewareGroup
+    MiddlewareGroup,
+    EventContext
 } from './middleware-group.types'
 import { Middleware } from '../middleware/middleware.types'
 import { SnapshotMetadata } from '../../metadata/metadata.types'
@@ -52,5 +53,10 @@ export interface IMiddlewareGroupService {
      * Выключить флаг csrf в указанной группе промежуточного ПО
      */
     disableCsrf(group: MiddlewareGroup, nestedTransaction?: boolean): Promise<void>
+
+    /**
+     * Поставить обработчик для прослушивания события мутации группы
+     */
+    onMutation(handler: (context: EventContext) => void): void
 
 }

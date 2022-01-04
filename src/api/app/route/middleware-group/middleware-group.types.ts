@@ -36,3 +36,56 @@ export interface CreateMiddlewareGroup {
      */
     readonly isDefault: boolean
 }
+
+/**
+ * Идентификатор события мутации
+ */
+export const MiddlewareGroupEventMutationName = Symbol('MiddlewareGroupMutationEvent')
+
+export enum MiddlewareGroupEventMutation {
+    /**
+     * Событие создания группы
+     */
+    Create = 'Create',
+    /**
+     * Событие изменения метаданных группы
+     */
+    SetMetadata = 'SetMetadata',
+    /**
+     * Событие добавления middleware в группу
+     */
+    AddMiddleware = 'AddMiddleware',
+    /**
+     * Событие удаления middleware из группы
+     */
+    RemoveMiddleware = 'RemoveMiddleware',
+    /**
+     * Событиe изменения порядкового номера middleware в группе
+     */
+    SetMiddlewareSerialNumber = 'SetMiddlewareSerialNumber',
+    /**
+     * Событие удаления группы
+     */
+    Remove = 'Remove',
+    /**
+     * Событие включения флага csrf в группе
+     */
+    EnableCsrf = 'EnableCsrf',
+    /**
+     * Событие выключения флага csrf в группе
+     */
+    DisableCsrf = 'DisableCsrf'
+}
+
+export interface MiddlewareEventContext {
+    type: MiddlewareGroupEventMutation.AddMiddleware | MiddlewareGroupEventMutation.RemoveMiddleware | MiddlewareGroupEventMutation.SetMiddlewareSerialNumber
+    middlewareGroupId: number
+    middlewareId: number
+}
+
+export interface MiddlewareGroupEventContext {
+    type: MiddlewareGroupEventMutation,
+    middlewareGroupId: number
+}
+
+export type EventContext = MiddlewareGroupEventContext | MiddlewareEventContext
