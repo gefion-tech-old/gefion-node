@@ -1,5 +1,10 @@
 import { SnapshotMetadata } from '../../metadata/metadata.types'
-import { ControllerMetadata, CreateController, Controller } from './controller.types'
+import { 
+    ControllerMetadata, 
+    CreateController, 
+    Controller,
+    EventContext
+} from './controller.types'
 
 export interface IControllerService {
 
@@ -22,5 +27,10 @@ export interface IControllerService {
      * Удалить указанный контроллер. Попытаться удалить метод контроллера, если получится
      */
     remove(controller: Controller, nestedTransaction?: boolean): Promise<void>
+
+    /**
+     * Поставить обработчик для прослушивания события мутации контроллера
+     */
+    onMutation(handler: (context: EventContext) => void): void
 
 }

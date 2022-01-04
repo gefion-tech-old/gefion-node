@@ -37,3 +37,28 @@ export interface CreateController {
      */
     readonly creator: BindableCreator
 }
+
+/**
+ * Идентификатор события мутации
+ */
+export const ControllerEventMutationName = Symbol('ControllerMutationEvent')
+
+export enum ControllerEventMutation {
+    /**
+     * Событие создания контроллера
+     */
+    Create = 'Create',
+    /**
+     * Событие изменения метаданных контроллера
+     */
+    SetMetadata = 'SetMetadata',
+    /**
+     * Событие удаления контроллера
+     */
+    Remove = 'Remove'
+}
+
+export interface EventContext {
+    type: ControllerEventMutation
+    controllerId: number
+}

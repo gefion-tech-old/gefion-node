@@ -22,6 +22,7 @@ import { ICreatorService } from '../../creator/creator.interface'
 import { Metadata } from '../../entities/metadata.entity'
 import { RevisionNumberError } from '../../metadata/metadata.errors'
 import { addTestEntity } from '../../../../core/typeorm/utils/test-entities'
+import { ControllerEventMutation } from './controller.types'
 
 /**
  * Добавление тестовой сущности
@@ -71,6 +72,9 @@ describe('ControllerService в RouteModule', () => {
             namespace: 'controller1'
         }
 
+        const eventMutationFn = jest.fn()
+        controllerService.onMutation(eventMutationFn)
+
         await expect(controllerService.create({
             creator: {
                 type: CreatorType.System
@@ -82,6 +86,8 @@ describe('ControllerService в RouteModule', () => {
             },
             ...controller
         })).rejects.toBeInstanceOf(ControllerMethodNotDefined)
+
+        expect(eventMutationFn).toBeCalledTimes(0)
 
         container.restore()
     })
@@ -111,6 +117,9 @@ describe('ControllerService в RouteModule', () => {
             name: 'controller1'
         }
 
+        const eventMutationFn = jest.fn()
+        controllerService.onMutation(eventMutationFn)
+
         await expect(controllerService.isExists(controller)).resolves.toBe(false)
         await expect(controllerService.create({
             creator: {
@@ -133,6 +142,12 @@ describe('ControllerService в RouteModule', () => {
         }, {
             type: CreatorType.System
         })).resolves.toBe(true)
+
+        expect(eventMutationFn).toBeCalledTimes(1)
+        expect(eventMutationFn).nthCalledWith(1, {
+            type: ControllerEventMutation.Create,
+            controllerId: 1
+        })
 
         container.restore()
     })
@@ -160,6 +175,10 @@ describe('ControllerService в RouteModule', () => {
             name: 'controller1',
             namespace: 'controller1'
         }
+
+        const eventMutationFn = jest.fn()
+        controllerService.onMutation(eventMutationFn)
+
         await controllerService.create({
             creator: {
                 type: CreatorType.System
@@ -172,6 +191,8 @@ describe('ControllerService в RouteModule', () => {
         })
 
         await expect(controllerService.remove(controller)).rejects.toBeInstanceOf(ControllerUsedError)
+
+        expect(eventMutationFn).toBeCalledTimes(1)
 
         container.restore()
     })
@@ -202,6 +223,10 @@ describe('ControllerService в RouteModule', () => {
             name: 'controller1',
             namespace: 'controller1'
         }
+
+        const eventMutationFn = jest.fn()
+        controllerService.onMutation(eventMutationFn)
+
         await controllerService.create({
             creator: {
                 type: CreatorType.System
@@ -233,11 +258,17 @@ describe('ControllerService в RouteModule', () => {
             type: CreatorType.System
         })).resolves.toBe(false)
 
+        expect(eventMutationFn).toBeCalledTimes(2)
+        expect(eventMutationFn).nthCalledWith(2, {
+            type: ControllerEventMutation.Remove,
+            controllerId: 1
+        })
+
         container.restore()
     })
 
     it(`
-        Попытка установить метаданные в несуществующиё контроллер приводит к исключению
+        Попытка установить метаданные в несуществующий контроллер приводит к исключению
     `, async () => {
         const container = await getContainer()
         container.snapshot()
@@ -250,12 +281,17 @@ describe('ControllerService в RouteModule', () => {
             namespace: 'controller1'
         }
 
+        const eventMutationFn = jest.fn()
+        controllerService.onMutation(eventMutationFn)
+
         await expect(controllerService.setMetadata(controller, {
             metadata: {
                 custom: true
             },
             revisionNumber: 0
         })).rejects.toBeInstanceOf(ControllerDoesNotExists)
+
+        expect(eventMutationFn).toBeCalledTimes(0)
 
         container.restore()
     })
@@ -285,6 +321,9 @@ describe('ControllerService в RouteModule', () => {
             name: 'controller1',
             namespace: 'controller1'
         }
+
+        const eventMutationFn = jest.fn()
+        controllerService.onMutation(eventMutationFn)
 
         await expect(controllerService.create({
             creator: {
@@ -346,6 +385,12 @@ describe('ControllerService в RouteModule', () => {
             revisionNumber: 1
         })
         await expect(metadataRepository.count()).resolves.toBe(1)
+
+        expect(eventMutationFn).toBeCalledTimes(2)
+        expect(eventMutationFn).nthCalledWith(2, {
+            type: ControllerEventMutation.SetMetadata,
+            controllerId: 1
+        })
 
         container.restore()
     })

@@ -3,7 +3,10 @@ import { IControllerService } from './controller.interface'
 import { 
     ControllerMetadata, 
     CreateController,
-    Controller as ControllerType
+    Controller as ControllerType,
+    ControllerEventMutation,
+    ControllerEventMutationName,
+    EventContext
 } from './controller.types'
 import { METHOD_SYMBOL } from '../../method/method.types'
 import { Connection, Repository } from 'typeorm'
@@ -26,12 +29,14 @@ import {
 import { Metadata } from '../../entities/metadata.entity'
 import { MethodUsedError } from '../../method/method.errors'
 import { isErrorCode, SqliteErrorCode } from '../../../../core/typeorm/utils/error-code'
+import { EventEmitter } from 'events'
 
 @injectable()
 export class ControllerService implements IControllerService {
 
     private controllerRepository: Promise<Repository<Controller>>
     private connection: Promise<Connection>
+    private eventEmitter = new EventEmitter
 
     public constructor(
         @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
@@ -67,7 +72,7 @@ export class ControllerService implements IControllerService {
          * Оборачиваю запрос в транзакцию в том числе из-за каскадного сохранения
          * метаданных
          */
-        await transaction(nestedTransaction, connection, async () => {
+        const controllerEntity = await transaction(nestedTransaction, connection, async () => {
             const controllerEntity = await mutationQuery(true, () => {
                 return controllerRepository.save({
                     name: options.name,
@@ -85,7 +90,15 @@ export class ControllerService implements IControllerService {
                 type: ResourceType.Controller,
                 id: controllerEntity.id
             }, options.creator, true)
+
+            return controllerEntity
         })
+
+        const eventContext: EventContext = {
+            type: ControllerEventMutation.Create,
+            controllerId: controllerEntity.id
+        }
+        this.eventEmitter.emit(ControllerEventMutationName, eventContext)
     }
 
     public async isExists(controller: ControllerType): Promise<boolean> {
@@ -119,6 +132,12 @@ export class ControllerService implements IControllerService {
             metadata: controllerEntity.metadata.metadata,
             revisionNumber: snapshotMetadata.revisionNumber
         }, nestedTransaction)
+
+        const eventContext: EventContext = {
+            type: ControllerEventMutation.SetMetadata,
+            controllerId: controllerEntity.id
+        }
+        this.eventEmitter.emit(ControllerEventMutationName, eventContext)
     }
 
     public async remove(controller: ControllerType, nestedTransaction = false): Promise<void> {
@@ -137,6 +156,11 @@ export class ControllerService implements IControllerService {
         if (!controllerEntity) {
             return
         }
+
+        /**
+         * Идентификатор контроллера для события
+         */
+        const controllerId = controllerEntity.id
         
         await transaction(nestedTransaction, connection, async () => {
             try {
@@ -173,6 +197,16 @@ export class ControllerService implements IControllerService {
                 }
             }
         })
+
+        const eventContext: EventContext = {
+            type: ControllerEventMutation.Remove,
+            controllerId: controllerId
+        }
+        this.eventEmitter.emit(ControllerEventMutationName, eventContext)
+    }
+
+    public onMutation(handler: (context: EventContext) => void): void {
+        this.eventEmitter.on(ControllerEventMutationName, handler)
     }
 
 }
