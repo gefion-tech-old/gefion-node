@@ -1,12 +1,19 @@
 import { getContainer } from '../../../../inversify.config'
 import { Controller } from '../../entities/route.entity'
-import { Connection } from 'typeorm'
+import { 
+    Connection,
+    Entity,
+    PrimaryGeneratedColumn,
+    OneToOne,
+    JoinColumn
+} from 'typeorm'
 import { IControllerService } from './controller.interface'
 import { ROUTE_SYMBOL } from '../route.types'
 import {
     ControllerDoesNotExists,
     ControllerMethodNotDefined,
-    ControllerAlreadyExists
+    ControllerAlreadyExists,
+    ControllerUsedError
 } from './controller.errors'
 import { CreatorType, CREATOR_SYMBOL, ResourceType } from '../../creator/creator.types'
 import { Method } from '../../entities/method.entity'
@@ -14,6 +21,29 @@ import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
 import { ICreatorService } from '../../creator/creator.interface'
 import { Metadata } from '../../entities/metadata.entity'
 import { RevisionNumberError } from '../../metadata/metadata.errors'
+import { addTestEntity } from '../../../../core/typeorm/utils/test-entities'
+
+/**
+ * Добавление тестовой сущности
+ * -----
+ */
+ @Entity()
+ class Test {
+ 
+    @PrimaryGeneratedColumn()
+    id: number
+
+    @OneToOne(() => Controller, {
+        nullable: false
+    })
+    @JoinColumn()
+    controller: Controller
+ 
+ }
+ addTestEntity(Test)
+ /**
+  * -----
+  */
 
 beforeAll(async () => {
     const container = await getContainer()
@@ -103,6 +133,45 @@ describe('ControllerService в RouteModule', () => {
         }, {
             type: CreatorType.System
         })).resolves.toBe(true)
+
+        container.restore()
+    })
+
+    it(`
+        Попытка удалить контроллер к которому привязаны какие-либо внешние ресурсы приводит
+        к исключению
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        const controllerService = container
+            .get<IControllerService>(ROUTE_SYMBOL.ControllerService)
+        const connection = await container
+            .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+        const methodRepository = connection.getRepository(Method)
+        const testRepository = connection.getRepository(Test)
+
+        const methodEntity = await methodRepository.save({
+            name: 'name1',
+            type: 'type1',
+            namespace: 'namespace1'
+        })
+        const controller = {
+            name: 'controller1',
+            namespace: 'controller1'
+        }
+        await controllerService.create({
+            creator: {
+                type: CreatorType.System
+            },
+            method: methodEntity,
+            ...controller
+        })
+        await testRepository.save({
+            controller: { id: 1 }
+        })
+
+        await expect(controllerService.remove(controller)).rejects.toBeInstanceOf(ControllerUsedError)
 
         container.restore()
     })

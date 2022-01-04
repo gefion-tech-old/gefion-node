@@ -7,6 +7,13 @@ export class ControllerAlreadyExists extends ControllerError {
 
 }
 
+export class ControllerUsedError extends ControllerError {
+
+    public name = 'ControllerUsedError'
+    public message = 'Указанный контроллер в настоящее время используется'
+
+}
+
 export class ControllerMethodNotDefined extends ControllerError {
 
     public name = 'ControllerMethodNotDefined'

@@ -20,10 +20,12 @@ import { IMethodService } from '../../method/method.interface'
 import {
     ControllerMethodNotDefined,
     ControllerDoesNotExists,
-    ControllerAlreadyExists
+    ControllerAlreadyExists,
+    ControllerUsedError
 } from './controller.errors'
 import { Metadata } from '../../entities/metadata.entity'
 import { MethodUsedError } from '../../method/method.errors'
+import { isErrorCode, SqliteErrorCode } from '../../../../core/typeorm/utils/error-code'
 
 @injectable()
 export class ControllerService implements IControllerService {
@@ -137,9 +139,20 @@ export class ControllerService implements IControllerService {
         }
         
         await transaction(nestedTransaction, connection, async () => {
-            await mutationQuery(true, () => {
-                return controllerRepository.remove(controllerEntity)
-            })
+            try {
+                await mutationQuery(true, () => {
+                    return controllerRepository.remove(controllerEntity)
+                })
+            } catch(error) {
+                if (isErrorCode(error, [
+                    SqliteErrorCode.SQLITE_CONSTRAINT_FOREIGNKEY,
+                    SqliteErrorCode.SQLITE_CONSTRAINT_TRIGGER
+                ])) {
+                    throw new ControllerUsedError
+                }
+
+                throw error
+            }
             
             await mutationQuery(true, () => {
                 return metadataRepository.remove(controllerEntity.metadata)
