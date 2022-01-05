@@ -1,5 +1,5 @@
 import { BindableResource, BindableCreator, CreatorType } from './creator.types'
-import { BlockInstance } from '../entities/block-instance.entity'
+import { BlockInstance } from '../entities/block.entity'
 
 export interface ICreatorService {
 

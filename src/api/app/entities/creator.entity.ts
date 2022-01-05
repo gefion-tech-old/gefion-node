@@ -7,7 +7,7 @@ import {
     Column,
     Unique
 } from 'typeorm'
-import { BlockInstance } from './block-instance.entity'
+import { BlockInstance } from './block.entity'
 import { Method } from './method.entity'
 import { Signal } from './signal.entity'
 import { Role, Permission } from './user.entity'

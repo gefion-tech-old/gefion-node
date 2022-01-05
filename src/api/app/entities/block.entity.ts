@@ -2,12 +2,12 @@ import { injectable } from 'inversify'
 import { 
     Entity, 
     PrimaryGeneratedColumn, 
-    Column,
-    Unique, 
     CreateDateColumn,
-    OneToMany
+    ManyToOne,
+    Column,
+    OneToMany,
+    Unique
 } from 'typeorm'
-import { BlockInstance } from './block-instance.entity'
 
 @injectable()
 @Entity()
@@ -39,5 +39,24 @@ export class BlockVersion {
 
     @OneToMany(() => BlockInstance, instance => instance.blockVersion)
     instances: BlockInstance[]
+
+}
+
+@injectable()
+@Entity()
+export class BlockInstance {
+
+    @PrimaryGeneratedColumn()
+    id: number
+
+    @CreateDateColumn({
+        nullable: false
+    })
+    createdAt: Date
+
+    @ManyToOne(() => BlockVersion, version => version.instances, {
+        nullable: false
+    })
+    blockVersion: BlockVersion
 
 }

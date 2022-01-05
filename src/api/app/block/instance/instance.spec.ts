@@ -19,7 +19,7 @@ import {
     PrimaryGeneratedColumn,
     ManyToOne
 } from 'typeorm'
-import { BlockInstance } from '../../entities/block-instance.entity'
+import { BlockInstance } from '../../entities/block.entity'
 import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
 import { IVersionService } from '../version/version.interface'
 import { REPAIR_TYPES, RepairJob } from '../../../../core/repair/repair.types'

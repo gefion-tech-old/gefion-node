@@ -1,7 +1,7 @@
 import { injectable } from 'inversify'
 import { ICreatorService } from '../creator.interface'
 import { BindableResource, BindableCreator, CreatorType } from '../creator.types'
-import { BlockInstance } from '../../entities/block-instance.entity'
+import { BlockInstance } from '../../entities/block.entity'
 
 export function getCreatorService(mock: ICreatorService): new() => ICreatorService {
     @injectable()

@@ -5,7 +5,7 @@ import {
     UnAssociateOptions
 } from './version.types'
 import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
-import { BlockVersion } from '../../entities/block-version.entity'
+import { BlockVersion } from '../../entities/block.entity'
 import { Connection } from 'typeorm'
 import { BlockVersionInUse, BlockVersionAlreadyExists } from './version.errors'
 import { isErrorCode, SqliteErrorCode } from '../../../../core/typeorm/utils/error-code'
