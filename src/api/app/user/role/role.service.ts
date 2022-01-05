@@ -13,13 +13,26 @@ import { Connection, Repository } from 'typeorm'
 import { SqliteErrorCode, isErrorCode } from '../../../../core/typeorm/utils/error-code'
 import { Metadata } from '../../entities/metadata.entity'
 import { SnapshotMetadata } from '../../metadata/metadata.types'
-import { RoleMetadata, RolePermissionMetadata, CreateRole } from './role.types'
+import { 
+    RoleMetadata, 
+    RolePermissionMetadata, 
+    CreateRole,
+    EventContext,
+    RoleEventMutation,
+    RoleEventMutationName
+} from './role.types'
 import { MetadataRepository } from '../../metadata/repositories/metadata.repository'
-import { RoleDoesNotExists, RoleDoesNotHavePermission, RoleAlreadyExists } from './role.errors'
+import { 
+    RoleDoesNotExists, 
+    RoleDoesNotHavePermission, 
+    RoleAlreadyExists,
+    PermissionAlreadyBound
+} from './role.errors'
 import { getCustomRepository } from '../../../../core/typeorm/utils/custom-repository'
 import { PermissionDoesNotExist } from '../permission/permission.errors'
 import { CREATOR_SYMBOL, ResourceType } from '../../creator/creator.types'
 import { ICreatorService } from '../../creator/creator.interface'
+import { EventEmitter } from 'events'
 
 @injectable()
 export class RoleService implements IRoleService {
@@ -27,6 +40,7 @@ export class RoleService implements IRoleService {
     private connection: Promise<Connection>
     private roleRepository: Promise<Repository<Role>>
     private rolePermissionRepository: Promise<Repository<RolePermission>>
+    private eventEmitter = new EventEmitter
 
     public constructor(
         @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
@@ -78,6 +92,12 @@ export class RoleService implements IRoleService {
                 id: roleEntity.id
             }, options.creator, true)
         })
+
+        const eventContext: EventContext = {
+            type: RoleEventMutation.Create,
+            roleName: options.name
+        }
+        this.eventEmitter.emit(RoleEventMutationName, eventContext)
     }
 
     public async remove(role: string, nestedTransaction = false): Promise<void> {
@@ -104,6 +124,12 @@ export class RoleService implements IRoleService {
                 return metadataRepository.remove(roleEntity.metadata)
             })
         })
+
+        const eventContext: EventContext = {
+            type: RoleEventMutation.Remove,
+            roleName: role
+        }
+        this.eventEmitter.emit(RoleEventMutationName, eventContext)
     }
 
     public async isExists(role: string): Promise<boolean> {
@@ -135,6 +161,12 @@ export class RoleService implements IRoleService {
             metadata: roleEntity.metadata.metadata,
             revisionNumber: snapshotMetadata.revisionNumber
         }, nestedTransaction)
+
+        const eventContext: EventContext = {
+            type: RoleEventMutation.SetMetadata,
+            roleName: role
+        }
+        this.eventEmitter.emit(RoleEventMutationName, eventContext)
     }
 
     public async addPermission(role: string, permission: string, nestedTransaction = false): Promise<void> {
@@ -167,14 +199,19 @@ export class RoleService implements IRoleService {
                 })
             })
         } catch (error) {
-            block: {
-                if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_UNIQUE)) {
-                    break block
-                }
-
-                throw error
+            if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_UNIQUE)) {
+                throw new PermissionAlreadyBound
             }
+
+            throw error
         }
+
+        const eventContext: EventContext = {
+            type: RoleEventMutation.AddPermission,
+            roleName: role,
+            permissionName: permission
+        }
+        this.eventEmitter.emit(RoleEventMutationName, eventContext)
     }
 
     public async removePermission(role: string, permission: string, nestedTransaction = false): Promise<void> {
@@ -192,6 +229,8 @@ export class RoleService implements IRoleService {
         if (!rolePermissionEntity) {
             if (!await this.isExists(role)) {
                 throw new RoleDoesNotExists
+            } else if (!await this.permissionService.isExists(permission)) {
+                throw new PermissionDoesNotExist
             } else {
                 return
             }
@@ -206,6 +245,13 @@ export class RoleService implements IRoleService {
                 return metadataRepository.remove(rolePermissionEntity.metadata)
             })
         })
+
+        const eventContext: EventContext = {
+            type: RoleEventMutation.RemovePermission,
+            roleName: role,
+            permissionName: permission
+        }
+        this.eventEmitter.emit(RoleEventMutationName, eventContext)
     }
 
     public async isExistsPermission(role: string, permission: string): Promise<boolean> {
@@ -250,6 +296,17 @@ export class RoleService implements IRoleService {
             metadata: rolePermissionEntity.metadata.metadata,
             revisionNumber: snapshotMetadata.revisionNumber
         }, nestedTransaction)
+
+        const eventContext: EventContext = {
+            type: RoleEventMutation.SetRolePermissionMetadata,
+            roleName: role,
+            permissionName: permission
+        }
+        this.eventEmitter.emit(RoleEventMutationName, eventContext)
+    }
+
+    public onMutation(handler: (context: EventContext) => void): void {
+        this.eventEmitter.on(RoleEventMutationName, handler)
     }
 
 }

@@ -22,3 +22,10 @@ export class RoleDoesNotHavePermission extends RoleError {
     public message = 'Указанная роль не имеет указанного разрешения'
 
 }
+
+export class PermissionAlreadyBound extends RoleError {
+
+    public name = 'PermissionAlreadyBound'
+    public message = 'Указанная роль уже привязана к указанному полномочию'
+
+}

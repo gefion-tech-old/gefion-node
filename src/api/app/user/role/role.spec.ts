@@ -4,13 +4,19 @@ import { USER_SYMBOL } from '../user.types'
 import { Metadata } from '../../entities/metadata.entity'
 import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
 import { Connection } from 'typeorm'
-import { RoleDoesNotExists, RoleDoesNotHavePermission, RoleAlreadyExists } from './role.errors'
+import { 
+    RoleDoesNotExists, 
+    RoleDoesNotHavePermission, 
+    RoleAlreadyExists,
+    PermissionAlreadyBound
+} from './role.errors'
 import { RevisionNumberError } from '../../metadata/metadata.errors'
 import { PermissionDoesNotExist } from '../permission/permission.errors'
 import { IPermissionService } from '../permission/permission.interface'
 import { CreatorType, CREATOR_SYMBOL, ResourceType } from '../../creator/creator.types'
 import { ICreatorService } from '../../creator/creator.interface'
 import { Role, RolePermission } from '../../entities/user.entity'
+import { RoleEventMutation } from './role.types'
 
 beforeAll(async () => {
     const container = await getContainer()
@@ -36,6 +42,9 @@ describe('RoleService в UserModule', () => {
         const creatorService = container
             .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
 
+        const eventMutationFn = jest.fn()
+        roleService.onMutation(eventMutationFn)
+
         await expect(roleService.isExists('role1')).resolves.toBe(false)
         await expect(roleService.create({
             name: 'role1',
@@ -55,6 +64,12 @@ describe('RoleService в UserModule', () => {
             id: 1
         }, { type: CreatorType.System })).resolves.toBe(true)
 
+        expect(eventMutationFn).toBeCalledTimes(1)
+        expect(eventMutationFn).nthCalledWith(1, {
+            type: RoleEventMutation.Create,
+            roleName: 'role1'
+        })
+
         container.restore()
     })
     
@@ -70,6 +85,9 @@ describe('RoleService в UserModule', () => {
         const roleService = container
             .get<IRoleService>(USER_SYMBOL.RoleService)
         const metadataRepository = connection.getRepository(Metadata)
+
+        const eventMutationFn = jest.fn()
+        roleService.onMutation(eventMutationFn)
         
         await expect(roleService.isExists('role1')).resolves.toBe(false)
         await expect(roleService.create({
@@ -85,6 +103,12 @@ describe('RoleService в UserModule', () => {
         await expect(metadataRepository.find()).resolves.toHaveLength(0)
         await expect(roleService.isExists('role1')).resolves.toBe(false)
 
+        expect(eventMutationFn).toBeCalledTimes(2)
+        expect(eventMutationFn).nthCalledWith(2, {
+            type: RoleEventMutation.Remove,
+            roleName: 'role1'
+        })
+
         container.restore()
     })
     
@@ -97,12 +121,17 @@ describe('RoleService в UserModule', () => {
         const roleService = container
             .get<IRoleService>(USER_SYMBOL.RoleService)
 
+        const eventMutationFn = jest.fn()
+        roleService.onMutation(eventMutationFn)
+
         await expect(roleService.setMetadata('role1', {
             metadata: {
                 custom: null
             },
             revisionNumber: 0
         })).rejects.toBeInstanceOf(RoleDoesNotExists)
+
+        expect(eventMutationFn).toBeCalledTimes(0)
 
         container.restore()
     })
@@ -119,6 +148,9 @@ describe('RoleService в UserModule', () => {
         const connection = await container
             .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
         const roleRepository = connection.getRepository(Role)
+
+        const eventMutationFn = jest.fn()
+        roleService.onMutation(eventMutationFn)
 
         await expect(roleService.create({
             name: 'role1',
@@ -184,6 +216,12 @@ describe('RoleService в UserModule', () => {
             revisionNumber: 1
         })
 
+        expect(eventMutationFn).toBeCalledTimes(2)
+        expect(eventMutationFn).nthCalledWith(2, {
+            type: RoleEventMutation.SetMetadata,
+            roleName: 'role1'
+        })
+
         container.restore()
     })
     
@@ -196,9 +234,14 @@ describe('RoleService в UserModule', () => {
         const roleService = container
             .get<IRoleService>(USER_SYMBOL.RoleService)
 
+        const eventMutationFn = jest.fn()
+        roleService.onMutation(eventMutationFn)
+
         await expect(roleService.addPermission('role1', 'permission1'))
             .rejects
             .toBeInstanceOf(RoleDoesNotExists)
+
+        expect(eventMutationFn).toBeCalledTimes(0)
 
         container.restore()
     })
@@ -212,6 +255,9 @@ describe('RoleService в UserModule', () => {
         const roleService = container
             .get<IRoleService>(USER_SYMBOL.RoleService)
 
+        const eventMutationFn = jest.fn()
+        roleService.onMutation(eventMutationFn)
+
         await expect(roleService.create({
             name: 'role1',
             creator: {
@@ -222,12 +268,14 @@ describe('RoleService в UserModule', () => {
             .rejects
             .toBeInstanceOf(PermissionDoesNotExist)
 
+        expect(eventMutationFn).toBeCalledTimes(1)
+
         container.restore()
     })
     
     it(`
         Полномочия корректно добавляются к роли. Повторная попытка добавить полномочие
-        ни к чему не приводит
+        приводит к исключению
     `, async () => {
         const container = await getContainer()
         container.snapshot()
@@ -239,6 +287,9 @@ describe('RoleService в UserModule', () => {
         const connection = await container
             .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
         const metadataRepository = connection.getRepository(Metadata)
+
+        const eventMutationFn = jest.fn()
+        roleService.onMutation(eventMutationFn)
 
         await roleService.create({
             name: 'role1',
@@ -256,25 +307,72 @@ describe('RoleService в UserModule', () => {
         await expect(roleService.isExistsPermission('role1', 'permission1')).resolves.toBe(false)
         await expect(metadataRepository.count()).resolves.toBe(2)
         await expect(roleService.addPermission('role1', 'permission1')).resolves.toBeUndefined()
-        await expect(roleService.addPermission('role1', 'permission1')).resolves.toBeUndefined()
+        await expect(roleService.addPermission('role1', 'permission1')).rejects.toBeInstanceOf(PermissionAlreadyBound)
         await expect(roleService.isExistsPermission('role1', 'permission1')).resolves.toBe(true)
         await expect(metadataRepository.count()).resolves.toBe(3)
+
+        expect(eventMutationFn).toBeCalledTimes(2)
+        expect(eventMutationFn).nthCalledWith(2, {
+            type: RoleEventMutation.AddPermission,
+            roleName: 'role1',
+            permissionName: 'permission1'
+        })
 
         container.restore()
     })
     
     it(`
-        Попытка удалить полномочие из несуществующей роли приводит к исключению
+        Попытка удалить существующее полномочие из несуществующей роли приводит к исключению
     `, async () => {
         const container = await getContainer()
         container.snapshot()
 
         const roleService = container
             .get<IRoleService>(USER_SYMBOL.RoleService)
+        const permissionService = container
+            .get<IPermissionService>(USER_SYMBOL.PermissionService)
+
+        const eventMutationFn = jest.fn()
+        roleService.onMutation(eventMutationFn)
+        
+        await expect(permissionService.create({
+            name: 'permission1',
+            creator: {
+                type: CreatorType.System
+            }
+        })).resolves.toBeUndefined()
         
         await expect(roleService.removePermission('role1', 'permission1'))
             .rejects
             .toBeInstanceOf(RoleDoesNotExists)
+
+        expect(eventMutationFn).toBeCalledTimes(0)
+
+        container.restore()
+    })
+
+    it(`
+        Попытка удалить несуществующее полномочие из роли приводит к исключению
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+
+        const roleService = container
+            .get<IRoleService>(USER_SYMBOL.RoleService)
+
+        const eventMutationFn = jest.fn()
+        roleService.onMutation(eventMutationFn)
+
+        await expect(roleService.create({
+            name: 'role1',
+            creator: {
+                type: CreatorType.System
+            }
+        })).resolves.toBeUndefined()
+
+        await expect(roleService.removePermission('role1', 'empty')).rejects.toBeInstanceOf(PermissionDoesNotExist)
+
+        expect(eventMutationFn).toBeCalledTimes(1)
 
         container.restore()
     })
@@ -294,6 +392,9 @@ describe('RoleService в UserModule', () => {
             .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
         const metadataRepository = connection.getRepository(Metadata)
 
+        const eventMutationFn = jest.fn()
+        roleService.onMutation(eventMutationFn)
+
         await expect(roleService.create({
             name: 'role1',
             creator: {
@@ -307,7 +408,6 @@ describe('RoleService в UserModule', () => {
             }
         })).resolves.toBeUndefined()
         await expect(roleService.addPermission('role1', 'permission1')).resolves.toBeUndefined()
-        await expect(roleService.addPermission('role1', 'permission1')).resolves.toBeUndefined()
         await expect(metadataRepository.count()).resolves.toBe(3)
 
         await expect(roleService.isExistsPermission('role1', 'permission1')).resolves.toBe(true)
@@ -315,6 +415,13 @@ describe('RoleService в UserModule', () => {
         await expect(roleService.removePermission('role1', 'permission1')).resolves.toBeUndefined()
         await expect(roleService.isExistsPermission('role1', 'permission1')).resolves.toBe(false)
         await expect(metadataRepository.count()).resolves.toBe(2)
+
+        expect(eventMutationFn).toBeCalledTimes(3)
+        expect(eventMutationFn).nthCalledWith(3, {
+            type: RoleEventMutation.RemovePermission,
+            roleName: 'role1',
+            permissionName: 'permission1'
+        })
 
         container.restore()
     })
@@ -330,6 +437,9 @@ describe('RoleService в UserModule', () => {
             .get<IRoleService>(USER_SYMBOL.RoleService)
         const permissionService = container
             .get<IPermissionService>(USER_SYMBOL.PermissionService)
+
+        const eventMutationFn = jest.fn()
+        roleService.onMutation(eventMutationFn)
 
         await expect(roleService.create({
             name: 'role1',
@@ -354,6 +464,8 @@ describe('RoleService в UserModule', () => {
             .rejects
             .toBeInstanceOf(RoleDoesNotHavePermission)
 
+        expect(eventMutationFn).toBeCalledTimes(1)
+
         container.restore()
     })
     
@@ -372,6 +484,9 @@ describe('RoleService в UserModule', () => {
             .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
         const metadataRepository = connection.getRepository(Metadata)
         const rolePermissionRepository = connection.getRepository(RolePermission)
+
+        const eventMutationFn = jest.fn()
+        roleService.onMutation(eventMutationFn)
 
         await expect(roleService.create({
             name: 'role1',
@@ -434,6 +549,13 @@ describe('RoleService в UserModule', () => {
             },
             revisionNumber: 0
         })).rejects.toBeInstanceOf(RevisionNumberError)
+
+        expect(eventMutationFn).toBeCalledTimes(3)
+        expect(eventMutationFn).nthCalledWith(3, {
+            type: RoleEventMutation.SetRolePermissionMetadata,
+            roleName: 'role1',
+            permissionName: 'permission1'
+        })
 
         container.restore()
     })

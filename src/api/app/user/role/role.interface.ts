@@ -1,5 +1,5 @@
 import { SnapshotMetadata } from '../../metadata/metadata.types'
-import { RoleMetadata, RolePermissionMetadata, CreateRole } from './role.types'
+import { RoleMetadata, RolePermissionMetadata, CreateRole, EventContext } from './role.types'
 
 export interface IRoleService {
 
@@ -48,5 +48,10 @@ export interface IRoleService {
      * Установить метаданные в роль, если она существует
      */
     setMetadata(role: string, snapshotMetadata: SnapshotMetadata<RoleMetadata>, nestedTransaction?: boolean): Promise<void>
+
+    /**
+     * Поставить обработчик для прослушивания события мутации ролей
+     */
+    onMutation(handler: (context: EventContext) => void): void
 
 }
