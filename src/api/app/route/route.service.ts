@@ -344,15 +344,20 @@ export class RouteService implements IRouteService {
         }
 
         try {
-            await mutationQuery(nestedTransaction, () => {
-                return routeMiddlewareRepository.save({
-                    routeId: routeEntity.id,
-                    middlewareId: middlewareEntity.id,
-                    metadata: {
+            /**
+             * Транзакция из-за каскадных запросов
+             */
+            await transaction(nestedTransaction, connection, async () => {
+                await mutationQuery(true, () => {
+                    return routeMiddlewareRepository.save({
+                        routeId: routeEntity.id,
+                        middlewareId: middlewareEntity.id,
                         metadata: {
-                            custom: null
+                            metadata: {
+                                custom: null
+                            }
                         }
-                    }
+                    })
                 })
             })
         } catch(error) {
