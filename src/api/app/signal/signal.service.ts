@@ -1,6 +1,6 @@
 import { injectable, inject } from 'inversify'
 import { ISignalService } from './signal.interface'
-import { Connection, Repository } from 'typeorm'
+import { Connection } from 'typeorm'
 import { Signal as SignalEntity } from '../entities/signal.entity'
 import { TYPEORM_SYMBOL } from '../../../core/typeorm/typeorm.types'
 import { 
@@ -40,30 +40,22 @@ import { getCustomRepository } from '../../../core/typeorm/utils/custom-reposito
 @injectable()
 export class SignalService implements ISignalService {
 
-    private signalRepository: Promise<Repository<SignalEntity>>
-    private connection: Promise<Connection>
     private eventEmitter = new EventEmitter
 
     public constructor(
         @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
-        connection: Promise<Connection>,
+        private connection: Promise<Connection>,
 
         @inject(METHOD_SYMBOL.MethodService)
         private methodService: IMethodService,
 
         @inject(CREATOR_SYMBOL.CreatorService)
         private creatorService: ICreatorService
-    ) {
-        this.connection = connection
-        this.signalRepository = connection
-            .then(connection => {
-                return connection.getRepository(SignalEntity)
-            })
-    }
+    ) {}
 
     public async create(options: CreateSignal, nestedTransaction = false): Promise<void> {
-        const signalRepository = await this.signalRepository
         const connection = await this.connection
+        const signalRepository = connection.getRepository(SignalEntity)
 
         if (await this.isExists(options.signal)) {
             throw new SignalAlreadyExists
@@ -99,12 +91,15 @@ export class SignalService implements ISignalService {
     }
 
     public async isExists(signal: Signal): Promise<boolean> {
-        const signalRepository = await this.signalRepository
+        const connection = await this.connection
+        const signalRepository = connection.getRepository(SignalEntity)
         return await signalRepository.count(signal) > 0
     }
 
     public async getSignalId(signal: Signal): Promise<number | undefined> {
-        const signalRepository = await this.signalRepository
+        const connection = await this.connection
+        const signalRepository = connection.getRepository(SignalEntity)
+
         const signalEntity = await signalRepository.findOne({
             where: {
                 namespace: signal.namespace,
@@ -120,8 +115,8 @@ export class SignalService implements ISignalService {
     }
 
     public async setCustomMetadata(signal: Signal, snapshotMetadata: SnapshotMetadata<SignalMetadata>, nestedTransaction = false): Promise<void> {
-        const signalRepository = await this.signalRepository
         const connection = await this.connection
+        const signalRepository = connection.getRepository(SignalEntity)
         const metadataRepository = getCustomRepository(connection, MetadataRepository)
 
         const signalEntity = await signalRepository.findOne({
@@ -150,7 +145,7 @@ export class SignalService implements ISignalService {
 
     public async addValidator(signal: Signal, method: Method, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const signalRepository = await this.signalRepository
+        const signalRepository = connection.getRepository(SignalEntity)
 
         const signalEntity = await signalRepository.findOne({
             where: {
@@ -193,7 +188,7 @@ export class SignalService implements ISignalService {
 
     public async removeValidator(signal: Signal, method: Method, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const signalRepository = await this.signalRepository
+        const signalRepository = connection.getRepository(SignalEntity)
 
         const signalEntity = await signalRepository.findOne({
             where: {
@@ -244,7 +239,7 @@ export class SignalService implements ISignalService {
 
     public async addGuard(signal: Signal, method: Method, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const signalRepository = await this.signalRepository
+        const signalRepository = connection.getRepository(SignalEntity)
 
         const signalEntity = await signalRepository.findOne({
             where: {
@@ -287,7 +282,7 @@ export class SignalService implements ISignalService {
 
     public async removeGuard(signal: Signal, method: Method, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const signalRepository = await this.signalRepository
+        const signalRepository = connection.getRepository(SignalEntity)
 
         const signalEntity = await signalRepository.findOne({
             where: {
@@ -338,7 +333,7 @@ export class SignalService implements ISignalService {
 
     public async addFilter(signal: Signal, method: Method, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const signalRepository = await this.signalRepository
+        const signalRepository = connection.getRepository(SignalEntity)
 
         const signalEntity = await signalRepository.findOne({
             where: {
@@ -381,7 +376,7 @@ export class SignalService implements ISignalService {
 
     public async removeFilter(signal: Signal, method: Method, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const signalRepository = await this.signalRepository
+        const signalRepository = connection.getRepository(SignalEntity)
 
         const signalEntity = await signalRepository.findOne({
             where: {
@@ -432,7 +427,7 @@ export class SignalService implements ISignalService {
 
     public async connect(outSignal: Signal, intoSignal: Signal, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const signalRepository = await this.signalRepository
+        const signalRepository = connection.getRepository(SignalEntity)
         const graphRepository = getCustomRepository(connection, GraphRepository)
 
         /**
@@ -494,7 +489,7 @@ export class SignalService implements ISignalService {
 
     public async unconnect(outSignal: Signal, intoSignal: Signal, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const signalRepository = await this.signalRepository
+        const signalRepository = connection.getRepository(SignalEntity)
         const graphRepository = getCustomRepository(connection, GraphRepository)
 
         /**
@@ -546,7 +541,7 @@ export class SignalService implements ISignalService {
 
     public async remove(signal: Signal, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const signalRepository = await this.signalRepository
+        const signalRepository = connection.getRepository(SignalEntity)
         const metadataRepository = connection.getRepository(Metadata)
 
         /**

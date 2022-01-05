@@ -1,7 +1,7 @@
 import { injectable, inject } from 'inversify'
 import { IStoreService } from './store.interface'
 import { TYPEORM_SYMBOL } from '../../typeorm/typeorm.types'
-import { Repository, Connection } from 'typeorm'
+import { Connection } from 'typeorm'
 import { RPCInfo } from '../entities/rpc-info.entity'
 import { StoreInfo, SyncOperation } from './store.types'
 import uniqid from 'uniqid'
@@ -17,23 +17,17 @@ export class StoreService implements IStoreService {
 
     private appId: string | undefined
     private ports: number[] | undefined
-    private rpcInfoRepository: Promise<Repository<RPCInfo>>
 
     public constructor(
         @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
-        connection: Promise<Connection>,
+        private connection: Promise<Connection>,
 
         @inject(FASTIFY_SYMBOL.FastifyService)
         private fastifyService: IFastifyService,
 
         @inject(ATOMIC_SYMBOL.AtomicService)
         private atomicService: IAtomicService
-    ) {
-        this.rpcInfoRepository = connection
-            .then(connection => {
-                return connection.getRepository(RPCInfo)
-            })
-    }
+    ) {}
 
     public async getAppId(): Promise<string> {
         if (this.appId) {
@@ -56,7 +50,8 @@ export class StoreService implements IStoreService {
     }
 
     public async sync(): Promise<StoreInfo> {
-        const rpcInfoRepository = await this.rpcInfoRepository
+        const connection = await this.connection
+        const rpcInfoRepository = connection.getRepository(RPCInfo)
         
         /**
          * Поставить блокировку на синхронизацию, так как это должна быть
@@ -168,7 +163,8 @@ export class StoreService implements IStoreService {
     }
 
     public async removePort(port: number): Promise<void> {
-        const rpcInfoRepository = await this.rpcInfoRepository
+        const connection = await this.connection
+        const rpcInfoRepository = connection.getRepository(RPCInfo)
 
         /**
          * Удалить указанный порт из базы данных

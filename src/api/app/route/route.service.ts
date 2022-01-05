@@ -1,6 +1,6 @@
 import { injectable, inject } from 'inversify'
 import { IRouteService } from './route.interface'
-import { Connection, Repository } from 'typeorm'
+import { Connection } from 'typeorm'
 import { 
     Route, 
     MiddlewareGroup, 
@@ -47,26 +47,19 @@ import { EventEmitter } from 'events'
 @injectable()
 export class RouteService implements IRouteService {
 
-    private connection: Promise<Connection>
-    private routeRepository: Promise<Repository<Route>>
     private eventEmitter = new EventEmitter()
 
     public constructor(
         @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
-        connection: Promise<Connection>,
+        private connection: Promise<Connection>,
 
         @inject(CREATOR_SYMBOL.CreatorService)
         private creatorService: ICreatorService
-    ) {
-        this.connection = connection
-        this.routeRepository = connection.then(connection => {
-            return connection.getRepository(Route)
-        })
-    }
+    ) {}
 
     public async create(options: CreateRoute, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const routeRepository = await this.routeRepository
+        const routeRepository = connection.getRepository(Route)
 
         if (await this.isExists(options)) {
             throw new RouteAlreadyExists
@@ -114,7 +107,9 @@ export class RouteService implements IRouteService {
     }
 
     public async isExists(route: RouteType): Promise<boolean> {
-        const routeRepository = await this.routeRepository
+        const connection = await this.connection
+        const routeRepository = connection.getRepository(Route)
+
         return await routeRepository.count({
             where: {
                 namespace: route.namespace,
@@ -125,8 +120,8 @@ export class RouteService implements IRouteService {
 
     public async setMetadata(route: RouteType, snapshotMetadata: SnapshotMetadata<RouteMetadata>, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
+        const routeRepository = connection.getRepository(Route)
         const metadataRepository = getCustomRepository(connection, MetadataRepository)
-        const routeRepository = await this.routeRepository
 
         const routeEntity = await routeRepository.findOne({
             where: {
@@ -154,7 +149,7 @@ export class RouteService implements IRouteService {
 
     public async addMiddlewareGroup(route: RouteType, group: MiddlewareGroupType, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const routeRepository = await this.routeRepository
+        const routeRepository = connection.getRepository(Route)
         const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)
 
         const routeEntity = await routeRepository.findOne({
@@ -205,7 +200,7 @@ export class RouteService implements IRouteService {
 
     public async removeMiddlewareGroup(route: RouteType, group: MiddlewareGroupType, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const routeRepository = await this.routeRepository
+        const routeRepository = connection.getRepository(Route)
         const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)
         const routeMiddlewareGroupRepository = connection.getRepository(RouteMiddlewareGroup)
 
@@ -266,7 +261,7 @@ export class RouteService implements IRouteService {
         nestedTransaction = false
     ): Promise<void> {
         const connection = await this.connection
-        const routeRepository = await this.routeRepository
+        const routeRepository = connection.getRepository(Route)
         const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)
         const routeMiddlewareGroupRepository = connection.getRepository(RouteMiddlewareGroup)
 
@@ -315,7 +310,7 @@ export class RouteService implements IRouteService {
 
     public async addMiddleware(route: RouteType, middleware: MiddlewareType, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const routeRepository = await this.routeRepository
+        const routeRepository = connection.getRepository(Route)
         const middlewareRepository = connection.getRepository(Middleware)
 
         const routeEntity = await routeRepository.findOne({
@@ -366,7 +361,7 @@ export class RouteService implements IRouteService {
 
     public async removeMiddleware(route: RouteType, middleware: MiddlewareType, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const routeRepository = await this.routeRepository
+        const routeRepository = connection.getRepository(Route)
         const middlewareRepository = connection.getRepository(Middleware)
         const routeMiddlewareRepository = connection.getRepository(RouteMiddleware)
 
@@ -427,7 +422,7 @@ export class RouteService implements IRouteService {
         nestedTransaction = false
     ): Promise<void> {
         const connection = await this.connection
-        const routeRepository = await this.routeRepository
+        const routeRepository = connection.getRepository(Route)
         const middlewareRepository = connection.getRepository(Middleware)
         const routeMiddlewareRepository = connection.getRepository(RouteMiddleware)
 
@@ -475,7 +470,8 @@ export class RouteService implements IRouteService {
     }
 
     public async enableCsrf(route: RouteType, nestedTransaction = false): Promise<void> {
-        const routeRepository = await this.routeRepository
+        const connection = await this.connection
+        const routeRepository = connection.getRepository(Route)
 
         const routeEntity = await routeRepository.findOne({
             where: {
@@ -505,7 +501,8 @@ export class RouteService implements IRouteService {
     }
 
     public async disableCsrf(route: RouteType, nestedTransaction = false): Promise<void> {
-        const routeRepository = await this.routeRepository
+        const connection = await this.connection
+        const routeRepository = connection.getRepository(Route)
 
         const routeEntity = await routeRepository.findOne({
             where: {
@@ -536,7 +533,7 @@ export class RouteService implements IRouteService {
 
     public async remove(route: RouteType, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const routeRepository = await this.routeRepository
+        const routeRepository = connection.getRepository(Route)
         const metadataRepository = connection.getRepository(Metadata)
 
         const routeEntity = await routeRepository.findOne({
@@ -574,7 +571,7 @@ export class RouteService implements IRouteService {
 
     public async bindController(route: RouteType, controller: ControllerType, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const routeRepository = await this.routeRepository
+        const routeRepository = connection.getRepository(Route)
         const controllerRepository = connection.getRepository(Controller)
 
         const routeEntity = await routeRepository.findOne({
@@ -616,7 +613,8 @@ export class RouteService implements IRouteService {
     }
 
     public async unbindController(route: RouteType, nestedTransaction = false): Promise<void> {
-        const routeRepository = await this.routeRepository
+        const connection = await this.connection
+        const routeRepository = connection.getRepository(Route)
 
         const routeEntity = await routeRepository.findOne({
             where: {

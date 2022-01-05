@@ -1,7 +1,7 @@
 import { injectable, inject } from 'inversify'
 import { IPermissionService } from './permission.interface'
 import { Permission } from '../../entities/user.entity'
-import { Connection, Repository } from 'typeorm'
+import { Connection } from 'typeorm'
 import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
 import { mutationQuery } from '../../../../core/typeorm/utils/mutation-query'
 import { 
@@ -24,27 +24,19 @@ import { EventEmitter } from 'events'
 @injectable()
 export class PermissionService implements IPermissionService {
 
-    private connection: Promise<Connection>
-    private permissionRepository: Promise<Repository<Permission>>
     private eventEmitter = new EventEmitter
 
     public constructor(
         @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
-        connection: Promise<Connection>,
+        private connection: Promise<Connection>,
 
         @inject(CREATOR_SYMBOL.CreatorService)
         private creatorService: ICreatorService
-    ) {
-        this.connection = connection
-        this.permissionRepository = connection
-            .then(connection => {
-                return connection.getRepository(Permission)
-            })
-    }
+    ) {}
 
     public async create(options: CreatePermission, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const permissionRepository = await this.permissionRepository
+        const permissionRepository = connection.getRepository(Permission)
 
         if (await this.isExists(options.name)) {
             throw new PermissionAlreadyExists
@@ -81,7 +73,7 @@ export class PermissionService implements IPermissionService {
 
     public async remove(permission: string, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const permissionRepository = await this.permissionRepository
+        const permissionRepository = connection.getRepository(Permission)
         const metadataRepository = connection.getRepository(Metadata)
 
         const permissionEntity = await permissionRepository.findOne({
@@ -112,7 +104,9 @@ export class PermissionService implements IPermissionService {
     }
     
     public async isExists(permission: string): Promise<boolean> {
-        const permissionRepository = await this.permissionRepository
+        const connection = await this.connection
+        const permissionRepository = connection.getRepository(Permission)
+        
         return await permissionRepository.count({
             name: permission
         }) > 0
@@ -120,8 +114,8 @@ export class PermissionService implements IPermissionService {
 
     public async setMetadata(permission: string, snapshotMetadata: SnapshotMetadata<PermissionMetadata>, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
+        const permissionRepository = connection.getRepository(Permission)
         const metadataRepository = getCustomRepository(connection, MetadataRepository)
-        const permissionRepository = await this.permissionRepository
 
         const permissionEntity = await permissionRepository.findOne({
             where: {

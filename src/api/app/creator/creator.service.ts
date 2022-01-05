@@ -7,7 +7,7 @@ import {
 } from './creator.types'
 import { TYPEORM_SYMBOL } from '../../../core/typeorm/typeorm.types'
 import { ICreatorService } from './creator.interface'
-import { Connection, Repository } from 'typeorm'
+import { Connection } from 'typeorm'
 import { Creator } from '../entities/creator.entity'
 import { BlockInstance } from '../entities/block-instance.entity'
 import { ResourceAlreadyHasCreator } from './creator.errors'
@@ -17,20 +17,14 @@ import { mutationQuery } from '../../../core/typeorm/utils/mutation-query'
 @injectable()
 export class CreatorService implements ICreatorService {
 
-    private creatorRepository: Promise<Repository<Creator>>
-
     public constructor(
         @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
-        connection: Promise<Connection> 
-    ) {
-        this.creatorRepository = connection
-            .then(connection => {
-                return connection.getRepository(Creator)
-            })
-    }
+        private connection: Promise<Connection> 
+    ) {}
 
     public async bind(resource: BindableResource, creator: BindableCreator, nestedTransaction = false): Promise<void> {
-        const creatorRepository = await this.creatorRepository
+        const connection = await this.connection
+        const creatorRepository = connection.getRepository(Creator)
         const creatorEntity = creatorRepository.create()
         
         switch (resource.type) {
@@ -83,7 +77,8 @@ export class CreatorService implements ICreatorService {
     }
 
     public async getCreator(resource: BindableResource): Promise<BlockInstance | CreatorType.System | undefined> {
-        const creatorRepository = await this.creatorRepository
+        const connection = await this.connection
+        const creatorRepository = connection.getRepository(Creator)
 
         const creatorEntity = await creatorRepository.findOne({
             where: (() => {

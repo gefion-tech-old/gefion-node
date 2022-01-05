@@ -5,7 +5,7 @@ import {
     BlockInstanceAPIProperties
 } from './instance.types'
 import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
-import { Repository, Connection } from 'typeorm'
+import { Connection } from 'typeorm'
 import { BlockInstance } from '../../entities/block-instance.entity'
 import { ScriptID } from '../../../../core/vm/vm.types'
 import { Version } from '../version/version.types'
@@ -27,31 +27,20 @@ import { mutationQuery } from '../../../../core/typeorm/utils/mutation-query'
 @injectable()
 export class InstanceService implements IInstanceService {
 
-    private instanceRepository: Promise<Repository<BlockInstance>>
-    private versionRepository: Promise<Repository<BlockVersion>>
     private scriptIds = new Map<InstanceId, ScriptID>()
 
     public constructor(
         @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
-        connection: Promise<Connection>,
+        private connection: Promise<Connection>,
 
         @inject(VM_SYMBOL.VMService)
         private vmService: IVMService
-    ) {
-        this.instanceRepository = connection
-            .then(connection => {
-                return connection.getRepository(BlockInstance)
-            })
-
-        this.versionRepository = connection
-            .then(connection => {
-                return connection.getRepository(BlockVersion)
-            })
-    }
+    ) {}
 
     public async create(versionInfo: Version, nestedTransaction = false): Promise<InstanceId> {
-        const versionRepository = await this.versionRepository
-        const instanceRepository = await this.instanceRepository
+        const connection = await this.connection
+        const versionRepository = connection.getRepository(BlockVersion)
+        const instanceRepository = connection.getRepository(BlockInstance)
 
         /**
          * Получить указанный экземпляр версии блока
@@ -84,7 +73,8 @@ export class InstanceService implements IInstanceService {
     }
 
     public async start(instanceId: InstanceId): Promise<void> {
-        const instanceRepository = await this.instanceRepository
+        const connection = await this.connection
+        const instanceRepository = connection.getRepository(BlockInstance)
 
         /**
          * Ничего не делать, если указанный экземпляр уже был запущен
@@ -161,7 +151,8 @@ export class InstanceService implements IInstanceService {
     }
 
     public async remove(instanceId: InstanceId, nestedTransaction = false): Promise<void> {
-        const instanceRepository = await this.instanceRepository
+        const connection = await this.connection
+        const instanceRepository = connection.getRepository(BlockInstance)
 
         /**
          * Удалить созданный экземпляр версии блока из базы данных

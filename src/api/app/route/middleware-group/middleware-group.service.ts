@@ -1,6 +1,6 @@
 import { injectable, inject } from 'inversify'
 import { IMiddlewareGroupService } from './middleware-group.interface'
-import { Connection, Repository } from 'typeorm'
+import { Connection } from 'typeorm'
 import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
 import { MiddlewareGroup, Middleware, MiddlewareGroupMiddleware } from '../../entities/route.entity'
 import { 
@@ -33,26 +33,19 @@ import { EventEmitter } from 'events'
 @injectable()
 export class MiddlewareGroupService implements IMiddlewareGroupService {
 
-    private connection: Promise<Connection>
-    private middlewareGroupRepository: Promise<Repository<MiddlewareGroup>>
     private eventEmitter = new EventEmitter
 
     public constructor(
         @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
-        connection: Promise<Connection>,
+        private connection: Promise<Connection>,
 
         @inject(CREATOR_SYMBOL.CreatorService)
         private creatorService: ICreatorService
-    ) {
-        this.connection = connection
-        this.middlewareGroupRepository = connection.then(connection => {
-            return connection.getRepository(MiddlewareGroup)
-        })
-    }
+    ) {}
 
     public async create(options: CreateMiddlewareGroup, nestedTransaction = false): Promise<void> {
-        const middlewareGroupRepository = await this.middlewareGroupRepository
         const connection = await this.connection
+        const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)
 
         if (await this.isExists(options)) {
             throw new MiddlewareGroupAlreadyExists
@@ -93,7 +86,9 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
     }
 
     public async isExists(group: MiddlewareGroupType): Promise<boolean> {
-        const middlewareGroupRepository = await this.middlewareGroupRepository
+        const connection = await this.connection
+        const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)
+
         return await middlewareGroupRepository.count({
             where: {
                 namespace: group.namespace,
@@ -104,7 +99,7 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
 
     public async setMetadata(group: MiddlewareGroupType, snapshotMetadata: SnapshotMetadata<MiddlewareGroupMetadata>, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const middlewareGroupRepository = await this.middlewareGroupRepository
+        const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)
         const metadataRepository = getCustomRepository(connection, MetadataRepository)
 
         const middlewareGroupEntity = await middlewareGroupRepository.findOne({
@@ -133,7 +128,7 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
 
     public async addMiddleware(group: MiddlewareGroupType, middleware: MiddlewareType, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const middlewareGroupRepository = await this.middlewareGroupRepository
+        const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)
         const middlewareRepository = connection.getRepository(Middleware)
 
         const middlewareGroupEntity = await middlewareGroupRepository.findOne({
@@ -184,7 +179,7 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
 
     public async removeMiddleware(group: MiddlewareGroupType, middleware: MiddlewareType, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const middlewareGroupRepository = await this.middlewareGroupRepository
+        const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)
         const middlewareRepository = connection.getRepository(Middleware)
         const middlewareGroupMiddlewareRepository = connection.getRepository(MiddlewareGroupMiddleware)
 
@@ -245,7 +240,7 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
         nestedTransaction = false
     ): Promise<void> {
         const connection = await this.connection
-        const middlewareGroupRepository = await this.middlewareGroupRepository
+        const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)
         const middlewareGroupMiddlewareRepository = connection.getRepository(MiddlewareGroupMiddleware)
         const middlewareRepository = connection.getRepository(Middleware)
 
@@ -294,7 +289,7 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
 
     public async remove(group: MiddlewareGroupType, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const middlewareGroupRepository = await this.middlewareGroupRepository
+        const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)
         const metadataRepository = connection.getRepository(Metadata)
 
         const middlewareGroupEntity = await middlewareGroupRepository.findOne({
@@ -331,7 +326,8 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
     }
 
     public async enableCsrf(group: MiddlewareGroupType, nestedTransaction = false): Promise<void> {
-        const middlewareGroupRepository = await this.middlewareGroupRepository
+        const connection = await this.connection
+        const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)
 
         const middlewareGroupEntity = await middlewareGroupRepository.findOne({
             where: {
@@ -361,7 +357,8 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
     }
 
     public async disableCsrf(group: MiddlewareGroupType, nestedTransaction = false): Promise<void> {
-        const middlewareGroupRepository = await this.middlewareGroupRepository
+        const connection = await this.connection
+        const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)
 
         const middlewareGroupEntity = await middlewareGroupRepository.findOne({
             where: {

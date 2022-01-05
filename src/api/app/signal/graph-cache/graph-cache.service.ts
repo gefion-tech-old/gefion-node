@@ -2,7 +2,7 @@ import { injectable, inject } from 'inversify'
 import { Signal, SignalGraph } from '../../entities/signal.entity'
 import { IGraphCacheService } from './graph-cache.interface'
 import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
-import { Connection, Repository } from 'typeorm'
+import { Connection } from 'typeorm'
 import { 
     SignalCache,
     SignalEdgesCache,
@@ -18,31 +18,20 @@ import { IRPCService } from '../../../../core/rpc/rpc.interface'
 @injectable()
 export class GraphCacheService implements IGraphCacheService {
 
-    private signalRepository: Promise<Repository<Signal>>
-    private signalGraphRepository: Promise<Repository<SignalGraph>>
     private signalCache: SignalCache = new Map
     private signalEdgesCache: SignalEdgesCache = new Map
     private signalOppositeEdgesCache: SignalOppositeEdgesCache = new Map
 
     public constructor(
         @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
-        connection: Promise<Connection>,
+        private connection: Promise<Connection>,
 
         @inject(ATOMIC_SYMBOL.AtomicService)
         private atomicService: IAtomicService,
 
         @inject(RPC_SYMBOL.RPCService)
         private rpcService: IRPCService
-    ) {
-        this.signalRepository = connection
-            .then(connection => {
-                return connection.getRepository(Signal)
-            })
-        this.signalGraphRepository = connection
-            .then(connection => {
-                return connection.getRepository(SignalGraph)
-            })
-    }
+    ) {}
 
     public async signalDirection(signalId: number, callback: (signal: Signal) => Promise<boolean>): Promise<boolean> {
         const executedSignals = new Set
@@ -76,8 +65,9 @@ export class GraphCacheService implements IGraphCacheService {
     }
 
     public async updateSignal(signalId: number): Promise<void> {
-        const signalRepository = await this.signalRepository
-        const signalGraphRepository = await this.signalGraphRepository
+        const connection = await this.connection
+        const signalRepository = connection.getRepository(Signal)
+        const signalGraphRepository = connection.getRepository(SignalGraph)
 
         /**
          * Получить экземпляр сигнала из базы данных со всеми связями для кеша
@@ -199,8 +189,9 @@ export class GraphCacheService implements IGraphCacheService {
     }
 
     public async updateSignals(): Promise<void> {
-        const signalRepository = await this.signalRepository
-        const signalGraphRepository = await this.signalGraphRepository
+        const connection = await this.connection
+        const signalRepository = connection.getRepository(Signal)
+        const signalGraphRepository = connection.getRepository(SignalGraph)
 
         /**
          * Получить массив всех сущностей сигналов с заполненными отношениями

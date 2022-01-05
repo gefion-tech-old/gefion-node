@@ -6,7 +6,7 @@ import {
 } from './version.types'
 import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
 import { BlockVersion } from '../../entities/block-version.entity'
-import { Repository, Connection } from 'typeorm'
+import { Connection } from 'typeorm'
 import { BlockVersionInUse, BlockVersionAlreadyExists } from './version.errors'
 import { isErrorCode, SqliteErrorCode } from '../../../../core/typeorm/utils/error-code'
 import { mutationQuery } from '../../../../core/typeorm/utils/mutation-query'
@@ -14,20 +14,14 @@ import { mutationQuery } from '../../../../core/typeorm/utils/mutation-query'
 @injectable()
 export class VersionService implements IVersionService {
 
-    private versionRepository: Promise<Repository<BlockVersion>>
-
     public constructor(
         @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
-        connection: Promise<Connection>
-    ) {
-        this.versionRepository = connection
-            .then(connection => {
-                return connection.getRepository(BlockVersion)
-            })
-    }
+        private connection: Promise<Connection>
+    ) {}
 
     public async associate(options: AssociateOptions, nestedTransaction = false): Promise<void> {
-        const versionRepository = await this.versionRepository
+        const connection = await this.connection
+        const versionRepository = connection.getRepository(BlockVersion)
 
         try {
             await mutationQuery(nestedTransaction, () => {
@@ -47,7 +41,8 @@ export class VersionService implements IVersionService {
     }
 
     public async unassociate(options: UnAssociateOptions, nestedTransaction = false): Promise<void> {
-        const versionRepository = await this.versionRepository
+        const connection = await this.connection
+        const versionRepository = connection.getRepository(BlockVersion)
 
         const block = await versionRepository.findOne({
             name: options.name,

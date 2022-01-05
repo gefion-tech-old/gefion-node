@@ -11,7 +11,7 @@ import {
     RPCMethodsMethodService,
     MethodId
 } from './method.types'
-import { Repository, Connection } from 'typeorm'
+import { Connection } from 'typeorm'
 import { TYPEORM_SYMBOL } from '../../../core/typeorm/typeorm.types'
 import { Method as MethodEntity } from '../entities/method.entity'
 import { 
@@ -34,13 +34,11 @@ import { mutationQuery } from '../../../core/typeorm/utils/mutation-query'
 @injectable()
 export class MethodService implements IMethodService {
 
-    private methodRepository: Promise<Repository<MethodEntity>>
-    private connection: Promise<Connection>
     private namespaces: Namespaces = new Map
 
     public constructor(
         @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
-        connection: Promise<Connection>,
+        private connection: Promise<Connection>,
 
         @inject(RPC_SYMBOL.RPCService)
         private rpcService: IRPCService,
@@ -50,13 +48,7 @@ export class MethodService implements IMethodService {
 
         @inject(VM_SYMBOL.VMService)
         private vmService: IVMService
-    ) {
-        this.connection = connection
-        this.methodRepository = connection
-            .then(connection => {
-                return connection.getRepository(MethodEntity)
-            })
-    }
+    ) {}
 
     private getMethodData(method: Method): MethodData | undefined {
         const namespace = this.namespaces.get(method.namespace)
@@ -75,8 +67,8 @@ export class MethodService implements IMethodService {
     }
 
     public async method(options: MethodOptions, nestedTransaction = false): Promise<void> {
-        const methodRepository = await this.methodRepository
         const connection = await this.connection
+        const methodRepository = connection.getRepository(MethodEntity)
 
         /**
          * Провалидировать идентификатор скрипта в обработчике
@@ -176,7 +168,9 @@ export class MethodService implements IMethodService {
     }
 
     public async getMethodId(method: Method): Promise<MethodId | undefined> {
-        const methodRepository = await this.methodRepository
+        const connection = await this.connection
+        const methodRepository = connection.getRepository(MethodEntity)
+
         const methodEntity = await methodRepository.findOne({
             where: {
                 namespace: method.namespace,
@@ -184,6 +178,7 @@ export class MethodService implements IMethodService {
                 name: method.name
             }
         })
+
         return methodEntity?.id
     }
 
@@ -212,7 +207,8 @@ export class MethodService implements IMethodService {
     }
 
     public async removeNamespace(namespace: string, nestedTransaction = false): Promise<void> {
-        const methodRepository = await this.methodRepository
+        const connection = await this.connection
+        const methodRepository = connection.getRepository(MethodEntity)
 
         try {
             await mutationQuery(nestedTransaction, () => {
@@ -235,7 +231,8 @@ export class MethodService implements IMethodService {
     }
 
     public async removeMethod(method: Method, nestedTransaction = false): Promise<void> {
-        const methodRepository = await this.methodRepository
+        const connection = await this.connection
+        const methodRepository = connection.getRepository(MethodEntity)
 
         try {
             await mutationQuery(nestedTransaction, () => {
@@ -267,7 +264,7 @@ export class MethodService implements IMethodService {
 
     public async removeMethods(methods: Method[], nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const methodRepository = await this.methodRepository
+        const methodRepository = connection.getRepository(MethodEntity)
 
         await transaction(nestedTransaction, connection, async () => {
             for (const method of methods) {

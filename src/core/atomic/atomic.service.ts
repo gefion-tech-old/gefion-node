@@ -3,27 +3,21 @@ import { IAtomicService } from './atomic.interface'
 import { Options } from 'async-retry'
 import retry from 'async-retry'
 import { TYPEORM_SYMBOL } from '../typeorm/typeorm.types'
-import { Repository, Connection } from 'typeorm'
+import { Connection } from 'typeorm'
 import { Atomic } from './entities/atomic.entity'
 import { mutationQuery } from '../typeorm/utils/mutation-query'
 
 @injectable()
 export class AtomicService implements IAtomicService {
 
-    private atomicRepository: Promise<Repository<Atomic>>
-
     public constructor(
         @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
-        connection: Promise<Connection>
-    ) {
-        this.atomicRepository = connection
-            .then((connection) => {
-                return connection.getRepository(Atomic)
-            })
-    }
+        private connection: Promise<Connection>
+    ) {}
 
     public async lock(operation: string, options?: Options): Promise<boolean> {
-        const atomicRepository = await this.atomicRepository
+        const connection = await this.connection
+        const atomicRepository = connection.getRepository(Atomic)
 
         try {
             await retry(async () => {
@@ -41,14 +35,17 @@ export class AtomicService implements IAtomicService {
     }
 
     public async unlock(operation: string): Promise<void> {
-        const atomicRepository = await this.atomicRepository
+        const connection = await this.connection
+        const atomicRepository = connection.getRepository(Atomic)
+
         await mutationQuery(false, () => {
             return atomicRepository.delete(operation)
         })
     }
 
     public async check(operation: string, options?: Options): Promise<boolean> {
-        const atomicRepository = await this.atomicRepository
+        const connection = await this.connection
+        const atomicRepository = connection.getRepository(Atomic)
 
         try {
             await retry(async () => {

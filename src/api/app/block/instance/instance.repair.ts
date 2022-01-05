@@ -2,7 +2,7 @@ import { injectable, inject } from 'inversify'
 import { RepairJob } from '../../../../core/repair/repair.types'
 import { BLOCK_SYMBOL } from '../block.types'
 import { IInstanceService } from './instance.interface'
-import { Connection, Repository, Not, In } from 'typeorm'
+import { Connection, Not, In } from 'typeorm'
 import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
 import { BlockInstance } from '../../entities/block-instance.entity'
 
@@ -20,20 +20,13 @@ import { BlockInstance } from '../../entities/block-instance.entity'
 @injectable()
 export class InstanceRepair implements RepairJob {
 
-    private instanceRepository: Promise<Repository<BlockInstance>>
-
     public constructor(
         @inject(BLOCK_SYMBOL.BlockInstanceService)
         private instanceService: IInstanceService,
 
         @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
-        connection: Promise<Connection>
-    ) {
-        this.instanceRepository = connection
-            .then(connection => {
-                return connection.getRepository(BlockInstance)
-            })
-    }
+        private connection: Promise<Connection>
+    ) {}
 
     public name(): string {
         return 'BlockModule:InstanceRepair'
@@ -44,7 +37,8 @@ export class InstanceRepair implements RepairJob {
     }
 
     public async repair(): Promise<void> {
-        const instanceRepository = await this.instanceRepository
+        const connection = await this.connection
+        const instanceRepository = connection.getRepository(BlockInstance)
         const instanceIds = this.instanceService.getAllInstanceId()
 
         const instances = await instanceRepository.find({

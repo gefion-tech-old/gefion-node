@@ -9,7 +9,7 @@ import {
     EventContext
 } from './controller.types'
 import { METHOD_SYMBOL } from '../../method/method.types'
-import { Connection, Repository } from 'typeorm'
+import { Connection } from 'typeorm'
 import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
 import { transaction } from '../../../../core/typeorm/utils/transaction'
 import { mutationQuery } from '../../../../core/typeorm/utils/mutation-query'
@@ -34,29 +34,22 @@ import { EventEmitter } from 'events'
 @injectable()
 export class ControllerService implements IControllerService {
 
-    private controllerRepository: Promise<Repository<Controller>>
-    private connection: Promise<Connection>
     private eventEmitter = new EventEmitter
 
     public constructor(
         @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
-        connection: Promise<Connection>,
+        private connection: Promise<Connection>,
 
         @inject(CREATOR_SYMBOL.CreatorService)
         private creatorService: ICreatorService,
 
         @inject(METHOD_SYMBOL.MethodService)
         private methodService: IMethodService
-    ) {
-        this.connection = connection
-        this.controllerRepository = connection.then(connection => {
-            return connection.getRepository(Controller)
-        })
-    }
+    ) {}
 
     public async create(options: CreateController, nestedTransaction = false): Promise<void> {
-        const controllerRepository = await this.controllerRepository
         const connection = await this.connection
+        const controllerRepository = connection.getRepository(Controller)
 
         if (await this.isExists(options)) {
             throw new ControllerAlreadyExists
@@ -102,7 +95,9 @@ export class ControllerService implements IControllerService {
     }
 
     public async isExists(controller: ControllerType): Promise<boolean> {
-        const controllerRepository = await this.controllerRepository
+        const connection = await this.connection
+        const controllerRepository = connection.getRepository(Controller)
+
         return await controllerRepository.count({
             where: {
                 namespace: controller.namespace,
@@ -113,8 +108,8 @@ export class ControllerService implements IControllerService {
 
     public async setMetadata(controller: ControllerType, snapshotMetadata: SnapshotMetadata<ControllerMetadata>, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
+        const controllerRepository = connection.getRepository(Controller)
         const metadataRepository = getCustomRepository(connection, MetadataRepository)
-        const controllerRepository = await this.controllerRepository
 
         const controllerEntity = await controllerRepository.findOne({
             where: {
@@ -142,7 +137,7 @@ export class ControllerService implements IControllerService {
 
     public async remove(controller: ControllerType, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const controllerRepository = await this.controllerRepository
+        const controllerRepository = connection.getRepository(Controller)
         const metadataRepository = connection.getRepository(Metadata)
 
         const controllerEntity = await controllerRepository.findOne({

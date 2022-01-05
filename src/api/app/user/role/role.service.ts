@@ -9,7 +9,7 @@ import { IPermissionService } from '../permission/permission.interface'
 import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
 import { transaction } from '../../../../core/typeorm/utils/transaction'
 import { mutationQuery } from '../../../../core/typeorm/utils/mutation-query'
-import { Connection, Repository } from 'typeorm'
+import { Connection } from 'typeorm'
 import { SqliteErrorCode, isErrorCode } from '../../../../core/typeorm/utils/error-code'
 import { Metadata } from '../../entities/metadata.entity'
 import { SnapshotMetadata } from '../../metadata/metadata.types'
@@ -37,35 +37,22 @@ import { EventEmitter } from 'events'
 @injectable()
 export class RoleService implements IRoleService {
 
-    private connection: Promise<Connection>
-    private roleRepository: Promise<Repository<Role>>
-    private rolePermissionRepository: Promise<Repository<RolePermission>>
     private eventEmitter = new EventEmitter
 
     public constructor(
         @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
-        connection: Promise<Connection>,
+        private connection: Promise<Connection>,
 
         @inject(USER_SYMBOL.PermissionService)
         private permissionService: IPermissionService,
 
         @inject(CREATOR_SYMBOL.CreatorService)
         private creatorService: ICreatorService
-    ) {
-        this.connection = connection
-        this.roleRepository = connection
-            .then(connection => {
-                return connection.getRepository(Role)
-            })
-        this.rolePermissionRepository = connection
-            .then(connection => {
-                return connection.getRepository(RolePermission)
-            })
-    }
+    ) {}
 
     public async create(options: CreateRole, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const roleRepository = await this.roleRepository
+        const roleRepository = connection.getRepository(Role)
 
         if (await this.isExists(options.name)) {
             throw new RoleAlreadyExists
@@ -102,7 +89,7 @@ export class RoleService implements IRoleService {
 
     public async remove(role: string, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const roleRepository = await this.roleRepository
+        const roleRepository = connection.getRepository(Role)
         const metadataRepository = connection.getRepository(Metadata)
 
         const roleEntity = await roleRepository.findOne({
@@ -133,7 +120,9 @@ export class RoleService implements IRoleService {
     }
 
     public async isExists(role: string): Promise<boolean> {
-        const roleRepository = await this.roleRepository
+        const connection = await this.connection
+        const roleRepository = connection.getRepository(Role)
+
         return await roleRepository.count({
             where: {
                 name: role
@@ -143,8 +132,8 @@ export class RoleService implements IRoleService {
 
     public async setMetadata(role: string, snapshotMetadata: SnapshotMetadata<RoleMetadata>, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
+        const roleRepository = connection.getRepository(Role)
         const metadataRepository = getCustomRepository(connection, MetadataRepository)
-        const roleRepository = await this.roleRepository
         
         const roleEntity = await roleRepository.findOne({
             where: {
@@ -171,7 +160,7 @@ export class RoleService implements IRoleService {
 
     public async addPermission(role: string, permission: string, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const rolePermissionRepository = await this.rolePermissionRepository
+        const rolePermissionRepository = connection.getRepository(RolePermission)
 
         if (!await this.isExists(role)) {
             throw new RoleDoesNotExists
@@ -216,7 +205,7 @@ export class RoleService implements IRoleService {
 
     public async removePermission(role: string, permission: string, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const rolePermissionRepository = await this.rolePermissionRepository
+        const rolePermissionRepository = connection.getRepository(RolePermission)
         const metadataRepository = connection.getRepository(Metadata)
 
         const rolePermissionEntity = await rolePermissionRepository.findOne({
@@ -255,7 +244,9 @@ export class RoleService implements IRoleService {
     }
 
     public async isExistsPermission(role: string, permission: string): Promise<boolean> {
-        const rolePermissionRepository = await this.rolePermissionRepository
+        const connection = await this.connection
+        const rolePermissionRepository = connection.getRepository(RolePermission)
+
         return await rolePermissionRepository.count({
             where: {
                 roleName: role,
@@ -271,8 +262,8 @@ export class RoleService implements IRoleService {
         nestedTransaction = false
     ): Promise<void> {
         const connection = await this.connection
+        const rolePermissionRepository = connection.getRepository(RolePermission)
         const metadataRepository = getCustomRepository(connection, MetadataRepository)
-        const rolePermissionRepository = await this.rolePermissionRepository
 
         const rolePermissionEntity = await rolePermissionRepository.findOne({
             where: {

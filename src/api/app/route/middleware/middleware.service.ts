@@ -6,7 +6,7 @@ import { transaction } from '../../../../core/typeorm/utils/transaction'
 import { mutationQuery } from '../../../../core/typeorm/utils/mutation-query'
 import { IMethodService } from '../../method/method.interface'
 import { METHOD_SYMBOL } from '../../method/method.types'
-import { Connection, Repository } from 'typeorm'
+import { Connection } from 'typeorm'
 import { Middleware } from '../../entities/route.entity'
 import { CREATOR_SYMBOL, ResourceType } from '../../creator/creator.types'
 import { ICreatorService } from '../../creator/creator.interface'
@@ -32,29 +32,22 @@ import { EventEmitter } from 'events'
 @injectable()
 export class MiddlewareService implements IMiddlewareService {
 
-    private connection: Promise<Connection>
-    private middlewareRepository: Promise<Repository<Middleware>>
     private eventEmitter = new EventEmitter
 
     public constructor(
         @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
-        connection: Promise<Connection>,
+        private connection: Promise<Connection>,
 
         @inject(METHOD_SYMBOL.MethodService)
         private methodService: IMethodService,
 
         @inject(CREATOR_SYMBOL.CreatorService)
         private creatorService: ICreatorService
-    ) {
-        this.connection = connection
-        this.middlewareRepository = connection.then(connection => {
-            return connection.getRepository(Middleware)
-        })
-    }
+    ) {}
 
     public async create(options: CreateMiddleware, nestedTransaction = false): Promise<void> {
-        const middlewareRepository = await this.middlewareRepository
         const connection = await this.connection
+        const middlewareRepository = connection.getRepository(Middleware)
 
         if (await this.isExists(options)) {
             throw new MiddlewareAlreadyExists
@@ -101,7 +94,9 @@ export class MiddlewareService implements IMiddlewareService {
     }
 
     public async isExists(middleware: MiddlewareType): Promise<boolean> {
-        const middlewareRepository = await this.middlewareRepository
+        const connection = await this.connection
+        const middlewareRepository = connection.getRepository(Middleware)
+
         return await middlewareRepository.count({
             where: {
                 namespace: middleware.namespace,
@@ -112,7 +107,7 @@ export class MiddlewareService implements IMiddlewareService {
 
     public async setMetadata(middleware: MiddlewareType, snapshotMetadata: SnapshotMetadata<MiddlewareMetadata>, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const middlewareRepository = await this.middlewareRepository
+        const middlewareRepository = connection.getRepository(Middleware)
         const metadataRepository = getCustomRepository(connection, MetadataRepository)
 
         const middlewareEntity = await middlewareRepository.findOne({
@@ -141,7 +136,7 @@ export class MiddlewareService implements IMiddlewareService {
 
     public async remove(middleware: MiddlewareType, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
-        const middlewareRepository = await this.middlewareRepository
+        const middlewareRepository = connection.getRepository(Middleware)
         const metadataRepository = connection.getRepository(Metadata)
 
         const middlewareEntity = await middlewareRepository.findOne({
@@ -194,7 +189,8 @@ export class MiddlewareService implements IMiddlewareService {
     }
 
     public async enableCsrf(middleware: MiddlewareType, nestedTransaction = false): Promise<void> {
-        const middlewareRepository = await this.middlewareRepository
+        const connection = await this.connection
+        const middlewareRepository = connection.getRepository(Middleware)
 
         const middlewareEntity = await middlewareRepository.findOne({
             where: {
@@ -224,7 +220,8 @@ export class MiddlewareService implements IMiddlewareService {
     }
 
     public async disableCsrf(middleware: MiddlewareType, nestedTransaction = false): Promise<void> {
-        const middlewareRepository = await this.middlewareRepository
+        const connection = await this.connection
+        const middlewareRepository = connection.getRepository(Middleware)
 
         const middlewareEntity = await middlewareRepository.findOne({
             where: {

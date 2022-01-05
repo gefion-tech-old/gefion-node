@@ -1,7 +1,7 @@
 import { injectable, inject } from 'inversify'
 import { IUserService } from './user.interface'
 import { TYPEORM_SYMBOL } from '../../../core/typeorm/typeorm.types'
-import { Connection, Repository } from 'typeorm'
+import { Connection } from 'typeorm'
 import { User } from '../entities/user.entity'
 import { mutationQuery } from '../../../core/typeorm/utils/mutation-query'
 import { IRoleService } from './role/role.interface'
@@ -18,24 +18,19 @@ import { EventEmitter } from 'events'
 @injectable()
 export class UserService implements IUserService {
 
-    private userRepository: Promise<Repository<User>>
     private eventEmitter = new EventEmitter
 
     public constructor(
         @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
-        connection: Promise<Connection>,
+        private connection: Promise<Connection>,
 
         @inject(USER_SYMBOL.RoleService)
         private roleService: IRoleService
-    ) {
-        this.userRepository = connection
-            .then(connection => {
-                return connection.getRepository(User)
-            })
-    }
+    ) {}
 
     public async create(username: string, nestedTransaction = false): Promise<void> {
-        const userRepository = await this.userRepository
+        const connection = await this.connection
+        const userRepository = connection.getRepository(User)
 
         if (await this.isExists(username)) {
             throw new UserAlreadyExists
@@ -55,7 +50,9 @@ export class UserService implements IUserService {
     }
 
     public async isExists(username: string): Promise<boolean> {
-        const userRepository = await this.userRepository
+        const connection = await this.connection
+        const userRepository = connection.getRepository(User)
+
         return await userRepository.count({
             where: {
                 username: username
@@ -64,7 +61,8 @@ export class UserService implements IUserService {
     }
     
     public async remove(username: string, nestedTransaction = false): Promise<void> {
-        const userRepository = await this.userRepository
+        const connection = await this.connection
+        const userRepository = connection.getRepository(User)
 
         const userEntity = await userRepository.findOne({
             where: {
@@ -92,7 +90,8 @@ export class UserService implements IUserService {
     }
 
     public async setRole(username: string, role: string | null, nestedTransaction = false): Promise<void> {
-        const userRepository = await this.userRepository
+        const connection = await this.connection
+        const userRepository = connection.getRepository(User)
 
         if (!role) {
             if (!await this.isExists(username)) {

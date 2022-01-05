@@ -11,8 +11,8 @@ export function getSignalService(mock: ISignalService): new() => ISignalService 
     @injectable()
     class SignalService implements ISignalService {
 
-        createIfNotCreated(options: CreateSignal, nestedTransaction?: boolean): any {
-            return mock.createIfNotCreated(options, nestedTransaction)
+        create(options: CreateSignal, nestedTransaction?: boolean): any {
+            return mock.create(options, nestedTransaction)
         }
 
         isExists(signal: Signal): any {
