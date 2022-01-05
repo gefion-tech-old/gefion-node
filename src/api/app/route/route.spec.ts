@@ -849,8 +849,8 @@ describe('RouteService в RouteModule', () => {
     })
     
     it(`
-        Удаление middleware из машрута происходит корректно. Попытка удалить из машрута
-        не добавленный в него middleware ни к чему не приводит
+        Удаление middleware из машрута происходит корректно (в том числе удаление метаданных). Попытка удалить 
+        из машрута не добавленный в него middleware ни к чему не приводит
     `, async () => {
         const container = await getContainer()
         container.snapshot()
@@ -1135,8 +1135,8 @@ describe('RouteService в RouteModule', () => {
                 middlewareId: 1,
                 routeId: 1
             }
-        }).then(routeEntity => {
-            return type<Route>(routeEntity).metadata
+        }).then(entity => {
+            return type<Route>(entity).metadata
         })).resolves.toMatchObject({
             metadata: {
                 custom: null
@@ -1156,8 +1156,8 @@ describe('RouteService в RouteModule', () => {
                 middlewareId: 1,
                 routeId: 1
             }
-        }).then(routeEntity => {
-            return type<Route>(routeEntity).metadata
+        }).then(entity => {
+            return type<Route>(entity).metadata
         })).resolves.toMatchObject({
             metadata: {
                 custom: {
@@ -1177,8 +1177,8 @@ describe('RouteService в RouteModule', () => {
                 middlewareId: 1,
                 routeId: 1
             }
-        }).then(routeEntity => {
-            return type<Route>(routeEntity).metadata
+        }).then(entity => {
+            return type<Route>(entity).metadata
         })).resolves.toMatchObject({
             metadata: {
                 custom: {
@@ -1834,8 +1834,8 @@ describe('RouteService в RouteModule', () => {
         await expect(metadataRepository.count()).resolves.toBe(2)
         await expect(routeRepository.findOne({
             where: route
-        }).then(routeEntity => {
-            return type<Route>(routeEntity).controllerMetadata
+        }).then(entity => {
+            return type<Route>(entity).controllerMetadata
         })).resolves.toMatchObject({
             metadata: {
                 custom: null
@@ -1852,8 +1852,8 @@ describe('RouteService в RouteModule', () => {
         })).resolves.toBeUndefined()
         await expect(routeRepository.findOne({
             where: route
-        }).then(routeEntity => {
-            return type<Route>(routeEntity).controllerMetadata
+        }).then(entity => {
+            return type<Route>(entity).controllerMetadata
         })).resolves.toMatchObject({
             metadata: {
                 custom: {
@@ -1870,8 +1870,8 @@ describe('RouteService в RouteModule', () => {
         })).rejects.toBeInstanceOf(RevisionNumberError)
         await expect(routeRepository.findOne({
             where: route
-        }).then(routeEntity => {
-            return type<Route>(routeEntity).controllerMetadata
+        }).then(entity => {
+            return type<Route>(entity).controllerMetadata
         })).resolves.toMatchObject({
             metadata: {
                 custom: {
