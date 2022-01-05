@@ -16,7 +16,8 @@ import {
     Route as RouteType,
     EventContext,
     RouteEventMutationName,
-    RouteEventMutation
+    RouteEventMutation,
+    RouteControllerMetadata
 } from './route.types'
 import {
     RoutePathAndMethodAlreadyExists,
@@ -71,6 +72,11 @@ export class RouteService implements IRouteService {
                     return await routeRepository.save({
                         isCsrf: false,
                         metadata: {
+                            metadata: {
+                                custom: null
+                            }
+                        },
+                        controllerMetadata: {
                             metadata: {
                                 custom: null
                             }
@@ -560,6 +566,10 @@ export class RouteService implements IRouteService {
             await mutationQuery(true, () => {
                 return metadataRepository.remove(routeEntity.metadata)
             })
+
+            await mutationQuery(true, () => {
+                return metadataRepository.remove(routeEntity.controllerMetadata)
+            })
         })
 
         const eventContext: EventContext = {
@@ -637,6 +647,39 @@ export class RouteService implements IRouteService {
 
         const eventContext: EventContext = {
             type: RouteEventMutation.UnbindController,
+            routeId: routeEntity.id
+        }
+        this.eventEmitter.emit(RouteEventMutationName, eventContext)
+    }
+
+    public async setRouteControllerMetadata(
+        route: Route, 
+        snapshotMetadata: SnapshotMetadata<RouteControllerMetadata>,
+        nestedTransaction = false
+    ): Promise<void> {
+        const connection = await this.connection
+        const routeRepository = connection.getRepository(Route)
+        const metadataRepository = getCustomRepository(connection, MetadataRepository)
+
+        const routeEntity = await routeRepository.findOne({
+            where: {
+                namespace: route.namespace,
+                name: route.name
+            }
+        })
+
+        if (!routeEntity) {
+            throw new RouteDoesNotExists
+        }
+
+        routeEntity.controllerMetadata.metadata.custom = snapshotMetadata.metadata.custom
+        await metadataRepository.update(routeEntity.controllerMetadata.id, {
+            metadata: routeEntity.controllerMetadata.metadata,
+            revisionNumber: snapshotMetadata.revisionNumber
+        }, nestedTransaction)
+
+        const eventContext: EventContext = {
+            type: RouteEventMutation.SetRouteControllerMetadata,
             routeId: routeEntity.id
         }
         this.eventEmitter.emit(RouteEventMutationName, eventContext)

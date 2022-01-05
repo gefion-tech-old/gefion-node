@@ -13,7 +13,7 @@ import {
     Unique
 } from 'typeorm'
 import { Metadata } from './metadata.entity'
-import { RouteMetadata, HttpMethod } from '../route/route.types'
+import { RouteMetadata, HttpMethod, RouteControllerMetadata } from '../route/route.types'
 import { MiddlewareGroupMetadata } from '../route/middleware-group/middleware-group.types'
 import { Method } from './method.entity'
 import { ControllerMetadata } from '../route/controller/controller.types'
@@ -79,6 +79,15 @@ export class Route {
         name: 'route_middleware'
     })
     middlewares: Middleware[]
+
+    @OneToOne(() => Metadata, {
+        onDelete: 'RESTRICT',
+        eager: true,
+        cascade: ['insert'],
+        nullable: false
+    })
+    @JoinColumn()
+    controllerMetadata: Metadata<RouteControllerMetadata>
 
     @OneToOne(() => Controller, {
         onDelete: 'RESTRICT',

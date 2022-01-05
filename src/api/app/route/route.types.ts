@@ -32,6 +32,13 @@ export interface RouteMetadata {
     custom: any
 }
 
+export interface RouteControllerMetadata {
+    /**
+     * Метаданные, которые можно изменить в любой момент времени без особых ограничений
+     */
+    custom: any
+}
+
 export type HttpMethod = 'GET' | 'POST' | 'HEAD' | 'OPTIONS' | 'DELETE' | 'PUT' | 'PATCH'
 
 export interface CreateRoute {
@@ -114,7 +121,11 @@ export enum RouteEventMutation {
     /**
      * Событие отвязки контроллера от маршрута
      */
-    UnbindController = 'UnbindController'
+    UnbindController = 'UnbindController',
+    /**
+     * Событие изменения метаданных связи маршрута с контроллером
+     */
+    SetRouteControllerMetadata = 'SetRouteControllerMetadata'
 }
 
 export interface MiddlewareGroupEventContext {
