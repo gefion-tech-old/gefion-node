@@ -1425,6 +1425,11 @@ describe('CreatorService в CreatorModule', () => {
                         custom: null
                     }
                 },
+                controllerMetadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
                 method: 'POST',
                 namespace: 'namespace',
                 name: 'route1',
@@ -1471,6 +1476,11 @@ describe('CreatorService в CreatorModule', () => {
             const routeEntity = await routeRepository.save({
                 isCsrf: false,
                 metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                controllerMetadata: {
                     metadata: {
                         custom: null
                     }
@@ -1529,6 +1539,11 @@ describe('CreatorService в CreatorModule', () => {
                         custom: null
                     }
                 },
+                controllerMetadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
                 method: 'POST',
                 namespace: 'namespace',
                 name: 'route1',
@@ -1566,6 +1581,11 @@ describe('CreatorService в CreatorModule', () => {
             const routeEntity = await routeRepository.save({
                 isCsrf: false,
                 metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                controllerMetadata: {
                     metadata: {
                         custom: null
                     }
