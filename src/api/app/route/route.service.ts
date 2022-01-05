@@ -128,7 +128,7 @@ export class RouteService implements IRouteService {
     public async setMetadata(route: RouteType, snapshotMetadata: SnapshotMetadata<RouteMetadata>, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const routeRepository = connection.getRepository(Route)
-        const metadataRepository = getCustomRepository(connection, MetadataRepository)
+        const metadataCustomRepository = getCustomRepository(connection, MetadataRepository)
 
         const routeEntity = await routeRepository.findOne({
             where: {
@@ -142,7 +142,7 @@ export class RouteService implements IRouteService {
         }
 
         routeEntity.metadata.metadata.custom = snapshotMetadata.metadata.custom
-        await metadataRepository.update(routeEntity.metadata.id, {
+        await metadataCustomRepository.update(routeEntity.metadata.id, {
             metadata: routeEntity.metadata.metadata,
             revisionNumber: snapshotMetadata.revisionNumber
         }, nestedTransaction)
@@ -745,7 +745,7 @@ export class RouteService implements IRouteService {
     ): Promise<void> {
         const connection = await this.connection
         const routeRepository = connection.getRepository(Route)
-        const metadataRepository = getCustomRepository(connection, MetadataRepository)
+        const metadataCustomRepository = getCustomRepository(connection, MetadataRepository)
 
         const routeEntity = await routeRepository.findOne({
             where: {
@@ -759,7 +759,7 @@ export class RouteService implements IRouteService {
         }
 
         routeEntity.controllerMetadata.metadata.custom = snapshotMetadata.metadata.custom
-        await metadataRepository.update(routeEntity.controllerMetadata.id, {
+        await metadataCustomRepository.update(routeEntity.controllerMetadata.id, {
             metadata: routeEntity.controllerMetadata.metadata,
             revisionNumber: snapshotMetadata.revisionNumber
         }, nestedTransaction)

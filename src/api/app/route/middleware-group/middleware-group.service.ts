@@ -100,7 +100,7 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
     public async setMetadata(group: MiddlewareGroupType, snapshotMetadata: SnapshotMetadata<MiddlewareGroupMetadata>, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)
-        const metadataRepository = getCustomRepository(connection, MetadataRepository)
+        const metadataCustomRepository = getCustomRepository(connection, MetadataRepository)
 
         const middlewareGroupEntity = await middlewareGroupRepository.findOne({
             where: {
@@ -114,7 +114,7 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
         }
 
         middlewareGroupEntity.metadata.metadata.custom = snapshotMetadata.metadata.custom
-        await metadataRepository.update(middlewareGroupEntity.metadata.id, {
+        await metadataCustomRepository.update(middlewareGroupEntity.metadata.id, {
             metadata: middlewareGroupEntity.metadata.metadata,
             revisionNumber: snapshotMetadata.revisionNumber
         }, nestedTransaction)

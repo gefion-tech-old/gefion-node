@@ -109,7 +109,7 @@ export class ControllerService implements IControllerService {
     public async setMetadata(controller: ControllerType, snapshotMetadata: SnapshotMetadata<ControllerMetadata>, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const controllerRepository = connection.getRepository(Controller)
-        const metadataRepository = getCustomRepository(connection, MetadataRepository)
+        const metadataCustomRepository = getCustomRepository(connection, MetadataRepository)
 
         const controllerEntity = await controllerRepository.findOne({
             where: {
@@ -123,7 +123,7 @@ export class ControllerService implements IControllerService {
         }
 
         controllerEntity.metadata.metadata.custom = snapshotMetadata.metadata.custom
-        await metadataRepository.update(controllerEntity.metadata.id, {
+        await metadataCustomRepository.update(controllerEntity.metadata.id, {
             metadata: controllerEntity.metadata.metadata,
             revisionNumber: snapshotMetadata.revisionNumber
         }, nestedTransaction)

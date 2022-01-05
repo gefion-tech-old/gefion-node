@@ -117,7 +117,7 @@ export class SignalService implements ISignalService {
     public async setCustomMetadata(signal: Signal, snapshotMetadata: SnapshotMetadata<SignalMetadata>, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const signalRepository = connection.getRepository(SignalEntity)
-        const metadataRepository = getCustomRepository(connection, MetadataRepository)
+        const metadataCustomRepository = getCustomRepository(connection, MetadataRepository)
 
         const signalEntity = await signalRepository.findOne({
             where: {
@@ -131,7 +131,7 @@ export class SignalService implements ISignalService {
         }
 
         signalEntity.metadata.metadata.custom = snapshotMetadata.metadata.custom
-        await metadataRepository.update(signalEntity.metadata.id, {
+        await metadataCustomRepository.update(signalEntity.metadata.id, {
             metadata: signalEntity.metadata.metadata,
             revisionNumber: snapshotMetadata.revisionNumber
         }, nestedTransaction)

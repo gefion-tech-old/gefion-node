@@ -151,7 +151,7 @@ export class RoleService implements IRoleService {
     public async setMetadata(role: string, snapshotMetadata: SnapshotMetadata<RoleMetadata>, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const roleRepository = connection.getRepository(Role)
-        const metadataRepository = getCustomRepository(connection, MetadataRepository)
+        const metadataCustomRepository = getCustomRepository(connection, MetadataRepository)
         
         const roleEntity = await roleRepository.findOne({
             where: {
@@ -164,7 +164,7 @@ export class RoleService implements IRoleService {
         }
 
         roleEntity.metadata.metadata.custom = snapshotMetadata.metadata.custom
-        await metadataRepository.update(roleEntity.metadata.id, {
+        await metadataCustomRepository.update(roleEntity.metadata.id, {
             metadata: roleEntity.metadata.metadata,
             revisionNumber: snapshotMetadata.revisionNumber
         }, nestedTransaction)
@@ -281,7 +281,7 @@ export class RoleService implements IRoleService {
     ): Promise<void> {
         const connection = await this.connection
         const rolePermissionRepository = connection.getRepository(RolePermission)
-        const metadataRepository = getCustomRepository(connection, MetadataRepository)
+        const metadataCustomRepository = getCustomRepository(connection, MetadataRepository)
 
         const rolePermissionEntity = await rolePermissionRepository.findOne({
             where: {
@@ -301,7 +301,7 @@ export class RoleService implements IRoleService {
         }
 
         rolePermissionEntity.metadata.metadata.custom = snapshotMetadata.metadata.custom
-        await metadataRepository.update(rolePermissionEntity.metadata.id, {
+        await metadataCustomRepository.update(rolePermissionEntity.metadata.id, {
             metadata: rolePermissionEntity.metadata.metadata,
             revisionNumber: snapshotMetadata.revisionNumber
         }, nestedTransaction)

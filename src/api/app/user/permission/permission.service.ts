@@ -115,7 +115,7 @@ export class PermissionService implements IPermissionService {
     public async setMetadata(permission: string, snapshotMetadata: SnapshotMetadata<PermissionMetadata>, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const permissionRepository = connection.getRepository(Permission)
-        const metadataRepository = getCustomRepository(connection, MetadataRepository)
+        const metadataCustomRepository = getCustomRepository(connection, MetadataRepository)
 
         const permissionEntity = await permissionRepository.findOne({
             where: {
@@ -128,7 +128,7 @@ export class PermissionService implements IPermissionService {
         }
 
         permissionEntity.metadata.metadata.custom = snapshotMetadata.metadata.custom
-        await metadataRepository.update(permissionEntity.metadata.id, {
+        await metadataCustomRepository.update(permissionEntity.metadata.id, {
             metadata: permissionEntity.metadata.metadata,
             revisionNumber: snapshotMetadata.revisionNumber
         }, nestedTransaction)
