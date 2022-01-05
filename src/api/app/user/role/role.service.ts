@@ -90,6 +90,7 @@ export class RoleService implements IRoleService {
     public async remove(role: string, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const roleRepository = connection.getRepository(Role)
+        const rolePermissionRepository = connection.getRepository(RolePermission)
         const metadataRepository = connection.getRepository(Metadata)
 
         const roleEntity = await roleRepository.findOne({
@@ -103,12 +104,29 @@ export class RoleService implements IRoleService {
         }
 
         await transaction(nestedTransaction, connection, async () => {
+            /**
+             * Получить список идентификаторов всех сущностей метаданных, которые нужно
+             * удалить после удаления роли. Удалить раньше нельзя из-за RESTRICT ограничения
+             */
+            const metadataIds = [
+                roleEntity.metadata.id,
+                ...await rolePermissionRepository.find({
+                    where: {
+                        roleName: role
+                    }
+                }).then(rolePermissionEntities => {
+                    return rolePermissionEntities.map(rolePermissionEntity => {
+                        return rolePermissionEntity.metadataId
+                    })
+                })
+            ]
+
             await mutationQuery(true, () => {
                 return roleRepository.remove(roleEntity)
             })
 
             await mutationQuery(true, () => {
-                return metadataRepository.remove(roleEntity.metadata)
+                return metadataRepository.delete(metadataIds)
             })
         })
 

@@ -75,7 +75,7 @@ describe('RoleService в UserModule', () => {
     
     it(`
         Указанная роль корректно удаляется вместе с метаданными. Попытка удалить несуществующую роль
-        ни к чему не приводит
+        ни к чему не приводит. Все метаданные связей ролей с полномочиями удаляются
     `, async () => {
         const container = await getContainer()
         container.snapshot()
@@ -84,10 +84,19 @@ describe('RoleService в UserModule', () => {
             .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
         const roleService = container
             .get<IRoleService>(USER_SYMBOL.RoleService)
+        const permissionService = container
+            .get<IPermissionService>(USER_SYMBOL.PermissionService)
         const metadataRepository = connection.getRepository(Metadata)
 
         const eventMutationFn = jest.fn()
         roleService.onMutation(eventMutationFn)
+
+        await permissionService.create({
+            name: 'permission1',
+            creator: {
+                type: CreatorType.System
+            }
+        })
         
         await expect(roleService.isExists('role1')).resolves.toBe(false)
         await expect(roleService.create({
@@ -96,15 +105,16 @@ describe('RoleService в UserModule', () => {
                 type: CreatorType.System
             }
         })).resolves.toBeUndefined()
-        await expect(metadataRepository.find()).resolves.toHaveLength(1)
+        await expect(metadataRepository.count()).resolves.toBe(2)
         await expect(roleService.isExists('role1')).resolves.toBe(true)
+        await expect(roleService.addPermission('role1', 'permission1')).resolves.toBeUndefined()
         await expect(roleService.remove('role1')).resolves.toBeUndefined()
         await expect(roleService.remove('role1')).resolves.toBeUndefined()
-        await expect(metadataRepository.find()).resolves.toHaveLength(0)
+        await expect(metadataRepository.count()).resolves.toBe(1)
         await expect(roleService.isExists('role1')).resolves.toBe(false)
 
-        expect(eventMutationFn).toBeCalledTimes(2)
-        expect(eventMutationFn).nthCalledWith(2, {
+        expect(eventMutationFn).toBeCalledTimes(3)
+        expect(eventMutationFn).nthCalledWith(3, {
             type: RoleEventMutation.Remove,
             roleName: 'role1'
         })

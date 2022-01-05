@@ -152,4 +152,9 @@ export class RolePermission {
     @JoinColumn()
     metadata: Metadata<RolePermissionMetadata>
 
+    @Column({
+        nullable: false
+    })
+    metadataId: number
+
 }
