@@ -792,6 +792,7 @@ describe('RouteService в RouteModule', () => {
         const methodRepository = connection.getRepository(Method)
         const middlewareRepository = connection.getRepository(Middleware)
         const routeMiddlewareRepository = connection.getRepository(RouteMiddleware)
+        const metadataRepository = connection.getRepository(Metadata)
     
         const route = {
             namespace: 'route1',
@@ -830,10 +831,12 @@ describe('RouteService в RouteModule', () => {
             ...route
         })
     
+        await expect(metadataRepository.count()).resolves.toBe(3)
         await expect(routeMiddlewareRepository.count()).resolves.toBe(0)
         await expect(routeService.addMiddleware(route, middleware)).resolves.toBeUndefined()
         await expect(routeService.addMiddleware(route, middleware)).rejects.toBeInstanceOf(MiddlewareAlreadyBound)
         await expect(routeMiddlewareRepository.count()).resolves.toBe(1)
+        await expect(metadataRepository.count()).resolves.toBe(4)
     
         expect(eventMutationFn).toBeCalledTimes(2)
         expect(eventMutationFn).nthCalledWith(2, expect.objectContaining({
@@ -859,6 +862,7 @@ describe('RouteService в RouteModule', () => {
         const methodRepository = connection.getRepository(Method)
         const middlewareRepository = connection.getRepository(Middleware)
         const routeMiddlewareRepository = connection.getRepository(RouteMiddleware)
+        const metadataRepository = connection.getRepository(Metadata)
     
         const route = {
             namespace: 'route1',
@@ -897,15 +901,297 @@ describe('RouteService в RouteModule', () => {
             ...route
         })
     
+        await expect(metadataRepository.count()).resolves.toBe(3)
         await expect(routeService.addMiddleware(route, middleware)).resolves.toBeUndefined()
+        await expect(metadataRepository.count()).resolves.toBe(4)
         await expect(routeMiddlewareRepository.count()).resolves.toBe(1)
         await expect(routeService.removeMiddleware(route, middleware)).resolves.toBeUndefined()
         await expect(routeService.removeMiddleware(route, middleware)).resolves.toBeUndefined()
         await expect(routeMiddlewareRepository.count()).resolves.toBe(0)
+        await expect(metadataRepository.count()).resolves.toBe(3)
     
         expect(eventMutationFn).toBeCalledTimes(3)
         expect(eventMutationFn).nthCalledWith(3, expect.objectContaining({
             type: RouteEventMutation.RemoveMiddleware,
+            routeId: 1,
+            middlewareId: 1
+        }))
+    
+        container.restore()
+    })
+
+    describe(`
+        Попытка изменить метаданные связи маршрута с middleware завершается исключением,
+        если:
+    `, () => {
+
+        beforeAll(async () => {
+            const container = await getContainer()
+            container.snapshot()
+    
+            const routeService = container
+                .get<IRouteService>(ROUTE_SYMBOL.RouteService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const methodRepository = connection.getRepository(Method)
+            const middlewareRepository = connection.getRepository(Middleware)
+    
+            const route = {
+                namespace: 'route1',
+                name: 'route1'
+            }
+            const middleware = {
+                namespace: 'middleware1',
+                name: 'middleware1'
+            }
+    
+            const methodEntity = await methodRepository.save({
+                name: 'name1',
+                namespace: 'namespace1',
+                type: 'type1'
+            })
+            await middlewareRepository.save({
+                isCsrf: false,
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                method: methodEntity,
+                ...middleware
+            })
+        
+            await routeService.create({
+                creator: {
+                    type: CreatorType.System
+                },
+                method: 'POST',
+                path: '/',
+                ...route
+            })
+        })
+    
+        afterAll(async () => {
+            const container = await getContainer()
+            container.restore()
+        })
+
+        it(`
+            1. Указан несуществующий маршрут
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+    
+            const routeService = container
+                .get<IRouteService>(ROUTE_SYMBOL.RouteService)
+    
+            const middleware = {
+                namespace: 'middleware1',
+                name: 'middleware1'
+            }
+    
+            const eventMutationFn = jest.fn()
+            routeService.onMutation(eventMutationFn)
+    
+            await expect(routeService.setRouteMiddlewareMetadata({
+                namespace: 'empty',
+                name: 'empty'
+            }, middleware, {
+                metadata: {
+                    custom: null
+                },
+                revisionNumber: 0
+            })).rejects.toBeInstanceOf(RouteDoesNotExists)
+    
+            expect(eventMutationFn).toBeCalledTimes(0)
+    
+            container.restore()
+        })
+
+        it(`
+            2. Указан несуществующий middleware
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+    
+            const routeService = container
+                .get<IRouteService>(ROUTE_SYMBOL.RouteService)
+    
+            const route = {
+                namespace: 'route1',
+                name: 'route1'
+            }
+    
+            const eventMutationFn = jest.fn()
+            routeService.onMutation(eventMutationFn)
+    
+            await expect(routeService.setRouteMiddlewareMetadata(route, {
+                namespace: 'empty',
+                name: 'empty'
+            }, {
+                metadata: {
+                    custom: null
+                },
+                revisionNumber: 0
+            })).rejects.toBeInstanceOf(MiddlewareDoesNotExists)
+    
+            expect(eventMutationFn).toBeCalledTimes(0)
+    
+            container.restore()
+        })
+
+        it(`
+            3. Указанный маршрут не имеет никаких связей с указанным middleware
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+    
+            const routeService = container
+                .get<IRouteService>(ROUTE_SYMBOL.RouteService)
+    
+            const route = {
+                namespace: 'route1',
+                name: 'route1'
+            }
+            const middleware = {
+                namespace: 'middleware1',
+                name: 'middleware1'
+            }
+    
+            const eventMutationFn = jest.fn()
+            routeService.onMutation(eventMutationFn)
+    
+            await expect(routeService.setRouteMiddlewareMetadata(route, middleware, {
+                metadata: {
+                    custom: null
+                },
+                revisionNumber: 0
+            })).rejects.toBeInstanceOf(RouteDoesNotHaveMiddleware)
+    
+            expect(eventMutationFn).toBeCalledTimes(0)
+    
+            container.restore()
+        })
+
+    })
+
+    it(`
+        Метаданные связи маршрута с middleware корректно изменяются. Попытка изменить метаднные
+        с несоответствующей редакцией приводят к исключению
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+    
+        const routeService = container
+            .get<IRouteService>(ROUTE_SYMBOL.RouteService)
+        const connection = await container
+            .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+        const routeMiddlewareRepository = connection.getRepository(RouteMiddleware)
+        const metadataRepository = connection.getRepository(Metadata)
+        const methodRepository = connection.getRepository(Method)
+        const middlewareRepository = connection.getRepository(Middleware)
+    
+        const route = {
+            namespace: 'route1',
+            name: 'route1'
+        }
+
+        const middleware = {
+            namespace: 'middleware1',
+            name: 'middleware1'
+        }
+    
+        const eventMutationFn = jest.fn()
+        routeService.onMutation(eventMutationFn)
+
+        const methodEntity = await methodRepository.save({
+            name: 'name1',
+            namespace: 'namespace1',
+            type: 'type1'
+        })
+        await middlewareRepository.save({
+            isCsrf: false,
+            metadata: {
+                metadata: {
+                    custom: null
+                }
+            },
+            method: methodEntity,
+            ...middleware
+        })
+        await routeService.create({
+            creator: {
+                type: CreatorType.System
+            },
+            method: 'POST',
+            path: '/',
+            ...route
+        })
+        await routeService.addMiddleware(route, middleware)
+
+        await expect(metadataRepository.count()).resolves.toBe(4)
+        await expect(routeMiddlewareRepository.findOne({
+            where: {
+                middlewareId: 1,
+                routeId: 1
+            }
+        }).then(routeEntity => {
+            return type<Route>(routeEntity).metadata
+        })).resolves.toMatchObject({
+            metadata: {
+                custom: null
+            },
+            revisionNumber: 0
+        })
+        await expect(routeService.setRouteMiddlewareMetadata(route, middleware, {
+            metadata: {
+                custom: {
+                    test: 'test'
+                }
+            },
+            revisionNumber: 0
+        })).resolves.toBeUndefined()
+        await expect(routeMiddlewareRepository.findOne({
+            where: {
+                middlewareId: 1,
+                routeId: 1
+            }
+        }).then(routeEntity => {
+            return type<Route>(routeEntity).metadata
+        })).resolves.toMatchObject({
+            metadata: {
+                custom: {
+                    test: 'test'
+                }
+            },
+            revisionNumber: 1
+        })
+        await expect(routeService.setRouteMiddlewareMetadata(route, middleware, {
+            metadata: {
+                custom: null
+            },
+            revisionNumber: 0
+        })).rejects.toBeInstanceOf(RevisionNumberError)
+        await expect(routeMiddlewareRepository.findOne({
+            where: {
+                middlewareId: 1,
+                routeId: 1
+            }
+        }).then(routeEntity => {
+            return type<Route>(routeEntity).metadata
+        })).resolves.toMatchObject({
+            metadata: {
+                custom: {
+                    test: 'test'
+                }
+            },
+            revisionNumber: 1
+        })
+        await expect(metadataRepository.count()).resolves.toBe(4)
+    
+        expect(eventMutationFn).toBeCalledTimes(3)
+        expect(eventMutationFn).nthCalledWith(3, expect.objectContaining({
+            type: RouteEventMutation.SetRouteMiddlewareMetadata,
             routeId: 1,
             middlewareId: 1
         }))
@@ -1233,9 +1519,9 @@ describe('RouteService в RouteModule', () => {
     })
     
     it(`
-        Маршрут корректно удаляется вместе с его метаданными. Связи машрута с отдельными middleware и
-        группами middleware удаляются автоматически. Попытка удалить несуществующий маршрут 
-        ни к чему не приводит
+        Маршрут корректно удаляется вместе с его метаданными и метаданными его связей. Связи машрута с отдельными 
+        middleware и группами middleware удаляются автоматически. Попытка удалить несуществующий маршрут 
+        ни к чему не приводит.
     `, async () => {
         const container = await getContainer()
         container.snapshot()
@@ -1306,7 +1592,7 @@ describe('RouteService в RouteModule', () => {
     
         await expect(routeMiddlewareRepository.count()).resolves.toBe(1)
         await expect(routeMiddlewareGroupRepository.count()).resolves.toBe(1)
-        await expect(metadataRepository.count()).resolves.toBe(4)
+        await expect(metadataRepository.count()).resolves.toBe(5)
         await expect(routeService.isExists(route)).resolves.toBe(true)
     
         await expect(routeService.remove(route)).resolves.toBeUndefined()

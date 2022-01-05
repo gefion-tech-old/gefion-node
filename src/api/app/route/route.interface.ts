@@ -3,7 +3,8 @@ import {
     RouteMetadata, 
     Route, 
     EventContext, 
-    RouteControllerMetadata 
+    RouteControllerMetadata,
+    RouteMiddlewareMetadata
 } from './route.types'
 import { SnapshotMetadata } from '../metadata/metadata.types'
 import { Middleware } from './middleware/middleware.types'
@@ -53,7 +54,17 @@ export interface IRouteService {
     removeMiddleware(route: Route, middleware: Middleware, nestedTransaction?: boolean): Promise<void>
 
     /**
-     * Изменить порядковый номер указанного промежуточного ПО в указанном маршрута
+     * Изменить метаданные связи маршрута с middleware
+     */
+    setRouteMiddlewareMetadata(
+        route: Route,
+        middleware: Middleware,
+        snapshotMetadata: SnapshotMetadata<RouteMiddlewareMetadata>,
+        nestedTransaction?: boolean
+    ): Promise<void>
+
+    /**
+     * Изменить порядковый номер указанного промежуточного ПО в указанном маршруте
      */
     setMiddlewareSerialNumber(route: Route, middleware: Middleware, serialNumber: number, nestedTransaction?: boolean): Promise<void>
 

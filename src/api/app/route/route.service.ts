@@ -17,7 +17,8 @@ import {
     EventContext,
     RouteEventMutationName,
     RouteEventMutation,
-    RouteControllerMetadata
+    RouteControllerMetadata,
+    RouteMiddlewareMetadata
 } from './route.types'
 import {
     RoutePathAndMethodAlreadyExists,
@@ -318,6 +319,7 @@ export class RouteService implements IRouteService {
         const connection = await this.connection
         const routeRepository = connection.getRepository(Route)
         const middlewareRepository = connection.getRepository(Middleware)
+        const routeMiddlewareRepository = connection.getRepository(RouteMiddleware)
 
         const routeEntity = await routeRepository.findOne({
             where: {
@@ -343,14 +345,18 @@ export class RouteService implements IRouteService {
 
         try {
             await mutationQuery(nestedTransaction, () => {
-                return connection
-                    .createQueryBuilder()
-                    .relation(Route, 'middlewares')
-                    .of(routeEntity)
-                    .add(middlewareEntity)
+                return routeMiddlewareRepository.save({
+                    routeId: routeEntity.id,
+                    middlewareId: middlewareEntity.id,
+                    metadata: {
+                        metadata: {
+                            custom: null
+                        }
+                    }
+                })
             })
         } catch(error) {
-            if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_PRIMARYKEY)) {
+            if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_UNIQUE)) {
                 throw new MiddlewareAlreadyBound
             }
 
@@ -370,6 +376,7 @@ export class RouteService implements IRouteService {
         const routeRepository = connection.getRepository(Route)
         const middlewareRepository = connection.getRepository(Middleware)
         const routeMiddlewareRepository = connection.getRepository(RouteMiddleware)
+        const metadataRepository = connection.getRepository(Metadata)
 
         const routeEntity = await routeRepository.findOne({
             where: {
@@ -393,28 +400,92 @@ export class RouteService implements IRouteService {
             throw new MiddlewareDoesNotExists
         }
 
-        /**
-         * Если связи с маршрутом изначально не было, то выйти из функции
-         */
-        if (!await routeMiddlewareRepository.count({
+        const routeMiddlewareEntity = await routeMiddlewareRepository.findOne({
             where: {
                 routeId: routeEntity.id,
                 middlewareId: middlewareEntity.id
             }
-        })) {
+        })
+
+        /**
+         * Если связи с маршрутом изначально не было, то выйти из функции
+         */
+        if (!routeMiddlewareEntity) {
             return
         }
 
-        await mutationQuery(nestedTransaction, () => {
-            return connection
-                .createQueryBuilder()
-                .relation(Route, 'middlewares')
-                .of(routeEntity)
-                .remove(middlewareEntity)
+
+        await transaction(nestedTransaction, connection, async () => {
+            await mutationQuery(true, () => {
+                return routeMiddlewareRepository.remove(routeMiddlewareEntity)
+            })
+
+            await mutationQuery(true, () => {
+                return metadataRepository.remove(routeMiddlewareEntity.metadata)
+            })
         })
 
         const eventContext: EventContext = {
             type: RouteEventMutation.RemoveMiddleware,
+            routeId: routeEntity.id,
+            middlewareId: middlewareEntity.id
+        }
+        this.eventEmitter.emit(RouteEventMutationName, eventContext)
+    }
+
+    public async setRouteMiddlewareMetadata(
+        route: Route,
+        middleware: Middleware,
+        snapshotMetadata: SnapshotMetadata<RouteMiddlewareMetadata>,
+        nestedTransaction = false
+    ): Promise<void> {
+        const connection = await this.connection
+        const routeRepository = connection.getRepository(Route)
+        const middlewareRepository = connection.getRepository(Middleware)
+        const routeMiddlewareRepository = connection.getRepository(RouteMiddleware)
+        const metadataCustomRepository = getCustomRepository(connection, MetadataRepository)
+
+        const routeEntity = await routeRepository.findOne({
+            where: {
+                namespace: route.namespace,
+                name: route.name
+            }
+        })
+
+        if (!routeEntity) {
+            throw new RouteDoesNotExists
+        }
+
+        const middlewareEntity = await middlewareRepository.findOne({
+            where: {
+                namespace: middleware.namespace,
+                name: middleware.name
+            }
+        })
+
+        if (!middlewareEntity) {
+            throw new MiddlewareDoesNotExists
+        }
+
+        const routeMiddlewareEntity = await routeMiddlewareRepository.findOne({
+            where: {
+                routeId: routeEntity.id,
+                middlewareId: middlewareEntity.id
+            }
+        })
+
+        if (!routeMiddlewareEntity) {
+            throw new RouteDoesNotHaveMiddleware
+        }
+
+        routeMiddlewareEntity.metadata.metadata.custom = snapshotMetadata.metadata.custom
+        await metadataCustomRepository.update(routeMiddlewareEntity.metadata.id, {
+            metadata: routeMiddlewareEntity.metadata.metadata,
+            revisionNumber: snapshotMetadata.revisionNumber
+        }, nestedTransaction)
+
+        const eventContext: EventContext = {
+            type: RouteEventMutation.SetRouteMiddlewareMetadata,
             routeId: routeEntity.id,
             middlewareId: middlewareEntity.id
         }
@@ -540,6 +611,7 @@ export class RouteService implements IRouteService {
     public async remove(route: RouteType, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const routeRepository = connection.getRepository(Route)
+        const routeMiddlewareRepository = connection.getRepository(RouteMiddleware)
         const metadataRepository = connection.getRepository(Metadata)
 
         const routeEntity = await routeRepository.findOne({
@@ -559,16 +631,30 @@ export class RouteService implements IRouteService {
         const routeId = routeEntity.id
 
         await transaction(nestedTransaction, connection, async () => {
+            /**
+             * Получить список идентификаторов всех сущностей метаданных, которые нужно
+             * удалить после удаления роли. Удалить раньше нельзя из-за RESTRICT ограничения
+             */
+            const metadataIds = [
+                routeEntity.metadata.id,
+                routeEntity.controllerMetadata.id,
+                ...await routeMiddlewareRepository.find({
+                    where: {
+                        routeId: routeEntity.id
+                    }
+                }).then(routeMiddlewareEntities => {
+                    return routeMiddlewareEntities.map(routeMiddlewareEntitie => {
+                        return routeMiddlewareEntitie.metadataId
+                    })
+                })
+            ]
+
             await mutationQuery(true, () => {
                 return routeRepository.remove(routeEntity)
             })
 
             await mutationQuery(true, () => {
-                return metadataRepository.remove(routeEntity.metadata)
-            })
-
-            await mutationQuery(true, () => {
-                return metadataRepository.remove(routeEntity.controllerMetadata)
+                return metadataRepository.delete(metadataIds)
             })
         })
 

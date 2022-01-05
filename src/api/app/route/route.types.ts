@@ -39,6 +39,13 @@ export interface RouteControllerMetadata {
     custom: any
 }
 
+export interface RouteMiddlewareMetadata {
+    /**
+     * Метаданные, которые можно изменить в любой момент времени без особых ограничений
+     */
+    custom: any
+}
+
 export type HttpMethod = 'GET' | 'POST' | 'HEAD' | 'OPTIONS' | 'DELETE' | 'PUT' | 'PATCH'
 
 export interface CreateRoute {
@@ -99,6 +106,10 @@ export enum RouteEventMutation {
      */
     RemoveMiddleware = 'RemoveMiddleware',
     /**
+     * Событие изменения метаданных связи маршрута с middleware
+     */
+    SetRouteMiddlewareMetadata = 'SetRouteMiddlewareMetadata',
+    /**
      * Событие изменения порядкового номера промежуточного ПО в маршруте
      */
     SetMiddlewareSerialNumber = 'SetMiddlewareSerialNumber',
@@ -129,13 +140,22 @@ export enum RouteEventMutation {
 }
 
 export interface MiddlewareGroupEventContext {
-    type: RouteEventMutation.AddMiddlewareGroup | RouteEventMutation.RemoveMiddlewareGroup | RouteEventMutation.SetMiddlewareGroupSerialNumber
+    type: (
+        RouteEventMutation.AddMiddlewareGroup 
+        | RouteEventMutation.RemoveMiddlewareGroup 
+        | RouteEventMutation.SetMiddlewareGroupSerialNumber
+    )
     routeId: number
     middlewareGroupId: number
 }
 
 export interface MiddlewareEventContext {
-    type: RouteEventMutation.AddMiddleware | RouteEventMutation.RemoveMiddleware | RouteEventMutation.SetMiddlewareSerialNumber
+    type: (
+        RouteEventMutation.AddMiddleware 
+        | RouteEventMutation.RemoveMiddleware 
+        | RouteEventMutation.SetMiddlewareSerialNumber 
+        | RouteEventMutation.SetRouteMiddlewareMetadata
+    )
     routeId: number
     middlewareId: number
 }
