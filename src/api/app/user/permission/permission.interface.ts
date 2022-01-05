@@ -1,5 +1,5 @@
 import { SnapshotMetadata } from '../../metadata/metadata.types'
-import { PermissionMetadata, CreatePermission } from './permission.types'
+import { PermissionMetadata, CreatePermission, EventContext } from './permission.types'
 
 export interface IPermissionService {
 
@@ -22,5 +22,10 @@ export interface IPermissionService {
      * Установить метаданные в полномочие, если оно существует
      */
     setMetadata(permission: string, snapshotMetadata: SnapshotMetadata<PermissionMetadata>, nestedTransaction?: boolean): Promise<void>
+
+    /**
+     * Поставить обработчик для прослушивания события мутации полномочий
+     */
+    onMutation(handler: (context: EventContext) => void): void
 
 }

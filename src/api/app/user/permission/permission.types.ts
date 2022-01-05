@@ -17,3 +17,28 @@ export interface CreatePermission {
      */
     creator: BindableCreator
 }
+
+/**
+ * Идентификатор события мутации
+ */
+export const PermissionEventMutationName = Symbol('PermissionMutationEvent')
+
+export enum PermissionEventMutation {
+    /**
+     * Событие создания полномочия
+     */
+    Create = 'Create',
+    /**
+     * Событие изменения метаданных полномочия
+     */
+    SetMetadata = 'SetMetadata',
+    /**
+     * Событие удаления полномочия
+     */
+    Remove = 'Remove'
+}
+
+export interface EventContext {
+    type: PermissionEventMutation,
+    permissionName: string
+}

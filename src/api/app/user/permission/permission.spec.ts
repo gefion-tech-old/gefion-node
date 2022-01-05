@@ -9,6 +9,7 @@ import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
 import { CREATOR_SYMBOL, CreatorType, ResourceType } from '../../creator/creator.types'
 import { ICreatorService } from '../../creator/creator.interface'
 import { Permission } from '../../entities/user.entity'
+import { PermissionEventMutation } from './permission.types'
 
 beforeAll(async () => {
     const container = await getContainer()
@@ -34,6 +35,9 @@ describe('PermissionService в UserModule', () => {
         const creatorService = container
             .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
 
+        const eventMutationFn = jest.fn()
+        permissionService.onMutation(eventMutationFn)
+
         await expect(permissionService.isExists('permission1')).resolves.toBe(false)
         await expect(permissionService.create({
             name: 'permission1',
@@ -53,6 +57,12 @@ describe('PermissionService в UserModule', () => {
             id: 1
         }, { type: CreatorType.System }))
 
+        expect(eventMutationFn).toBeCalledTimes(1)
+        expect(eventMutationFn).nthCalledWith(1, {
+            type: PermissionEventMutation.Create,
+            permissionName: 'permission1'
+        })
+
         container.restore()
     })
     
@@ -69,6 +79,9 @@ describe('PermissionService в UserModule', () => {
         const permissionService = container
             .get<IPermissionService>(USER_SYMBOL.PermissionService)
 
+        const eventMutationFn = jest.fn()
+        permissionService.onMutation(eventMutationFn)
+
         await expect(permissionService.create({
             name: 'permission1',
             creator: {
@@ -81,6 +94,12 @@ describe('PermissionService в UserModule', () => {
         await expect(permissionService.isExists('permission1')).resolves.toBe(false)
         await expect(metadataRepository.find()).resolves.toHaveLength(0)
 
+        expect(eventMutationFn).toBeCalledTimes(2)
+        expect(eventMutationFn).nthCalledWith(2, {
+            type: PermissionEventMutation.Remove,
+            permissionName: 'permission1'
+        })
+
         container.restore()
     })
     
@@ -92,6 +111,9 @@ describe('PermissionService в UserModule', () => {
 
         const permissionService = container
             .get<IPermissionService>(USER_SYMBOL.PermissionService)
+
+        const eventMutationFn = jest.fn()
+        permissionService.onMutation(eventMutationFn)
         
         await expect(permissionService.setMetadata('permission1', {
             metadata: {
@@ -99,6 +121,8 @@ describe('PermissionService в UserModule', () => {
             },
             revisionNumber: 0
         })).rejects.toBeInstanceOf(PermissionDoesNotExist)
+
+        expect(eventMutationFn).toBeCalledTimes(0)
 
         container.restore()
     })
@@ -115,6 +139,9 @@ describe('PermissionService в UserModule', () => {
         const connection = await container
             .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
         const permissionRepository = connection.getRepository(Permission)
+
+        const eventMutationFn = jest.fn()
+        permissionService.onMutation(eventMutationFn)
 
         await expect(permissionService.create({
             name: 'permission1',
@@ -178,6 +205,12 @@ describe('PermissionService в UserModule', () => {
                 }
             },
             revisionNumber: 1
+        })
+
+        expect(eventMutationFn).toBeCalledTimes(2)
+        expect(eventMutationFn).nthCalledWith(2, {
+            type: PermissionEventMutation.SetMetadata,
+            permissionName: 'permission1'
         })
 
         container.restore()

@@ -4,7 +4,13 @@ import { Permission } from '../../entities/user.entity'
 import { Connection, Repository } from 'typeorm'
 import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
 import { mutationQuery } from '../../../../core/typeorm/utils/mutation-query'
-import { PermissionMetadata, CreatePermission } from './permission.types'
+import { 
+    PermissionMetadata, 
+    CreatePermission,
+    EventContext,
+    PermissionEventMutation,
+    PermissionEventMutationName
+} from './permission.types'
 import { SnapshotMetadata } from '../../metadata/metadata.types'
 import { PermissionDoesNotExist, PermissionAlreadyExists } from './permission.errors'
 import { MetadataRepository } from '../../metadata/repositories/metadata.repository'
@@ -13,12 +19,14 @@ import { transaction } from '../../../../core/typeorm/utils/transaction'
 import { Metadata } from '../../entities/metadata.entity'
 import { ResourceType, CREATOR_SYMBOL } from '../../creator/creator.types'
 import { ICreatorService } from '../../creator/creator.interface'
+import { EventEmitter } from 'events'
 
 @injectable()
 export class PermissionService implements IPermissionService {
 
     private connection: Promise<Connection>
     private permissionRepository: Promise<Repository<Permission>>
+    private eventEmitter = new EventEmitter
 
     public constructor(
         @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
@@ -63,6 +71,12 @@ export class PermissionService implements IPermissionService {
                 id: permissionEntity.id
             }, options.creator, true)
         })
+
+        const eventContext: EventContext = {
+            type: PermissionEventMutation.Create,
+            permissionName: options.name
+        }
+        this.eventEmitter.emit(PermissionEventMutationName, eventContext)
     }
 
     public async remove(permission: string, nestedTransaction = false): Promise<void> {
@@ -89,6 +103,12 @@ export class PermissionService implements IPermissionService {
                 return metadataRepository.remove(permissionEntity.metadata)
             })
         })
+
+        const eventContext: EventContext = {
+            type: PermissionEventMutation.Remove,
+            permissionName: permissionEntity.name
+        }
+        this.eventEmitter.emit(PermissionEventMutationName, eventContext)
     }
     
     public async isExists(permission: string): Promise<boolean> {
@@ -118,6 +138,16 @@ export class PermissionService implements IPermissionService {
             metadata: permissionEntity.metadata.metadata,
             revisionNumber: snapshotMetadata.revisionNumber
         }, nestedTransaction)
+
+        const eventContext: EventContext = {
+            type: PermissionEventMutation.SetMetadata,
+            permissionName: permissionEntity.name
+        }
+        this.eventEmitter.emit(PermissionEventMutationName, eventContext)
+    }
+
+    public onMutation(handler: (context: EventContext) => void): void {
+        this.eventEmitter.on(PermissionEventMutationName, handler)
     }
 
 }
