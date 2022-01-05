@@ -41,12 +41,15 @@ export const UserModule = new AsyncContainerModule(async (bind: interfaces.Bind)
 
     bind<IPermissionService>(USER_SYMBOL.PermissionService)
         .to(PermissionService)
+        .inSingletonScope()
 
     bind<IRoleService>(USER_SYMBOL.RoleService)
         .to(RoleService)
+        .inSingletonScope()
 
     bind<IUserService>(USER_SYMBOL.UserService)
         .to(UserService)
+        .inSingletonScope()
 
     bind<Promise<FastifyPluginAsync>>(FASTIFY_SYMBOL.FastifyPlugin)
         .toDynamicValue(getAuthHttpPlugin)

@@ -4,16 +4,22 @@ import { TYPEORM_SYMBOL } from '../../../core/typeorm/typeorm.types'
 import { Connection, Repository } from 'typeorm'
 import { User } from '../entities/user.entity'
 import { mutationQuery } from '../../../core/typeorm/utils/mutation-query'
-import { SqliteErrorCode, isErrorCode } from '../../../core/typeorm/utils/error-code'
 import { IRoleService } from './role/role.interface'
-import { USER_SYMBOL } from './user.types'
+import { 
+    USER_SYMBOL,
+    UserEventMutation,
+    UserEventMutationName,
+    EventContext
+} from './user.types'
 import { UserDoesNotExists, UserAlreadyExists } from './user.errors'
 import { RoleDoesNotExists } from './role/role.errors'
+import { EventEmitter } from 'events'
 
 @injectable()
 export class UserService implements IUserService {
 
     private userRepository: Promise<Repository<User>>
+    private eventEmitter = new EventEmitter
 
     public constructor(
         @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
@@ -31,19 +37,21 @@ export class UserService implements IUserService {
     public async create(username: string, nestedTransaction = false): Promise<void> {
         const userRepository = await this.userRepository
 
-        try {
-            await mutationQuery(nestedTransaction, () => {
-                return userRepository.save({
-                    username: username
-                })
-            })
-        } catch (error) {
-            if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_UNIQUE)) {
-                throw new UserAlreadyExists
-            }
-
-            throw error
+        if (await this.isExists(username)) {
+            throw new UserAlreadyExists
         }
+        
+        await mutationQuery(nestedTransaction, () => {
+            return userRepository.save({
+                username: username
+            })
+        })
+
+        const eventContext: EventContext = {
+            type: UserEventMutation.Create,
+            userName: username
+        }
+        this.eventEmitter.emit(UserEventMutationName, eventContext)
     }
 
     public async isExists(username: string): Promise<boolean> {
@@ -58,58 +66,74 @@ export class UserService implements IUserService {
     public async remove(username: string, nestedTransaction = false): Promise<void> {
         const userRepository = await this.userRepository
 
-        await mutationQuery(nestedTransaction, () => {
-            return userRepository.delete({
+        const userEntity = await userRepository.findOne({
+            where: {
                 username: username
-            })
+            }
         })
+
+        /**
+         * Прекратить выполнение функции, если пользователя не существует для предотвращения
+         * срабатывания события
+         */
+        if (!userEntity) {
+            return
+        }
+
+        await mutationQuery(nestedTransaction, () => {
+            return userRepository.remove(userEntity)
+        })
+
+        const eventContext: EventContext = {
+            type: UserEventMutation.Remove,
+            userName: username
+        }
+        this.eventEmitter.emit(UserEventMutationName, eventContext)
     }
 
     public async setRole(username: string, role: string | null, nestedTransaction = false): Promise<void> {
         const userRepository = await this.userRepository
 
-        const userEntity = await userRepository.findOne({
-            where: {
-                username: username
-            }
-        })
-
-        if (!userEntity) {
-            throw new UserDoesNotExists
-        }
-
         if (!role) {
-            userEntity.roleName = null
+            if (!await this.isExists(username)) {
+                throw new UserDoesNotExists
+            }
+
             await mutationQuery(nestedTransaction, () => {
-                return userRepository.save(userEntity)
+                return userRepository.update({
+                    username: username
+                }, {
+                    roleName: null
+                })
             })
-            return
+        } else {
+            if (!await this.isExists(username)) {
+                throw new UserDoesNotExists
+            }
+
+            if (!await this.roleService.isExists(role)) {
+                throw new RoleDoesNotExists
+            }
+    
+            await mutationQuery(nestedTransaction, () => {
+                return userRepository.update({
+                    username: username
+                }, {
+                    roleName: role
+                })
+            })
         }
 
-        if (!await this.roleService.isExists(role)) {
-            throw new RoleDoesNotExists
+        const eventContext: EventContext = {
+            type: UserEventMutation.SetRole,
+            userName: username,
+            roleName: role
         }
-
-        userEntity.roleName = role
-        await mutationQuery(nestedTransaction, () => {
-            return userRepository.save(userEntity)
-        })
+        this.eventEmitter.emit(UserEventMutationName, eventContext)
     }
 
-    public async getRole(username: string): Promise<string | null | undefined> {
-        const userRepository = await this.userRepository
-
-        const userEntity = await userRepository.findOne({
-            where: {
-                username: username
-            }
-        })
-
-        if (!userEntity) {
-            return undefined
-        }
-
-        return userEntity.roleName
+    public onMutation(handler: (context: EventContext) => void): void {
+        this.eventEmitter.on(UserEventMutationName, handler)
     }
 
 }

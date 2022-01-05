@@ -1,3 +1,5 @@
+import { EventContext } from './user.types'
+
 export interface IUserService {
 
     /**
@@ -21,9 +23,8 @@ export interface IUserService {
     setRole(username: string, role: string | null, nestedTransaction?: boolean): Promise<void>
 
     /**
-     * Получить название текущей роли пользователя, если она у него
-     * есть. null - роли нет. undefined - пользователя не существует
+     * Поставить обработчик для прослушивания события мутации пользователя
      */
-    getRole(username: string): Promise<string | null | undefined>
+    onMutation(handler: (context: EventContext) => void): void
 
 }
