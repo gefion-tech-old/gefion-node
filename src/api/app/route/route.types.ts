@@ -136,7 +136,7 @@ export interface ControllerEventContext {
 }
 
 export interface RouteEventContext {
-    type: RouteEventMutation
+    type: Exclude<RouteEventMutation, ControllerEventContext['type'] | MiddlewareEventContext['type'] | MiddlewareGroupEventContext['type']>
     routeId: number
 }
 

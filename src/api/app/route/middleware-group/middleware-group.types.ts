@@ -84,7 +84,7 @@ export interface MiddlewareEventContext {
 }
 
 export interface MiddlewareGroupEventContext {
-    type: MiddlewareGroupEventMutation,
+    type: Exclude<MiddlewareGroupEventMutation, MiddlewareEventContext['type']>,
     middlewareGroupId: number
 }
 
