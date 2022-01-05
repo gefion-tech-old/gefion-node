@@ -18,6 +18,13 @@ export interface MiddlewareGroupMetadata {
     custom: any
 }
 
+export interface MiddlewareGroupMiddlewareMetadata {
+    /**
+     * Метаданные, которые можно изменить в любой момент времени без особых ограничений
+     */
+    custom: any
+}
+
 export interface CreateMiddlewareGroup {
     /**
      * Название группы промежуточного ПО
@@ -60,6 +67,10 @@ export enum MiddlewareGroupEventMutation {
      */
     RemoveMiddleware = 'RemoveMiddleware',
     /**
+     * Событие изменения метаданных связи группы middleware с middleware
+     */
+    SetMiddlewareGroupMiddlewareMetadata = 'SetMiddlewareGroupMiddlewareMetadata',
+    /**
      * Событиe изменения порядкового номера middleware в группе
      */
     SetMiddlewareSerialNumber = 'SetMiddlewareSerialNumber',
@@ -78,7 +89,12 @@ export enum MiddlewareGroupEventMutation {
 }
 
 export interface MiddlewareEventContext {
-    type: MiddlewareGroupEventMutation.AddMiddleware | MiddlewareGroupEventMutation.RemoveMiddleware | MiddlewareGroupEventMutation.SetMiddlewareSerialNumber
+    type: (
+        MiddlewareGroupEventMutation.AddMiddleware 
+        | MiddlewareGroupEventMutation.RemoveMiddleware 
+        | MiddlewareGroupEventMutation.SetMiddlewareSerialNumber
+        | MiddlewareGroupEventMutation.SetMiddlewareGroupMiddlewareMetadata
+    )
     middlewareGroupId: number
     middlewareId: number
 }

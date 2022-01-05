@@ -19,7 +19,7 @@ import {
     RouteControllerMetadata,
     RouteMiddlewareMetadata
 } from '../route/route.types'
-import { MiddlewareGroupMetadata } from '../route/middleware-group/middleware-group.types'
+import { MiddlewareGroupMetadata, MiddlewareGroupMiddlewareMetadata } from '../route/middleware-group/middleware-group.types'
 import { Method } from './method.entity'
 import { ControllerMetadata } from '../route/controller/controller.types'
 import { MiddlewareMetadata } from '../route/middleware/middleware.types'
@@ -210,9 +210,16 @@ export class MiddlewareGroup {
     @JoinColumn()
     metadata: Metadata<MiddlewareGroupMetadata>
 
-    @ManyToMany(() => Middleware)
     @JoinTable({
-        name: 'middleware_group_middleware'
+        name: 'middleware_group_middleware',
+        joinColumn: {
+            name: 'middlewareGroupId',
+            referencedColumnName: 'id'
+        },
+        inverseJoinColumn: {
+            name: 'middlewareId',
+            referencedColumnName: 'id'
+        }
     })
     middlewares: Middleware[]
 
@@ -338,12 +345,20 @@ export class RouteMiddleware {
 
 @injectable()
 @Entity('middleware_group_middleware')
+@Unique(['middlewareId', 'middlewareGroupId'])
 export class MiddlewareGroupMiddleware {
 
-    @PrimaryColumn()
+    @PrimaryGeneratedColumn()
+    id: number
+
+    @Column({
+        nullable: false
+    })
     middlewareId: number
 
-    @PrimaryColumn()
+    @Column({
+        nullable: false
+    })
     middlewareGroupId: number
 
     @ManyToOne(() => Middleware, {
@@ -362,5 +377,19 @@ export class MiddlewareGroupMiddleware {
         nullable: true
     })
     serialNumber: number
+
+    @OneToOne(() => Metadata, {
+        onDelete: 'RESTRICT',
+        eager: true,
+        cascade: ['insert'],
+        nullable: false
+    })
+    @JoinColumn()
+    metadata: Metadata<MiddlewareGroupMiddlewareMetadata>
+
+    @Column({
+        nullable: false
+    })
+    metadataId: number
 
 }

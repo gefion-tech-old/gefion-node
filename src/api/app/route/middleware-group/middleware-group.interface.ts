@@ -2,7 +2,8 @@ import {
     CreateMiddlewareGroup, 
     MiddlewareGroupMetadata, 
     MiddlewareGroup,
-    EventContext
+    EventContext,
+    MiddlewareGroupMiddlewareMetadata
 } from './middleware-group.types'
 import { Middleware } from '../middleware/middleware.types'
 import { SnapshotMetadata } from '../../metadata/metadata.types'
@@ -33,6 +34,16 @@ export interface IMiddlewareGroupService {
      * Удалить указанное промежуточное ПО из указанной группы
      */
     removeMiddleware(group: MiddlewareGroup, middleware: Middleware, nestedTransaction?: boolean): Promise<void>
+
+    /**
+     * Изменить метаданные связи группы middleware с отдельным middleware
+     */
+    setMiddlewareGroupMiddlewareMetadata(
+        group: MiddlewareGroup,
+        middleware: Middleware,
+        snapshotMetadata: SnapshotMetadata<MiddlewareGroupMiddlewareMetadata>,
+        nestedTransaction?: boolean
+    ): Promise<void>
 
     /**
      * Изменить порядковый номер указанного промежуточного ПО в указанной группе

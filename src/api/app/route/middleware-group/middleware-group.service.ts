@@ -9,7 +9,8 @@ import {
     MiddlewareGroup as MiddlewareGroupType,
     EventContext,
     MiddlewareGroupEventMutation,
-    MiddlewareGroupEventMutationName
+    MiddlewareGroupEventMutationName,
+    MiddlewareGroupMiddlewareMetadata
 } from './middleware-group.types'
 import { getCustomRepository } from '../../../../core/typeorm/utils/custom-repository'
 import { transaction } from '../../../../core/typeorm/utils/transaction'
@@ -130,57 +131,6 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
         const connection = await this.connection
         const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)
         const middlewareRepository = connection.getRepository(Middleware)
-
-        const middlewareGroupEntity = await middlewareGroupRepository.findOne({
-            where: {
-                namespace: group.namespace,
-                name: group.name
-            }
-        })
-
-        if (!middlewareGroupEntity) {
-            throw new MiddlewareGroupDoesNotExists
-        }
-
-        const middlewareEntity = await middlewareRepository.findOne({
-            where: {
-                namespace: middleware.namespace,
-                name: middleware.name
-            }
-        })
-
-        if (!middlewareEntity) {
-            throw new MiddlewareDoesNotExists
-        }
-
-        try {
-            await mutationQuery(nestedTransaction, () => {
-                return connection
-                    .createQueryBuilder()
-                    .relation(MiddlewareGroup, 'middlewares')
-                    .of(middlewareGroupEntity)
-                    .add(middlewareEntity)
-            })
-        } catch(error) {
-            if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_PRIMARYKEY)) {
-                throw new MiddlewareAlreadyBound
-            }
-
-            throw error
-        }
-
-        const eventContext: EventContext = {
-            type: MiddlewareGroupEventMutation.AddMiddleware,
-            middlewareGroupId: middlewareGroupEntity.id,
-            middlewareId: middlewareEntity.id
-        }
-        this.eventEmitter.emit(MiddlewareGroupEventMutationName, eventContext)
-    }
-
-    public async removeMiddleware(group: MiddlewareGroupType, middleware: MiddlewareType, nestedTransaction = false): Promise<void> {
-        const connection = await this.connection
-        const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)
-        const middlewareRepository = connection.getRepository(Middleware)
         const middlewareGroupMiddlewareRepository = connection.getRepository(MiddlewareGroupMiddleware)
 
         const middlewareGroupEntity = await middlewareGroupRepository.findOne({
@@ -205,28 +155,153 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
             throw new MiddlewareDoesNotExists
         }
 
-        /**
-         * Если связи с группой изначально не было, то выйти из функции
-         */
-        if (!await middlewareGroupMiddlewareRepository.count({
+        try {
+            /**
+             * Транзакция из-за каскадных запросов
+             */
+            await transaction(nestedTransaction, connection, async () => {
+                await mutationQuery(true, () => {
+                    return middlewareGroupMiddlewareRepository.save({
+                        middlewareGroupId: middlewareGroupEntity.id,
+                        middlewareId: middlewareEntity.id,
+                        metadata: {
+                            metadata: {
+                                custom: null
+                            }
+                        }
+                    })
+                })
+            })
+        } catch(error) {
+            if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_UNIQUE)) {
+                throw new MiddlewareAlreadyBound
+            }
+
+            throw error
+        }
+
+        const eventContext: EventContext = {
+            type: MiddlewareGroupEventMutation.AddMiddleware,
+            middlewareGroupId: middlewareGroupEntity.id,
+            middlewareId: middlewareEntity.id
+        }
+        this.eventEmitter.emit(MiddlewareGroupEventMutationName, eventContext)
+    }
+
+    public async removeMiddleware(group: MiddlewareGroupType, middleware: MiddlewareType, nestedTransaction = false): Promise<void> {
+        const connection = await this.connection
+        const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)
+        const middlewareRepository = connection.getRepository(Middleware)
+        const middlewareGroupMiddlewareRepository = connection.getRepository(MiddlewareGroupMiddleware)
+        const metadataRepository = connection.getRepository(Metadata)
+
+        const middlewareGroupEntity = await middlewareGroupRepository.findOne({
+            where: {
+                namespace: group.namespace,
+                name: group.name
+            }
+        })
+
+        if (!middlewareGroupEntity) {
+            throw new MiddlewareGroupDoesNotExists
+        }
+
+        const middlewareEntity = await middlewareRepository.findOne({
+            where: {
+                namespace: middleware.namespace,
+                name: middleware.name
+            }
+        })
+
+        if (!middlewareEntity) {
+            throw new MiddlewareDoesNotExists
+        }
+
+        const middlewareGroupMiddlewareEntity = await middlewareGroupMiddlewareRepository.findOne({
             where: {
                 middlewareGroupId: middlewareGroupEntity.id,
                 middlewareId: middlewareEntity.id
             }
-        })) {
+        })
+
+        /**
+         * Если связи с группой изначально не было, то выйти из функции
+         */
+        if (!middlewareGroupMiddlewareEntity) {
             return
         }
 
-        await mutationQuery(nestedTransaction, () => {
-            return connection
-                .createQueryBuilder()
-                .relation(MiddlewareGroup, 'middlewares')
-                .of(middlewareGroupEntity)
-                .remove(middlewareEntity)
+        await transaction(nestedTransaction, connection, async () => {
+            await mutationQuery(true, () => {
+                return middlewareGroupMiddlewareRepository.remove(middlewareGroupMiddlewareEntity)
+            })
+
+            await mutationQuery(true, () => {
+                return metadataRepository.remove(middlewareGroupMiddlewareEntity.metadata)
+            })
         })
 
         const eventContext: EventContext = {
             type: MiddlewareGroupEventMutation.RemoveMiddleware,
+            middlewareGroupId: middlewareGroupEntity.id,
+            middlewareId: middlewareEntity.id
+        }
+        this.eventEmitter.emit(MiddlewareGroupEventMutationName, eventContext)
+    }
+
+    public async setMiddlewareGroupMiddlewareMetadata(
+        group: MiddlewareGroup,
+        middleware: Middleware,
+        snapshotMetadata: SnapshotMetadata<MiddlewareGroupMiddlewareMetadata>,
+        nestedTransaction?: boolean
+    ): Promise<void> {
+        const connection = await this.connection
+        const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)
+        const middlewareRepository = connection.getRepository(Middleware)
+        const middlewareGroupMiddlewareRepository = connection.getRepository(MiddlewareGroupMiddleware)
+        const metadataCustomRepository = getCustomRepository(connection, MetadataRepository)
+
+        const middlewareGroupEntity = await middlewareGroupRepository.findOne({
+            where: {
+                namespace: group.namespace,
+                name: group.name
+            }
+        })
+
+        if (!middlewareGroupEntity) {
+            throw new MiddlewareGroupDoesNotExists
+        }
+
+        const middlewareEntity = await middlewareRepository.findOne({
+            where: {
+                namespace: middleware.namespace,
+                name: middleware.name
+            }
+        })
+
+        if (!middlewareEntity) {
+            throw new MiddlewareDoesNotExists
+        }
+
+        const middlewareGroupMiddlewareEntity = await middlewareGroupMiddlewareRepository.findOne({
+            where: {
+                middlewareGroupId: middlewareGroupEntity.id,
+                middlewareId: middlewareEntity.id
+            }
+        })
+
+        if (!middlewareGroupMiddlewareEntity) {
+            throw new MiddlewareGroupDoesNotHaveMiddleware
+        }
+
+        middlewareGroupMiddlewareEntity.metadata.metadata.custom = snapshotMetadata.metadata.custom
+        await metadataCustomRepository.update(middlewareGroupMiddlewareEntity.metadata.id, {
+            metadata: middlewareGroupMiddlewareEntity.metadata.metadata,
+            revisionNumber: snapshotMetadata.revisionNumber
+        }, nestedTransaction)
+
+        const eventContext: EventContext = {
+            type: MiddlewareGroupEventMutation.SetMiddlewareGroupMiddlewareMetadata,
             middlewareGroupId: middlewareGroupEntity.id,
             middlewareId: middlewareEntity.id
         }
@@ -291,6 +366,7 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
         const connection = await this.connection
         const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)
         const metadataRepository = connection.getRepository(Metadata)
+        const middlewareGroupMiddlewareRepository = connection.getRepository(MiddlewareGroupMiddleware)
 
         const middlewareGroupEntity = await middlewareGroupRepository.findOne({
             where: {
@@ -309,12 +385,29 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
         const middlewareGroupId = middlewareGroupEntity.id
 
         await transaction(nestedTransaction, connection, async () => {
+            /**
+             * Получить список идентификаторов всех сущностей метаданных, которые нужно
+             * удалить после удаления роли. Удалить раньше нельзя из-за RESTRICT ограничения
+             */
+            const metadataIds = [
+                middlewareGroupEntity.metadata.id,
+                ...await middlewareGroupMiddlewareRepository.find({
+                    where: {
+                        middlewareGroupId: middlewareGroupEntity.id
+                    }
+                }).then(middlewareGroupMiddlewareEntities => {
+                    return middlewareGroupMiddlewareEntities.map(middlewareGroupMiddlewareEntitie => {
+                        return middlewareGroupMiddlewareEntitie.metadataId
+                    })
+                })
+            ]
+
             await mutationQuery(true, () => {
                 return middlewareGroupRepository.remove(middlewareGroupEntity)
             })
 
             await mutationQuery(true, () => {
-                return metadataRepository.remove(middlewareGroupEntity.metadata)
+                return metadataRepository.delete(metadataIds)
             })
         })
 
