@@ -93,35 +93,23 @@ export class UserService implements IUserService {
         const connection = await this.connection
         const userRepository = connection.getRepository(User)
 
-        if (!role) {
-            if (!await this.isExists(username)) {
-                throw new UserDoesNotExists
-            }
+        if (!await this.isExists(username)) {
+            throw new UserDoesNotExists
+        }
 
-            await mutationQuery(nestedTransaction, () => {
-                return userRepository.update({
-                    username: username
-                }, {
-                    roleName: null
-                })
-            })
-        } else {
-            if (!await this.isExists(username)) {
-                throw new UserDoesNotExists
-            }
-
+        if (role) {
             if (!await this.roleService.isExists(role)) {
                 throw new RoleDoesNotExists
             }
-    
-            await mutationQuery(nestedTransaction, () => {
-                return userRepository.update({
-                    username: username
-                }, {
-                    roleName: role
-                })
-            })
         }
+
+        await mutationQuery(nestedTransaction, () => {
+            return userRepository.update({
+                username: username
+            }, {
+                roleName: role
+            })
+        })
 
         const eventContext: EventContext = {
             type: UserEventMutation.SetRole,
