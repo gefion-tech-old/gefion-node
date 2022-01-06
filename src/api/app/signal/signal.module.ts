@@ -9,7 +9,9 @@ import {
     SignalGuardMethod,
     SignalFilterMethod,
     SignalGraph,
-    Guard
+    Guard,
+    Filter,
+    Validator
 } from '../entities/signal.entity'
 import { IGraphCacheService } from './graph-cache/graph-cache.interface'
 import { GraphCacheService } from './graph-cache/graph-cache.service'
@@ -45,6 +47,14 @@ export const SignalModule = new AsyncContainerModule(async (bind: interfaces.Bin
     bind<Function>(TYPEORM_SYMBOL.TypeOrmAppEntity)
         .toConstructor(Guard)
         .whenTargetNamed(SIGNAL_SYMBOL.GuardEntity)
+
+    bind<Function>(TYPEORM_SYMBOL.TypeOrmAppEntity)
+        .toConstructor(Filter)
+        .whenTargetNamed(SIGNAL_SYMBOL.FilterEntity)
+
+    bind<Function>(TYPEORM_SYMBOL.TypeOrmAppEntity)
+        .toConstructor(Validator)
+        .whenTargetNamed(SIGNAL_SYMBOL.ValidatorEntity)
 
     bind<ISignalService>(SIGNAL_SYMBOL.SignalService)
         .to(SignalService)

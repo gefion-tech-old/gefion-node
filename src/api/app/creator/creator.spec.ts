@@ -11,7 +11,7 @@ import { Method } from '../entities/method.entity'
 import { BlockInstance, BlockVersion } from '../entities/block.entity'
 import { Creator } from '../entities/creator.entity'
 import { ResourceAlreadyHasCreator } from './creator.errors'
-import { Signal, Guard } from '../entities/signal.entity'
+import { Signal, Guard, Filter, Validator } from '../entities/signal.entity'
 import { Role, Permission } from '../entities/user.entity'
 import { Controller, Middleware, MiddlewareGroup, Route } from '../entities/route.entity'
 
@@ -1829,6 +1829,452 @@ describe('CreatorService в CreatorModule', () => {
             await expect(creatorService.getCreator({
                 type: ResourceType.Guard,
                 id: guardEntity.id
+            })).resolves.toBe(CreatorType.System)
+
+            container.restore()
+        })
+
+    })
+
+    describe('Фильтры в качестве ресурсов', () => {
+
+        it(`
+            Фильтры корректно привязываются к экземпляру блока. Нельзя удалить
+            экземпляр блока с привязанным фильтром, но можно удалить фильтр.
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+    
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const versionRepository = connection.getRepository(BlockVersion)
+            const instanceRepository = connection.getRepository(BlockInstance)
+            const creatorRepository = connection.getRepository(Creator)
+    
+            const versionEntity = await versionRepository.save({
+                name: 'name',
+                path: 'path',
+                version: 'version' 
+            })
+            const instanceEntity = await instanceRepository.save({
+                blockVersion: versionEntity
+            })
+
+            const methodRepository = connection.getRepository(Method)
+            const filterRepository = connection.getRepository(Filter)
+
+            const methodEntity = await methodRepository.save({
+                type: 'type',
+                namespace: 'namespace',
+                name: 'name'
+            })
+            const filterEntity = await filterRepository.save({
+                name: 'name',
+                namespace: 'namespace',
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                method: methodEntity
+            })
+    
+            await expect(creatorService.bind({
+                type: ResourceType.Filter,
+                id: filterEntity.id
+            }, {
+                type: CreatorType.BlockInstance,
+                id: instanceEntity.id
+            })).resolves.toBeUndefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(1)
+            await expect(instanceRepository.remove(instanceEntity))
+                .rejects
+                .toThrow()
+            await expect(filterRepository.remove(filterEntity))
+                .resolves
+                .toBeDefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(0)
+    
+            container.restore()
+        })
+    
+        it(`
+            Фильтры корректно привязываются к системе. Привязка удаляется вместе
+            с удалением фильтра
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+    
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const creatorRepository = connection.getRepository(Creator)
+    
+            const methodRepository = connection.getRepository(Method)
+            const filterRepository = connection.getRepository(Filter)
+
+            const methodEntity = await methodRepository.save({
+                type: 'type',
+                namespace: 'namespace',
+                name: 'name'
+            })
+            const filterEntity = await filterRepository.save({
+                name: 'name',
+                namespace: 'namespace',
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                method: methodEntity
+            })
+    
+            await expect(creatorService.bind({
+                type: ResourceType.Filter,
+                id: filterEntity.id
+            }, {
+                type: CreatorType.System
+            })).resolves.toBeUndefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(1)
+            await expect(filterRepository.remove(filterEntity))
+                .resolves
+                .toBeDefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(0)
+    
+            container.restore()
+        })
+    
+        it(`
+            Экземпляр блока, к которому привязан фильтр корректно можно получить
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const versionRepository = connection.getRepository(BlockVersion)
+            const instanceRepository = connection.getRepository(BlockInstance)
+    
+            const versionEntity = await versionRepository.save({
+                name: 'name',
+                path: 'path',
+                version: 'version' 
+            })
+            const instanceEntity = await instanceRepository.save({
+                blockVersion: versionEntity
+            })
+
+            const methodRepository = connection.getRepository(Method)
+            const filterRepository = connection.getRepository(Filter)
+
+            const methodEntity = await methodRepository.save({
+                type: 'type',
+                namespace: 'namespace',
+                name: 'name'
+            })
+            const filterEntity = await filterRepository.save({
+                name: 'name',
+                namespace: 'namespace',
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                method: methodEntity
+            })
+
+            await creatorService.bind({
+                type: ResourceType.Filter,
+                id: filterEntity.id
+            }, {
+                type: CreatorType.BlockInstance,
+                id: instanceEntity.id
+            })
+
+            await expect(creatorService.getCreator({
+                type: ResourceType.Filter,
+                id: filterEntity.id
+            })).resolves.toBeInstanceOf(BlockInstance)
+
+            container.restore()
+        })
+    
+        it(`
+            Систему, к которой привязан фильтр корректно можно получить 
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+
+            const methodRepository = connection.getRepository(Method)
+            const filterRepository = connection.getRepository(Filter)
+
+            const methodEntity = await methodRepository.save({
+                type: 'type',
+                namespace: 'namespace',
+                name: 'name'
+            })
+            const filterEntity = await filterRepository.save({
+                name: 'name',
+                namespace: 'namespace',
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                method: methodEntity
+            })
+
+            await creatorService.bind({
+                type: ResourceType.Filter,
+                id: filterEntity.id
+            }, {
+                type: CreatorType.System
+            })
+
+            await expect(creatorService.getCreator({
+                type: ResourceType.Filter,
+                id: filterEntity.id
+            })).resolves.toBe(CreatorType.System)
+
+            container.restore()
+        })
+
+    })
+
+    describe('Валидаторы в качестве ресурсов', () => {
+
+        it(`
+            Валидаторы корректно привязываются к экземпляру блока. Нельзя удалить
+            экземпляр блока с привязанным валидатором, но можно удалить валидатор.
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+    
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const versionRepository = connection.getRepository(BlockVersion)
+            const instanceRepository = connection.getRepository(BlockInstance)
+            const creatorRepository = connection.getRepository(Creator)
+    
+            const versionEntity = await versionRepository.save({
+                name: 'name',
+                path: 'path',
+                version: 'version' 
+            })
+            const instanceEntity = await instanceRepository.save({
+                blockVersion: versionEntity
+            })
+
+            const methodRepository = connection.getRepository(Method)
+            const validatorRepository = connection.getRepository(Validator)
+
+            const methodEntity = await methodRepository.save({
+                type: 'type',
+                namespace: 'namespace',
+                name: 'name'
+            })
+            const validatorEntity = await validatorRepository.save({
+                name: 'name',
+                namespace: 'namespace',
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                method: methodEntity
+            })
+    
+            await expect(creatorService.bind({
+                type: ResourceType.Validator,
+                id: validatorEntity.id
+            }, {
+                type: CreatorType.BlockInstance,
+                id: instanceEntity.id
+            })).resolves.toBeUndefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(1)
+            await expect(instanceRepository.remove(instanceEntity))
+                .rejects
+                .toThrow()
+            await expect(validatorRepository.remove(validatorEntity))
+                .resolves
+                .toBeDefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(0)
+    
+            container.restore()
+        })
+    
+        it(`
+            Валидаторы корректно привязываются к системе. Привязка удаляется вместе
+            с удалением валидатора
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+    
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const creatorRepository = connection.getRepository(Creator)
+    
+            const methodRepository = connection.getRepository(Method)
+            const validatorRepository = connection.getRepository(Validator)
+
+            const methodEntity = await methodRepository.save({
+                type: 'type',
+                namespace: 'namespace',
+                name: 'name'
+            })
+            const validatorEntity = await validatorRepository.save({
+                name: 'name',
+                namespace: 'namespace',
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                method: methodEntity
+            })
+    
+            await expect(creatorService.bind({
+                type: ResourceType.Validator,
+                id: validatorEntity.id
+            }, {
+                type: CreatorType.System
+            })).resolves.toBeUndefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(1)
+            await expect(validatorRepository.remove(validatorEntity))
+                .resolves
+                .toBeDefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(0)
+    
+            container.restore()
+        })
+    
+        it(`
+            Экземпляр блока, к которому привязан валидатор корректно можно получить
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const versionRepository = connection.getRepository(BlockVersion)
+            const instanceRepository = connection.getRepository(BlockInstance)
+    
+            const versionEntity = await versionRepository.save({
+                name: 'name',
+                path: 'path',
+                version: 'version' 
+            })
+            const instanceEntity = await instanceRepository.save({
+                blockVersion: versionEntity
+            })
+
+            const methodRepository = connection.getRepository(Method)
+            const validatorRepository = connection.getRepository(Validator)
+
+            const methodEntity = await methodRepository.save({
+                type: 'type',
+                namespace: 'namespace',
+                name: 'name'
+            })
+            const validatorEntity = await validatorRepository.save({
+                name: 'name',
+                namespace: 'namespace',
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                method: methodEntity
+            })
+
+            await creatorService.bind({
+                type: ResourceType.Validator,
+                id: validatorEntity.id
+            }, {
+                type: CreatorType.BlockInstance,
+                id: instanceEntity.id
+            })
+
+            await expect(creatorService.getCreator({
+                type: ResourceType.Validator,
+                id: validatorEntity.id
+            })).resolves.toBeInstanceOf(BlockInstance)
+
+            container.restore()
+        })
+    
+        it(`
+            Систему, к которой привязан валидатор корректно можно получить 
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+
+            const methodRepository = connection.getRepository(Method)
+            const validatorRepository = connection.getRepository(Validator)
+
+            const methodEntity = await methodRepository.save({
+                type: 'type',
+                namespace: 'namespace',
+                name: 'name'
+            })
+            const validatorEntity = await validatorRepository.save({
+                name: 'name',
+                namespace: 'namespace',
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                method: methodEntity
+            })
+
+            await creatorService.bind({
+                type: ResourceType.Validator,
+                id: validatorEntity.id
+            }, {
+                type: CreatorType.System
+            })
+
+            await expect(creatorService.getCreator({
+                type: ResourceType.Validator,
+                id: validatorEntity.id
             })).resolves.toBe(CreatorType.System)
 
             container.restore()

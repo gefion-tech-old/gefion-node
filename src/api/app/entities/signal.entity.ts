@@ -17,6 +17,8 @@ import { Method } from './method.entity'
 import { SignalMetadata } from '../signal/signal.type'
 import { Metadata } from './metadata.entity'
 import { GuardMetadata } from '../signal/guard/guard.types'
+import { FilterMetadata } from '../signal/filter/filter.types'
+import { ValidatorMetadata } from '../signal/validator/validator.types'
 
 @injectable()
 @Entity()
@@ -96,6 +98,76 @@ export class Guard {
     })
     @JoinColumn()
     metadata: Metadata<GuardMetadata>
+
+    @ManyToOne(() => Method, {
+        onDelete: 'RESTRICT',
+        nullable: false
+    })
+    method: Method
+
+}
+
+@injectable()
+@Entity()
+@Unique(['namespace', 'name'])
+export class Filter {
+
+    @PrimaryGeneratedColumn()
+    id: number
+
+    @Column({
+        nullable: false
+    })
+    namespace: string
+
+    @Column({
+        nullable: false
+    })
+    name: string
+
+    @OneToOne(() => Metadata, {
+        onDelete: 'RESTRICT',
+        eager: true,
+        cascade: ['insert'],
+        nullable: false
+    })
+    @JoinColumn()
+    metadata: Metadata<FilterMetadata>
+
+    @ManyToOne(() => Method, {
+        onDelete: 'RESTRICT',
+        nullable: false
+    })
+    method: Method
+
+}
+
+@injectable()
+@Entity()
+@Unique(['namespace', 'name'])
+export class Validator {
+
+    @PrimaryGeneratedColumn()
+    id: number
+
+    @Column({
+        nullable: false
+    })
+    namespace: string
+
+    @Column({
+        nullable: false
+    })
+    name: string
+
+    @OneToOne(() => Metadata, {
+        onDelete: 'RESTRICT',
+        eager: true,
+        cascade: ['insert'],
+        nullable: false
+    })
+    @JoinColumn()
+    metadata: Metadata<ValidatorMetadata>
 
     @ManyToOne(() => Method, {
         onDelete: 'RESTRICT',

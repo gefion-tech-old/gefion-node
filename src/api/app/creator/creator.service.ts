@@ -55,6 +55,12 @@ export class CreatorService implements ICreatorService {
             case ResourceType.Guard:
                 creatorEntity.guard = { id: resource.id } as any
                 break
+            case ResourceType.Filter:
+                creatorEntity.filter = { id: resource.id } as any
+                break
+            case ResourceType.Validator:
+                creatorEntity.validator = { id: resource.id } as any
+                break
         }
 
         switch (creator.type) {
@@ -104,6 +110,10 @@ export class CreatorService implements ICreatorService {
                         return { routeId: resource.id }
                     case ResourceType.Guard:
                         return { guardId: resource.id }
+                    case ResourceType.Filter:
+                        return { filterId: resource.id }
+                    case ResourceType.Validator:
+                        return { validatorId: resource.id }
                 }
             })(),
             relations: ['blockInstance']

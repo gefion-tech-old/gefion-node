@@ -12,7 +12,9 @@ export const SIGNAL_SYMBOL = {
     GraphCacheUpdateSignalsRPC: Symbol('GraphCacheUpdateSignalsRPC'),
     GraphCacheInit: Symbol('GraphCacheInit'),
     GuardEntity: Symbol('GuardEntity'),
-    GuardService: Symbol('GuardService')
+    GuardService: Symbol('GuardService'),
+    FilterEntity: Symbol('FilterEntity'),
+    ValidatorEntity: Symbol('ValidatorEntity')
 }
 
 export interface Signal {

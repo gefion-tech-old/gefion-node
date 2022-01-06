@@ -9,7 +9,7 @@ import {
 } from 'typeorm'
 import { BlockInstance } from './block.entity'
 import { Method } from './method.entity'
-import { Signal, Guard } from './signal.entity'
+import { Signal, Guard, Filter, Validator } from './signal.entity'
 import { Role, Permission } from './user.entity'
 import { Controller, Middleware, MiddlewareGroup, Route } from './route.entity'
 
@@ -28,6 +28,8 @@ import { Controller, Middleware, MiddlewareGroup, Route } from './route.entity'
         OR middlewareGroupId <> NULL
         OR routeId <> NULL
         OR guardId <> NULL
+        OR filterId <> NULL
+        OR validatorId <> NULL
     )
 `)
 @Unique(['method'])
@@ -39,6 +41,8 @@ import { Controller, Middleware, MiddlewareGroup, Route } from './route.entity'
 @Unique(['middlewareGroup'])
 @Unique(['route'])
 @Unique(['guard'])
+@Unique(['filter'])
+@Unique(['validator'])
 export class Creator {
 
     @PrimaryGeneratedColumn()
@@ -151,5 +155,25 @@ export class Creator {
         nullable: true
     })
     guardId: number
+
+    @ManyToOne(() => Filter, {
+        onDelete: 'CASCADE'
+    })
+    filter: Filter
+
+    @Column({
+        nullable: true
+    })
+    filterId: number
+
+    @ManyToOne(() => Validator, {
+        onDelete: 'CASCADE'
+    })
+    validator: Validator
+
+    @Column({
+        nullable: true
+    })
+    validatorId: number
 
 }

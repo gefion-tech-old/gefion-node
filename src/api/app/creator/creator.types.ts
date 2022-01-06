@@ -12,7 +12,9 @@ export enum ResourceType {
     Middleware = 'Middleware',
     MiddlewareGroup = 'MiddlewareGroup',
     Route = 'Route',
-    Guard = 'Guard'
+    Guard = 'Guard',
+    Filter = 'Filter',
+    Validator = 'Validator'
 }
 
 export enum CreatorType {
