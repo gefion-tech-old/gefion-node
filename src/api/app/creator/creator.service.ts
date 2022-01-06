@@ -52,6 +52,9 @@ export class CreatorService implements ICreatorService {
             case ResourceType.Route:
                 creatorEntity.route = { id: resource.id } as any
                 break
+            case ResourceType.Guard:
+                creatorEntity.guard = { id: resource.id } as any
+                break
         }
 
         switch (creator.type) {
@@ -99,6 +102,8 @@ export class CreatorService implements ICreatorService {
                         return { middlewareGroupId: resource.id }
                     case ResourceType.Route:
                         return { routeId: resource.id }
+                    case ResourceType.Guard:
+                        return { guardId: resource.id }
                 }
             })(),
             relations: ['blockInstance']

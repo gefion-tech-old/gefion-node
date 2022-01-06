@@ -8,7 +8,8 @@ import {
     SignalValidatorMethod,
     SignalGuardMethod,
     SignalFilterMethod,
-    SignalGraph
+    SignalGraph,
+    Guard
 } from '../entities/signal.entity'
 import { IGraphCacheService } from './graph-cache/graph-cache.interface'
 import { GraphCacheService } from './graph-cache/graph-cache.service'
@@ -17,6 +18,8 @@ import { UpdateSignalRPCMethod } from './graph-cache/rpc/update-signal.rpc'
 import { UpdateSignalsRPCMethod } from './graph-cache/rpc/update-signals.rpc'
 import { InitRunner, INIT_SYMBOL } from '../../../core/init/init.types'
 import { InitGraphCache } from './graph-cache/graph-cache.init'
+import { IGuardService } from './guard/guard.interface'
+import { GuardService } from './guard/guard.service'
 
 export const SignalModule = new AsyncContainerModule(async (bind: interfaces.Bind) => {
     bind<Function>(TYPEORM_SYMBOL.TypeOrmAppEntity)
@@ -39,6 +42,10 @@ export const SignalModule = new AsyncContainerModule(async (bind: interfaces.Bin
         .toConstructor(SignalGraph)
         .whenTargetNamed(SIGNAL_SYMBOL.SignalGraphEntity)
 
+    bind<Function>(TYPEORM_SYMBOL.TypeOrmAppEntity)
+        .toConstructor(Guard)
+        .whenTargetNamed(SIGNAL_SYMBOL.GuardEntity)
+
     bind<ISignalService>(SIGNAL_SYMBOL.SignalService)
         .to(SignalService)
         .inSingletonScope()
@@ -58,4 +65,8 @@ export const SignalModule = new AsyncContainerModule(async (bind: interfaces.Bin
     bind<InitRunner>(INIT_SYMBOL.InitRunner)
         .to(InitGraphCache)
         .whenTargetNamed(SIGNAL_SYMBOL.GraphCacheInit)
+
+    bind<IGuardService>(SIGNAL_SYMBOL.GuardService)
+        .to(GuardService)
+        .inSingletonScope()
 })

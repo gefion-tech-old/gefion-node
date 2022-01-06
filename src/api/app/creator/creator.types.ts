@@ -11,7 +11,8 @@ export enum ResourceType {
     Controller = 'Controller',
     Middleware = 'Middleware',
     MiddlewareGroup = 'MiddlewareGroup',
-    Route = 'Route'
+    Route = 'Route',
+    Guard = 'Guard'
 }
 
 export enum CreatorType {

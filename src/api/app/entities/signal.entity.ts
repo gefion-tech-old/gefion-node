@@ -16,6 +16,7 @@ import {
 import { Method } from './method.entity'
 import { SignalMetadata } from '../signal/signal.type'
 import { Metadata } from './metadata.entity'
+import { GuardMetadata } from '../signal/guard/guard.types'
 
 @injectable()
 @Entity()
@@ -66,6 +67,41 @@ export class Signal {
         name: 'signal_filter_method'
     })
     filters: Method[]
+
+}
+
+@injectable()
+@Entity()
+@Unique(['namespace', 'name'])
+export class Guard {
+
+    @PrimaryGeneratedColumn()
+    id: number
+
+    @Column({
+        nullable: false
+    })
+    namespace: string
+
+    @Column({
+        nullable: false
+    })
+    name: string
+
+    @OneToOne(() => Metadata, {
+        onDelete: 'RESTRICT',
+        eager: true,
+        cascade: ['insert'],
+        nullable: false
+    })
+    @JoinColumn()
+    metadata: Metadata<GuardMetadata>
+
+    @ManyToOne(() => Method, {
+        onDelete: 'RESTRICT',
+        nullable: false
+    })
+    method: Method
 
 }
 

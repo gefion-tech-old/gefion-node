@@ -11,7 +11,7 @@ import { Method } from '../entities/method.entity'
 import { BlockInstance, BlockVersion } from '../entities/block.entity'
 import { Creator } from '../entities/creator.entity'
 import { ResourceAlreadyHasCreator } from './creator.errors'
-import { Signal } from '../entities/signal.entity'
+import { Signal, Guard } from '../entities/signal.entity'
 import { Role, Permission } from '../entities/user.entity'
 import { Controller, Middleware, MiddlewareGroup, Route } from '../entities/route.entity'
 
@@ -1606,6 +1606,229 @@ describe('CreatorService в CreatorModule', () => {
             await expect(creatorService.getCreator({
                 type: ResourceType.Route,
                 id: routeEntity.id
+            })).resolves.toBe(CreatorType.System)
+
+            container.restore()
+        })
+
+    })
+
+    describe('Методы в качестве ресурсов', () => {
+
+        it(`
+            Методы корректно привязываются к экземпляру блока. Нельзя удалить
+            экземпляр блока с привязанным методом, но можно удалить метод.
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+    
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const versionRepository = connection.getRepository(BlockVersion)
+            const instanceRepository = connection.getRepository(BlockInstance)
+            const creatorRepository = connection.getRepository(Creator)
+    
+            const versionEntity = await versionRepository.save({
+                name: 'name',
+                path: 'path',
+                version: 'version' 
+            })
+            const instanceEntity = await instanceRepository.save({
+                blockVersion: versionEntity
+            })
+
+            const methodRepository = connection.getRepository(Method)
+            const guardRepository = connection.getRepository(Guard)
+
+            const methodEntity = await methodRepository.save({
+                type: 'type',
+                namespace: 'namespace',
+                name: 'name'
+            })
+            const guardEntity = await guardRepository.save({
+                name: 'name',
+                namespace: 'namespace',
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                method: methodEntity
+            })
+    
+            await expect(creatorService.bind({
+                type: ResourceType.Guard,
+                id: guardEntity.id
+            }, {
+                type: CreatorType.BlockInstance,
+                id: instanceEntity.id
+            })).resolves.toBeUndefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(1)
+            await expect(instanceRepository.remove(instanceEntity))
+                .rejects
+                .toThrow()
+            await expect(guardRepository.remove(guardEntity))
+                .resolves
+                .toBeDefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(0)
+    
+            container.restore()
+        })
+    
+        it(`
+            Методы корректно привязываются к системе. Привязка удаляется вместе
+            с удалением метода
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+    
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const creatorRepository = connection.getRepository(Creator)
+    
+            const methodRepository = connection.getRepository(Method)
+            const guardRepository = connection.getRepository(Guard)
+            
+            const methodEntity = await methodRepository.save({
+                type: 'type',
+                namespace: 'namespace',
+                name: 'name'
+            })
+            const guardEntity = await guardRepository.save({
+                name: 'name',
+                namespace: 'namespace',
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                method: methodEntity
+            })
+    
+            await expect(creatorService.bind({
+                type: ResourceType.Guard,
+                id: guardEntity.id
+            }, {
+                type: CreatorType.System
+            })).resolves.toBeUndefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(1)
+            await expect(guardRepository.remove(guardEntity))
+                .resolves
+                .toBeDefined()
+            await expect(creatorRepository.find())
+                .resolves
+                .toHaveLength(0)
+    
+            container.restore()
+        })
+    
+        it(`
+            Экземпляр блока, к которому привязан метод корректно можно получить
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const versionRepository = connection.getRepository(BlockVersion)
+            const instanceRepository = connection.getRepository(BlockInstance)
+    
+            const versionEntity = await versionRepository.save({
+                name: 'name',
+                path: 'path',
+                version: 'version' 
+            })
+            const instanceEntity = await instanceRepository.save({
+                blockVersion: versionEntity
+            })
+
+            const methodRepository = connection.getRepository(Method)
+            const guardRepository = connection.getRepository(Guard)
+            
+            const methodEntity = await methodRepository.save({
+                type: 'type',
+                namespace: 'namespace',
+                name: 'name'
+            })
+            const guardEntity = await guardRepository.save({
+                name: 'name',
+                namespace: 'namespace',
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                method: methodEntity
+            })
+
+            await creatorService.bind({
+                type: ResourceType.Guard,
+                id: guardEntity.id
+            }, {
+                type: CreatorType.BlockInstance,
+                id: instanceEntity.id
+            })
+
+            await expect(creatorService.getCreator({
+                type: ResourceType.Guard,
+                id: guardEntity.id
+            })).resolves.toBeInstanceOf(BlockInstance)
+
+            container.restore()
+        })
+    
+        it(`
+            Систему, к которой привязан метод корректно можно получить 
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+
+            const creatorService = container
+                .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+
+            const methodRepository = connection.getRepository(Method)
+            const guardRepository = connection.getRepository(Guard)
+            
+            const methodEntity = await methodRepository.save({
+                type: 'type',
+                namespace: 'namespace',
+                name: 'name'
+            })
+            const guardEntity = await guardRepository.save({
+                name: 'name',
+                namespace: 'namespace',
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                method: methodEntity
+            })
+
+            await creatorService.bind({
+                type: ResourceType.Guard,
+                id: guardEntity.id
+            }, {
+                type: CreatorType.System
+            })
+
+            await expect(creatorService.getCreator({
+                type: ResourceType.Guard,
+                id: guardEntity.id
             })).resolves.toBe(CreatorType.System)
 
             container.restore()
