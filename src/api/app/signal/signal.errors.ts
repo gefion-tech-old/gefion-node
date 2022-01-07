@@ -14,31 +14,24 @@ export class SignalDoesNotExist extends SignalError {
 
 }
 
-export class SignalMethodNotDefined extends SignalError {
-
-    public name = 'SignalMethodNotDefined'
-    public message = 'К сигналу нельзя привязать несуществующий метод'
-
-}
-
 export class ValidatorAlreadyBound extends SignalError {
 
     public name = 'ValidatorAlreadyBound'
-    public message = 'Указанный метод валидатора уже привязан к данному сигналу'
+    public message = 'Указанный валидатор уже привязан к данному сигналу'
 
 }
 
 export class GuardAlreadyBound extends SignalError {
 
     public name = 'GuardAlreadyBound'
-    public message = 'Указанный метод охранника уже привязан к данному сигналу'
+    public message = 'Указанный охранник уже привязан к данному сигналу'
 
 }
 
 export class FilterAlreadyBound extends SignalError {
 
     public name = 'FilterAlreadyBound'
-    public message = 'Указанный метод фильтра уже привязан к данному сигналу'
+    public message = 'Указанный фильтр уже привязан к данному сигналу'
     
 }
 

@@ -2,9 +2,9 @@ import { BindableCreator } from '../creator/creator.types'
 
 export const SIGNAL_SYMBOL = {
     SignalEntity: Symbol('SignalEntity'),
-    SignalValidatorMethodEntity: Symbol('SignalValidatorMethodEntity'),
-    SignalGuardMethodEntity: Symbol('SignalGuardMethodEntity'),
-    SignalFilterMethodEntity: Symbol('SignalFilterMethodEntity'),
+    SignalValidatorEntity: Symbol('SignalValidatorEntity'),
+    SignalGuardEntity: Symbol('SignalGuardEntity'),
+    SignalFilterEntity: Symbol('SignalFilterEntity'),
     SignalGraphEntity: Symbol('SignalGraphEntity'),
     SignalService: Symbol('SignalService'),
     GraphCacheService: Symbol('GraphCacheService'),
@@ -37,6 +37,27 @@ export interface SignalMetadata {
     default: any
     /**
      * Метаданные, которые можно изменить в любой момент времени
+     */
+    custom: any
+}
+
+export interface SignalValidatorMetadata {
+    /**
+     * Метаданные, которые можно изменить в любой момент времени без особых ограничений
+     */
+    custom: any
+}
+
+export interface SignalFilterMetadata {
+    /**
+     * Метаданные, которые можно изменить в любой момент времени без особых ограничений
+     */
+    custom: any
+}
+
+export interface SignalGuardMetadata {
+    /**
+     * Метаданные, которые можно изменить в любой момент времени без особых ограничений
      */
     custom: any
 }
@@ -108,13 +129,45 @@ export enum SignalEventMutation {
     Remove = 'Remove'
 }
 
-export interface EventContext {
-    /**
-     * Тип мутации
-     */
-    type: SignalEventMutation
-    /**
-     * Идентификатор сигнала над которым происходит мутация
-     */
+export interface ValidatorEventContext {
+    type: (
+        SignalEventMutation.AddValidator
+        | SignalEventMutation.RemoveValidator
+    ),
+    signalId: number
+    validatorId: number
+}
+
+export interface FilterEventContext {
+    type: (
+        SignalEventMutation.AddFilter
+        | SignalEventMutation.RemoveFilter
+    )
+    signalId: number
+    filterId: number
+}
+
+export interface GuardEventContext {
+    type: (
+        SignalEventMutation.AddGuard
+        | SignalEventMutation.RemoveGuard
+    ),
+    signalId: number
+    guardId: number
+}
+
+export interface SignalEventContext {
+    type: Exclude<SignalEventMutation, (
+        GuardEventContext['type'] 
+        | FilterEventContext['type']
+        | ValidatorEventContext['type']
+    )>
     signalId: number
 }
+
+export type EventContext = (
+    SignalEventContext 
+    | GuardEventContext 
+    | FilterEventContext 
+    | ValidatorEventContext
+)

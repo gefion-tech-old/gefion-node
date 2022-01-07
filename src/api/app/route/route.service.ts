@@ -638,7 +638,7 @@ export class RouteService implements IRouteService {
         await transaction(nestedTransaction, connection, async () => {
             /**
              * Получить список идентификаторов всех сущностей метаданных, которые нужно
-             * удалить после удаления роли. Удалить раньше нельзя из-за RESTRICT ограничения
+             * удалить после удаления маршрута. Удалить раньше нельзя из-за RESTRICT ограничения
              */
             const metadataIds = [
                 routeEntity.metadata.id,

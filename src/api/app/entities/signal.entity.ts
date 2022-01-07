@@ -3,18 +3,22 @@ import {
     Entity, 
     PrimaryGeneratedColumn, 
     Column,
-    ManyToMany,
     Unique,
-    JoinTable,
     ManyToOne,
     JoinColumn,
     PrimaryColumn,
     Index,
     CreateDateColumn,
-    OneToOne
+    OneToOne,
+    OneToMany
 } from 'typeorm'
 import { Method } from './method.entity'
-import { SignalMetadata } from '../signal/signal.types'
+import { 
+    SignalMetadata,
+    SignalFilterMetadata,
+    SignalGuardMetadata,
+    SignalValidatorMetadata
+} from '../signal/signal.types'
 import { Metadata } from './metadata.entity'
 import { GuardMetadata } from '../signal/guard/guard.types'
 import { FilterMetadata } from '../signal/filter/filter.types'
@@ -52,23 +56,14 @@ export class Signal {
     @JoinColumn()
     metadata: Metadata<SignalMetadata>
 
-    @ManyToMany(() => Method)
-    @JoinTable({
-        name: 'signal_validator_method'
-    })
-    validators: Method[]
+    @OneToMany(() => SignalValidator, signalValidator => signalValidator.signal)
+    signalValidators: SignalValidator[]
 
-    @ManyToMany(() => Method)
-    @JoinTable({
-        name: 'signal_guard_method'
-    })
-    guards: Method[]
+    @OneToMany(() => SignalGuard, signalGuard => signalGuard.signal)
+    signalGuards: SignalGuard[]
 
-    @ManyToMany(() => Method)
-    @JoinTable({
-        name: 'signal_filter_method'
-    })
-    filters: Method[]
+    @OneToMany(() => SignalFilter, signalFilter => signalFilter.signal)
+    signalFilters: SignalFilter[]
 
 }
 
@@ -178,14 +173,18 @@ export class Validator {
 }
 
 @injectable()
-@Entity('signal_validator_method')
-export class SignalValidatorMethod {
+@Entity('signal_validator')
+@Unique(['signalId', 'validatorId'])
+export class SignalValidator {
+
+    @PrimaryGeneratedColumn()
+    id: number
 
     @PrimaryColumn()
     signalId: number
     
     @PrimaryColumn()
-    methodId: number
+    validatorId: number
 
     @ManyToOne(() => Signal, {
         onDelete: 'CASCADE'
@@ -193,23 +192,36 @@ export class SignalValidatorMethod {
     @JoinColumn()
     signal: Signal
 
-    @ManyToOne(() => Method, {
-        onDelete: 'RESTRICT'
+    @ManyToOne(() => Validator, {
+        onDelete: 'CASCADE'
     })
     @JoinColumn()
-    method: Method
+    validator: Validator
+
+    @OneToOne(() => Metadata, {
+        onDelete: 'RESTRICT',
+        eager: true,
+        cascade: ['insert'],
+        nullable: false
+    })
+    @JoinColumn()
+    metadata: Metadata<SignalValidatorMetadata>
 
 }
 
 @injectable()
-@Entity('signal_guard_method')
-export class SignalGuardMethod {
+@Entity('signal_guard')
+@Unique(['signalId', 'guardId'])
+export class SignalGuard {
+
+    @PrimaryGeneratedColumn()
+    id: number
 
     @PrimaryColumn()
     signalId: number
 
     @PrimaryColumn()
-    methodId: number
+    guardId: number
 
     @ManyToOne(() => Signal, {
         onDelete: 'CASCADE'
@@ -217,23 +229,36 @@ export class SignalGuardMethod {
     @JoinColumn()
     signal: Signal
 
-    @ManyToOne(() => Method, {
-        onDelete: 'RESTRICT'
+    @ManyToOne(() => Guard, {
+        onDelete: 'CASCADE'
     })
     @JoinColumn()
-    method: Method
+    guard: Guard
+
+    @OneToOne(() => Metadata, {
+        onDelete: 'RESTRICT',
+        eager: true,
+        cascade: ['insert'],
+        nullable: false
+    })
+    @JoinColumn()
+    metadata: Metadata<SignalGuardMetadata>
 
 }
 
 @injectable()
-@Entity('signal_filter_method')
-export class SignalFilterMethod {
+@Entity('signal_filter')
+@Unique(['signalId', 'filterId'])
+export class SignalFilter {
+
+    @PrimaryGeneratedColumn()
+    id: number
 
     @PrimaryColumn()
     signalId: number
 
     @PrimaryColumn()
-    methodId: number
+    filterId: number
 
     @ManyToOne(() => Signal, {
         onDelete: 'CASCADE'
@@ -241,11 +266,20 @@ export class SignalFilterMethod {
     @JoinColumn()
     signal: Signal
 
-    @ManyToOne(() => Method, {
-        onDelete: 'RESTRICT'
+    @ManyToOne(() => Filter, {
+        onDelete: 'CASCADE'
     })
     @JoinColumn()
-    method: Method
+    filter: Filter
+
+    @OneToOne(() => Metadata, {
+        onDelete: 'RESTRICT',
+        eager: true,
+        cascade: ['insert'],
+        nullable: false
+    })
+    @JoinColumn()
+    metadata: Metadata<SignalFilterMetadata>
 
 }
 

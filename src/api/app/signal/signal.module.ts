@@ -5,9 +5,9 @@ import { TYPEORM_SYMBOL } from '../../../core/typeorm/typeorm.types'
 import { SIGNAL_SYMBOL } from './signal.types'
 import { 
     Signal,
-    SignalValidatorMethod,
-    SignalGuardMethod,
-    SignalFilterMethod,
+    SignalValidator,
+    SignalGuard,
+    SignalFilter,
     SignalGraph,
     Guard,
     Filter,
@@ -33,16 +33,16 @@ export const SignalModule = new AsyncContainerModule(async (bind: interfaces.Bin
         .whenTargetNamed(SIGNAL_SYMBOL.SignalEntity)
 
     bind<Function>(TYPEORM_SYMBOL.TypeOrmAppEntity)
-        .toConstructor(SignalValidatorMethod)
-        .whenTargetNamed(SIGNAL_SYMBOL.SignalValidatorMethodEntity)
+        .toConstructor(SignalValidator)
+        .whenTargetNamed(SIGNAL_SYMBOL.SignalValidatorEntity)
 
     bind<Function>(TYPEORM_SYMBOL.TypeOrmAppEntity)
-        .toConstructor(SignalGuardMethod)
-        .whenTargetNamed(SIGNAL_SYMBOL.SignalGuardMethodEntity)
+        .toConstructor(SignalGuard)
+        .whenTargetNamed(SIGNAL_SYMBOL.SignalGuardEntity)
 
     bind<Function>(TYPEORM_SYMBOL.TypeOrmAppEntity)
-        .toConstructor(SignalFilterMethod)
-        .whenTargetNamed(SIGNAL_SYMBOL.SignalFilterMethodEntity)
+        .toConstructor(SignalFilter)
+        .whenTargetNamed(SIGNAL_SYMBOL.SignalFilterEntity)
 
     bind<Function>(TYPEORM_SYMBOL.TypeOrmAppEntity)
         .toConstructor(SignalGraph)

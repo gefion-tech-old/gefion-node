@@ -387,7 +387,7 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
         await transaction(nestedTransaction, connection, async () => {
             /**
              * Получить список идентификаторов всех сущностей метаданных, которые нужно
-             * удалить после удаления роли. Удалить раньше нельзя из-за RESTRICT ограничения
+             * удалить после удаления группы. Удалить раньше нельзя из-за RESTRICT ограничения
              */
             const metadataIds = [
                 middlewareGroupEntity.metadata.id,

@@ -1,4 +1,3 @@
-import { Method } from '../method/method.types'
 import { 
     Signal, 
     SignalMetadata,
@@ -6,6 +5,9 @@ import {
     EventContext
 } from './signal.types'
 import { SnapshotMetadata } from '../metadata/metadata.types'
+import { Filter } from './filter/filter.types'
+import { Guard } from './guard/guard.types'
+import { Validator } from './validator/validator.types'
 
 export interface ISignalService {
 
@@ -30,40 +32,37 @@ export interface ISignalService {
     setCustomMetadata(signal: Signal, snapshotMetadata: SnapshotMetadata<SignalMetadata>, nestedTransaction?: boolean): Promise<void>
 
     /**
-     * Добавить в пул валидаторов сигнала указанный валидатор, если он существует
-     * и ещё не был добавлен
+     * Добавить в пул валидаторов сигнала связь с указанным валидатором, если она существует
+     * и ещё не была добавлена
      */
-    addValidator(signal: Signal, method: Method, nestedTransaction?: boolean): Promise<void>
+    addValidator(signal: Signal, validator: Validator, nestedTransaction?: boolean): Promise<void>
 
     /**
-     * Удалить из пула валидаторов сигнала указанный валидатор. Попытаться удалить
-     * и метод, если с ним не связаны ещё ресурсы
+     * Удалить из пула валидаторов сигнала связь с указанным валидатором
      */
-    removeValidator(signal: Signal, method: Method, nestedTransaction?: boolean): Promise<void>
+    removeValidator(signal: Signal, validator: Validator, nestedTransaction?: boolean): Promise<void>
 
     /**
-     * Добавить в пул защитников сигнала указанный защитник, если он существует
-     * и ещё не был добавлен
+     * Добавить в пул защитников сигнала связь с указанным защитником, если она существует
+     * и ещё не была добавлена
      */
-    addGuard(signal: Signal, method: Method, nestedTransaction?: boolean): Promise<void>
+    addGuard(signal: Signal, guard: Guard, nestedTransaction?: boolean): Promise<void>
 
     /**
-     * Удалить из пула защитников сигнала указанный защитник. Попытаться удалить
-     * и метод, если с ним не связаны ещё ресурсы
+     * Удалить из пула защитников сигнала связь с указанным защитником
      */
-    removeGuard(signal: Signal, method: Method, nestedTransaction?: boolean): Promise<void>
+    removeGuard(signal: Signal, guard: Guard, nestedTransaction?: boolean): Promise<void>
 
     /**
-     * Добавить в пул фильтров сигнала указанный фильтр, если он существует и ещё
-     * не был добавлен 
+     * Добавить в пул фильтров сигнала связь с указанным фильтром, если она существует и ещё
+     * не была добавлена 
      */
-    addFilter(signal: Signal, method: Method, nestedTransaction?: boolean): Promise<void>
+    addFilter(signal: Signal, filter: Filter, nestedTransaction?: boolean): Promise<void>
 
     /**
-     * Удалить из пула фильтров сигнала указанный сигнал. Попытаться удалить
-     * и метод, если с ним не связаны ещё ресурсы
+     * Удалить из пула фильтров сигнала связь с указанным фильтром
      */
-    removeFilter(signal: Signal, method: Method, nestedTransaction?: boolean): Promise<void>
+    removeFilter(signal: Signal, filter: Filter, nestedTransaction?: boolean): Promise<void>
 
     /**
      * Соединить указанный сигнал c другим указанным сигналом. Учитывать, что у одного
@@ -78,7 +77,7 @@ export interface ISignalService {
     unconnect(outSignal: Signal, intoSignal: Signal, nestedTransaction?: boolean): Promise<void>
 
     /**
-     * Удалить сигнал и все связанные с ним обработчики, если с ними не связано других ресурсов
+     * Удалить сигнал вместе с его метаданными и всеми связями
      */
     remove(signal: Signal, nestedTransaction?: boolean): Promise<void>
 

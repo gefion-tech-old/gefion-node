@@ -1,7 +1,15 @@
 import { injectable, inject } from 'inversify'
 import { ISignalService } from './signal.interface'
 import { Connection } from 'typeorm'
-import { Signal as SignalEntity } from '../entities/signal.entity'
+import { 
+    Signal as SignalEntity,
+    Guard as GuardEntity,
+    Filter as FilterEntity,
+    Validator as ValidatorEntity,
+    SignalValidator,
+    SignalFilter,
+    SignalGuard
+} from '../entities/signal.entity'
 import { TYPEORM_SYMBOL } from '../../../core/typeorm/typeorm.types'
 import { 
     Signal, 
@@ -13,7 +21,6 @@ import {
 } from './signal.types'
 import { 
     SignalDoesNotExist,
-    SignalMethodNotDefined,
     ValidatorAlreadyBound,
     GuardAlreadyBound,
     FilterAlreadyBound,
@@ -22,9 +29,6 @@ import {
     SignalUsedError,
     SignalAlreadyExists
 } from './signal.errors'
-import { METHOD_SYMBOL, Method } from '../method/method.types'
-import { IMethodService } from '../method/method.interface'
-import { MethodUsedError } from '../method/method.errors'
 import { isErrorCode, SqliteErrorCode } from '../../../core/typeorm/utils/error-code'
 import { CREATOR_SYMBOL, ResourceType } from '../creator/creator.types'
 import { ICreatorService } from '../creator/creator.interface'
@@ -36,6 +40,12 @@ import { SnapshotMetadata } from '../metadata/metadata.types'
 import { MetadataRepository } from '../metadata/repositories/metadata.repository'
 import { Metadata } from '../entities/metadata.entity'
 import { getCustomRepository } from '../../../core/typeorm/utils/custom-repository'
+import { Filter } from './filter/filter.types'
+import { Guard } from './guard/guard.types'
+import { Validator } from './validator/validator.types'
+import { FilterDoesNotExists } from './filter/filter.errors'
+import { GuardDoesNotExists } from './guard/guard.errors'
+import { ValidatorDoesNotExists } from './validator/validator.errors'
 
 @injectable()
 export class SignalService implements ISignalService {
@@ -45,9 +55,6 @@ export class SignalService implements ISignalService {
     public constructor(
         @inject(TYPEORM_SYMBOL.TypeOrmConnectionApp)
         private connection: Promise<Connection>,
-
-        @inject(METHOD_SYMBOL.MethodService)
-        private methodService: IMethodService,
 
         @inject(CREATOR_SYMBOL.CreatorService)
         private creatorService: ICreatorService
@@ -143,9 +150,11 @@ export class SignalService implements ISignalService {
         this.eventEmitter.emit(SignalEventMutationName, eventContext)
     }
 
-    public async addValidator(signal: Signal, method: Method, nestedTransaction = false): Promise<void> {
+    public async addValidator(signal: Signal, validator: Validator, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const signalRepository = connection.getRepository(SignalEntity)
+        const validatorRepository = connection.getRepository(ValidatorEntity)
+        const signalValidatorRepository = connection.getRepository(SignalValidator)
 
         const signalEntity = await signalRepository.findOne({
             where: {
@@ -153,26 +162,41 @@ export class SignalService implements ISignalService {
                 name: signal.name
             }
         })
-        const methodId = await this.methodService.getMethodId(method)
 
         if (!signalEntity) {
             throw new SignalDoesNotExist
         }
 
-        if (!methodId) {
-            throw new SignalMethodNotDefined
+        const validatorEntity = await validatorRepository.findOne({
+            where: {
+                namespace: validator.namespace,
+                name: validator.name
+            }
+        })
+
+        if (!validatorEntity) {
+            throw new ValidatorDoesNotExists
         }
 
         try {
-            await mutationQuery(nestedTransaction, () => {
-                return connection
-                    .createQueryBuilder()
-                    .relation(SignalEntity, 'validators')
-                    .of(signalEntity)
-                    .add(methodId)
+            /**
+             * Транзакция из-за каскадных запросов
+             */
+            await transaction(nestedTransaction, connection, async () => {
+                await mutationQuery(true, () => {
+                    return signalValidatorRepository.save({
+                        signalId: signalEntity.id,
+                        validatorId: validatorEntity.id,
+                        metadata: {
+                            metadata: {
+                                custom: null
+                            }
+                        }
+                    })
+                })
             })
         } catch(error) {
-            if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_PRIMARYKEY)) {
+            if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_UNIQUE)) {
                 throw new ValidatorAlreadyBound
             }
 
@@ -181,14 +205,18 @@ export class SignalService implements ISignalService {
 
         const eventContext: EventContext = {
             type: SignalEventMutation.AddValidator,
-            signalId: signalEntity.id
+            signalId: signalEntity.id,
+            validatorId: validatorEntity.id
         }
         this.eventEmitter.emit(SignalEventMutationName, eventContext)
     }
 
-    public async removeValidator(signal: Signal, method: Method, nestedTransaction = false): Promise<void> {
+    public async removeValidator(signal: Signal, validator: Validator, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const signalRepository = connection.getRepository(SignalEntity)
+        const validatorRepository = connection.getRepository(ValidatorEntity)
+        const signalValidatorRepository = connection.getRepository(SignalValidator)
+        const metadataRepository = connection.getRepository(Metadata)
 
         const signalEntity = await signalRepository.findOne({
             where: {
@@ -196,50 +224,59 @@ export class SignalService implements ISignalService {
                 name: signal.name
             }
         })
-        const methodId = await this.methodService.getMethodId(method)
-
+        
         if (!signalEntity) {
             throw new SignalDoesNotExist
         }
+        
+        const validatorEntity = await validatorRepository.findOne({
+            where: {
+                namespace: validator.namespace,
+                name: validator.name
+            }
+        })
 
-        if (!methodId) {
-            throw new SignalMethodNotDefined
+        if (!validatorEntity) {
+            throw new ValidatorDoesNotExists
         }
 
-        await mutationQuery(nestedTransaction, () => {
-            return connection
-                .createQueryBuilder()
-                .relation(SignalEntity, 'validators')
-                .of(signalEntity)
-                .remove(methodId)
+        const signalValidatorEntity = await signalValidatorRepository.findOne({
+            where: {
+                signalId: signalEntity.id,
+                validatorId: validatorEntity.id
+            }
         })
 
         /**
-         * Попытаться удалить метод и игнорировать ошибку, если метод
-         * используется
+         * Если связи с сигналом изначально не было, то выйти из функции
          */
-        try {
-            await this.methodService.removeMethod(method, nestedTransaction)
-        } catch(error) {
-            block: {
-                if (error instanceof MethodUsedError) {
-                    break block
-                }
-
-                throw error
-            }
+        if (!signalValidatorEntity) {
+            return
         }
+
+        await transaction(nestedTransaction, connection, async () => {
+            await mutationQuery(true, () => {
+                return signalValidatorRepository.remove(signalValidatorEntity)
+            })
+
+            await mutationQuery(true, () => {
+                return metadataRepository.remove(signalValidatorEntity.metadata)
+            })
+        })
 
         const eventContext: EventContext = {
             type: SignalEventMutation.RemoveValidator,
-            signalId: signalEntity.id
+            signalId: signalEntity.id,
+            validatorId: validatorEntity.id
         }
         this.eventEmitter.emit(SignalEventMutationName, eventContext)
     }
 
-    public async addGuard(signal: Signal, method: Method, nestedTransaction = false): Promise<void> {
+    public async addGuard(signal: Signal, guard: Guard, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const signalRepository = connection.getRepository(SignalEntity)
+        const guardRepository = connection.getRepository(GuardEntity)
+        const signalGuardRepository = connection.getRepository(SignalGuard)
 
         const signalEntity = await signalRepository.findOne({
             where: {
@@ -247,26 +284,41 @@ export class SignalService implements ISignalService {
                 name: signal.name
             }
         })
-        const methodId = await this.methodService.getMethodId(method)
-
+        
         if (!signalEntity) {
             throw new SignalDoesNotExist
         }
 
-        if (!methodId) {
-            throw new SignalMethodNotDefined
+        const guardEntity = await guardRepository.findOne({
+            where: {
+                namespace: guard.namespace,
+                name: guard.name
+            }
+        })
+        
+        if (!guardEntity) {
+            throw new GuardDoesNotExists
         }
 
         try {
-            await mutationQuery(nestedTransaction, () => {
-                return connection
-                    .createQueryBuilder()
-                    .relation(SignalEntity, 'guards')
-                    .of(signalEntity)
-                    .add(methodId)
+            /**
+             * Транзакция из-за каскадных запросов
+             */
+            await transaction(nestedTransaction, connection, async () => {
+                await mutationQuery(true, () => {
+                    return signalGuardRepository.save({
+                        signalId: signalEntity.id,
+                        guardId: guardEntity.id,
+                        metadata: {
+                            metadata: {
+                                custom: null
+                            }
+                        }
+                    })
+                })
             })
         } catch(error) {
-            if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_PRIMARYKEY)) {
+            if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_UNIQUE)) {
                 throw new GuardAlreadyBound
             }
 
@@ -275,14 +327,18 @@ export class SignalService implements ISignalService {
 
         const eventContext: EventContext = {
             type: SignalEventMutation.AddGuard,
-            signalId: signalEntity.id
+            signalId: signalEntity.id,
+            guardId: guardEntity.id
         }
         this.eventEmitter.emit(SignalEventMutationName, eventContext)
     }
 
-    public async removeGuard(signal: Signal, method: Method, nestedTransaction = false): Promise<void> {
+    public async removeGuard(signal: Signal, guard: Guard, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const signalRepository = connection.getRepository(SignalEntity)
+        const guardRepository = connection.getRepository(GuardEntity)
+        const signalGuardRepository = connection.getRepository(SignalGuard)
+        const metadataRepository = connection.getRepository(Metadata)
 
         const signalEntity = await signalRepository.findOne({
             where: {
@@ -290,50 +346,59 @@ export class SignalService implements ISignalService {
                 name: signal.name
             }
         })
-        const methodId = await this.methodService.getMethodId(method)
 
         if (!signalEntity) {
             throw new SignalDoesNotExist
         }
 
-        if (!methodId) {
-            throw new SignalMethodNotDefined
+        const guardEntity = await guardRepository.findOne({
+            where: {
+                namespace: guard.namespace,
+                name: guard.name
+            }
+        })
+
+        if (!guardEntity) {
+            throw new GuardDoesNotExists
         }
 
-        await mutationQuery(nestedTransaction, () => {
-            return connection
-                .createQueryBuilder()
-                .relation(SignalEntity, 'guards')
-                .of(signalEntity)
-                .remove(methodId)
+        const signalGuardEntity = await signalGuardRepository.findOne({
+            where: {
+                signalId: signalEntity.id,
+                guardId: guardEntity.id
+            }
         })
 
         /**
-         * Попытаться удалить метод и игнорировать ошибку, если метод
-         * используется
+         * Если связи с сигналом изначально не было, то выйти из функции
          */
-        try {
-            await this.methodService.removeMethod(method, nestedTransaction)
-        } catch(error) {
-            block: {
-                if (error instanceof MethodUsedError) {
-                    break block
-                }
-
-                throw error
-            }
+        if (!signalGuardEntity) {
+            return
         }
+
+        await transaction(nestedTransaction, connection, async () => {
+            await mutationQuery(true, () => {
+                return signalGuardRepository.remove(signalGuardEntity)
+            })
+
+            await mutationQuery(true, () => {
+                return metadataRepository.remove(signalGuardEntity.metadata)
+            })
+        })
 
         const eventContext: EventContext = {
             type: SignalEventMutation.RemoveGuard,
-            signalId: signalEntity.id
+            signalId: signalEntity.id,
+            guardId: guardEntity.id
         }
         this.eventEmitter.emit(SignalEventMutationName, eventContext)
     }
 
-    public async addFilter(signal: Signal, method: Method, nestedTransaction = false): Promise<void> {
+    public async addFilter(signal: Signal, filter: Filter, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const signalRepository = connection.getRepository(SignalEntity)
+        const filterRepository = connection.getRepository(FilterEntity)
+        const signalFilterRepository = connection.getRepository(SignalFilter)
 
         const signalEntity = await signalRepository.findOne({
             where: {
@@ -341,26 +406,41 @@ export class SignalService implements ISignalService {
                 name: signal.name
             }
         })
-        const methodId = await this.methodService.getMethodId(method)
 
         if (!signalEntity) {
             throw new SignalDoesNotExist
         }
 
-        if (!methodId) {
-            throw new SignalMethodNotDefined
+        const filterEntity = await filterRepository.findOne({
+            where: {
+                namespace: filter.namespace,
+                name: filter.name
+            }
+        })
+
+        if (!filterEntity) {
+            throw new FilterDoesNotExists
         }
 
         try {
-            await mutationQuery(nestedTransaction, () => {
-                return connection
-                    .createQueryBuilder()
-                    .relation(SignalEntity, 'filters')
-                    .of(signalEntity)
-                    .add(methodId)
+            /**
+             * Транзакция из-за каскадных запросов
+             */
+            await transaction(nestedTransaction, connection, async () => {
+                await mutationQuery(true, () => {
+                    return signalFilterRepository.save({
+                        signalId: signalEntity.id,
+                        filterId: filterEntity.id,
+                        metadata: {
+                            metadata: {
+                                custom: null
+                            }
+                        }
+                    })
+                })
             })
         } catch(error) {
-            if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_PRIMARYKEY)) {
+            if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_UNIQUE)) {
                 throw new FilterAlreadyBound
             }
 
@@ -369,14 +449,18 @@ export class SignalService implements ISignalService {
 
         const eventContext: EventContext = {
             type: SignalEventMutation.AddFilter,
-            signalId: signalEntity.id
+            signalId: signalEntity.id,
+            filterId: filterEntity.id
         }
         this.eventEmitter.emit(SignalEventMutationName, eventContext)
     }
 
-    public async removeFilter(signal: Signal, method: Method, nestedTransaction = false): Promise<void> {
+    public async removeFilter(signal: Signal, filter: Filter, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const signalRepository = connection.getRepository(SignalEntity)
+        const filterRepository = connection.getRepository(FilterEntity)
+        const signalFilterRepository = connection.getRepository(SignalFilter)
+        const metadataRepository = connection.getRepository(Metadata)
 
         const signalEntity = await signalRepository.findOne({
             where: {
@@ -384,43 +468,50 @@ export class SignalService implements ISignalService {
                 name: signal.name
             }
         })
-        const methodId = await this.methodService.getMethodId(method)
 
         if (!signalEntity) {
             throw new SignalDoesNotExist
         }
 
-        if (!methodId) {
-            throw new SignalMethodNotDefined
+        const filterEntity = await filterRepository.findOne({
+            where: {
+                namespace: filter.namespace,
+                name: filter.name
+            }
+        })
+
+        if (!filterEntity) {
+            throw new FilterDoesNotExists
         }
 
-        await mutationQuery(nestedTransaction, () => {
-            return connection
-                .createQueryBuilder()
-                .relation(SignalEntity, 'filters')
-                .of(signalEntity)
-                .remove(methodId)
+        const signalFilterEntity = await signalFilterRepository.findOne({
+            where: {
+                signalId: signalEntity.id,
+                filterId: filterEntity.id
+            }
         })
 
         /**
-         * Попытаться удалить метод и игнорировать ошибку, если метод
-         * используется
+         * Если связи с сигналом изначально не было, то выйти из функции
          */
-        try {
-            await this.methodService.removeMethod(method, nestedTransaction)
-        } catch(error) {
-            block: {
-                if (error instanceof MethodUsedError) {
-                    break block
-                }
-
-                throw error
-            }
+        if (!signalFilterEntity) {
+            return
         }
+
+        await transaction(nestedTransaction, connection, async () => {
+            await mutationQuery(true, () => {
+                return signalFilterRepository.remove(signalFilterEntity)
+            })
+
+            await mutationQuery(true, () => {
+                return metadataRepository.remove(signalFilterEntity.metadata)
+            })
+        })
 
         const eventContext: EventContext = {
             type: SignalEventMutation.RemoveFilter,
-            signalId: signalEntity.id
+            signalId: signalEntity.id,
+            filterId: filterEntity.id
         }
         this.eventEmitter.emit(SignalEventMutationName, eventContext)
     }
@@ -545,14 +636,14 @@ export class SignalService implements ISignalService {
         const metadataRepository = connection.getRepository(Metadata)
 
         /**
-         * Получить экземпляр сигнала со всеми прикреплёнными к нему методами
+         * Получить экземпляр сигнала со всеми прикреплёнными к нему ресурсами
          */
         const signalEntity = await signalRepository.findOne({
             where: {
                 namespace: signal.namespace,
                 name: signal.name
             },
-            relations: ['validators', 'guards', 'filters']
+            relations: ['signalValidators', 'signalGuards', 'signalFilters']
         })
 
         /**
@@ -568,51 +659,42 @@ export class SignalService implements ISignalService {
         const signalId = signalEntity.id
 
         /**
-         * Удаление сигнала и попытка полностью удалить все привязанные к нему методы и
-         * метаданные
+         * Удаление сигнала вместе со всеми его связями
          */
         await transaction(nestedTransaction, connection, async () => {
-            await transaction(true, connection, async () => {
-                try {
-                    await mutationQuery(true, () => {
-                        return signalRepository.remove(signalEntity)
-                    })
-                } catch(error) {
-                    if (isErrorCode(error, [
-                        SqliteErrorCode.SQLITE_CONSTRAINT_FOREIGNKEY,
-                        SqliteErrorCode.SQLITE_CONSTRAINT_TRIGGER
-                    ])) {
-                        throw new SignalUsedError
-                    }
-                }
-
-                await mutationQuery(true, () => {
-                    return metadataRepository.remove(signalEntity.metadata)
+            /**
+             * Получить список идентификаторов всех сущностей метаданных, которые нужно
+             * удалить после удаления сигнала. Удалить раньше нельзя из-за RESTRICT ограничения
+             */
+            const metadataIds = [
+                signalEntity.metadata.id,
+                ...signalEntity.signalFilters.map(signalFilterEntity => {
+                    return signalFilterEntity.metadata.id
+                }),
+                ...signalEntity.signalGuards.map(signalGuardEntity => {
+                    return signalGuardEntity.metadata.id
+                }),
+                ...signalEntity.signalValidators.map(signalValidatorEntity => {
+                    return signalValidatorEntity.metadata.id
                 })
-            })
+            ]
 
-            await this.methodService.removeMethods(
-                ([] as Method[]).concat(signalEntity.validators.map(methodEntity => {
-                    return {
-                        type: methodEntity.type,
-                        namespace: methodEntity.namespace,
-                        name: methodEntity.name
-                    }
-                })).concat(signalEntity.guards.map(methodEntity => {
-                    return {
-                        type: methodEntity.type,
-                        namespace: methodEntity.namespace,
-                        name: methodEntity.name
-                    }
-                })).concat(signalEntity.filters.map(methodEntity => {
-                    return {
-                        type: methodEntity.type,
-                        namespace: methodEntity.namespace,
-                        name: methodEntity.name
-                    }
-                })),
-                true
-            )
+            try {
+                await mutationQuery(true, () => {
+                    return signalRepository.remove(signalEntity)
+                })
+            } catch(error) {
+                if (isErrorCode(error, [
+                    SqliteErrorCode.SQLITE_CONSTRAINT_FOREIGNKEY,
+                    SqliteErrorCode.SQLITE_CONSTRAINT_TRIGGER
+                ])) {
+                    throw new SignalUsedError
+                }
+            }
+
+            await mutationQuery(true, () => {
+                return metadataRepository.delete(metadataIds)
+            })
         })
 
         const eventContext: EventContext = {
