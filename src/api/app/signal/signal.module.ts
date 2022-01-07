@@ -2,7 +2,7 @@ import { AsyncContainerModule, interfaces } from 'inversify'
 import { ISignalService } from './signal.interface'
 import { SignalService } from './signal.service'
 import { TYPEORM_SYMBOL } from '../../../core/typeorm/typeorm.types'
-import { SIGNAL_SYMBOL } from './signal.type'
+import { SIGNAL_SYMBOL } from './signal.types'
 import { 
     Signal,
     SignalValidatorMethod,
@@ -22,6 +22,10 @@ import { InitRunner, INIT_SYMBOL } from '../../../core/init/init.types'
 import { InitGraphCache } from './graph-cache/graph-cache.init'
 import { IGuardService } from './guard/guard.interface'
 import { GuardService } from './guard/guard.service'
+import { IFilterService } from './filter/filter.interface'
+import { FilterService } from './filter/filter.service'
+import { IValidatorService } from './validator/validator.interface'
+import { ValidatorService } from './validator/validator.service'
 
 export const SignalModule = new AsyncContainerModule(async (bind: interfaces.Bind) => {
     bind<Function>(TYPEORM_SYMBOL.TypeOrmAppEntity)
@@ -78,5 +82,13 @@ export const SignalModule = new AsyncContainerModule(async (bind: interfaces.Bin
 
     bind<IGuardService>(SIGNAL_SYMBOL.GuardService)
         .to(GuardService)
+        .inSingletonScope()
+
+    bind<IFilterService>(SIGNAL_SYMBOL.FilterService)
+        .to(FilterService)
+        .inSingletonScope()
+
+    bind<IValidatorService>(SIGNAL_SYMBOL.ValidatorService)
+        .to(ValidatorService)
         .inSingletonScope()
 })

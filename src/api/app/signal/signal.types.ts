@@ -14,7 +14,9 @@ export const SIGNAL_SYMBOL = {
     GuardEntity: Symbol('GuardEntity'),
     GuardService: Symbol('GuardService'),
     FilterEntity: Symbol('FilterEntity'),
-    ValidatorEntity: Symbol('ValidatorEntity')
+    FilterService: Symbol('FilterService'),
+    ValidatorEntity: Symbol('ValidatorEntity'),
+    ValidatorService: Symbol('ValidatorService')
 }
 
 export interface Signal {

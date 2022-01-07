@@ -14,7 +14,7 @@ import {
     OneToOne
 } from 'typeorm'
 import { Method } from './method.entity'
-import { SignalMetadata } from '../signal/signal.type'
+import { SignalMetadata } from '../signal/signal.types'
 import { Metadata } from './metadata.entity'
 import { GuardMetadata } from '../signal/guard/guard.types'
 import { FilterMetadata } from '../signal/filter/filter.types'

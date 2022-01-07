@@ -1,5 +1,5 @@
 import { getContainer } from '../../../inversify.config'
-import { SIGNAL_SYMBOL, SignalEventMutation, EventContext } from './signal.type'
+import { SIGNAL_SYMBOL, SignalEventMutation, EventContext } from './signal.types'
 import { ISignalService } from './signal.interface'
 import { METHOD_SYMBOL } from '../method/method.types'
 import { IMethodService } from '../method/method.interface'

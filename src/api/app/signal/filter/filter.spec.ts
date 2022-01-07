@@ -1,19 +1,19 @@
 import { getContainer } from '../../../../inversify.config'
-import { IGuardService } from './guard.interface'
+import { IFilterService } from './filter.interface'
 import {
-    GuardMethodNotDefined,
-    GuardAlreadyExists,
-    GuardDoesNotExists
-} from './guard.errors'
+    FilterMethodNotDefined,
+    FilterAlreadyExists,
+    FilterDoesNotExists
+} from './filter.errors'
 import { SIGNAL_SYMBOL } from '../signal.types'
-import { GuardEventMutation } from './guard.types'
+import { FilterEventMutation } from './filter.types'
 import { CreatorType, CREATOR_SYMBOL, ResourceType } from '../../creator/creator.types'
 import { ICreatorService } from '../../creator/creator.interface'
 import { Method } from '../../entities/method.entity'
 import { Connection } from 'typeorm'
 import { TYPEORM_SYMBOL } from '../../../../core/typeorm/typeorm.types'
 import { Metadata } from '../../entities/metadata.entity'
-import { Guard } from '../../entities/signal.entity'
+import { Filter } from '../../entities/signal.entity'
 import { type } from '../../../../utils/type'
 import { RevisionNumberError } from '../../metadata/metadata.errors'
 
@@ -27,23 +27,23 @@ afterAll(async () => {
     container.restore()
 })
 
-describe('GuardService в SignalModule', () => {
+describe('FilterService в SignalModule', () => {
 
     it(`
-        Попытка создать ресурс охранника с несуществующим методом приводит к исключению
+        Попытка создать ресурс фильтра с несуществующим методом приводит к исключению
     `, async () => {
         const container = await getContainer()
         container.snapshot()
 
-        const guardService = container
-            .get<IGuardService>(SIGNAL_SYMBOL.GuardService)
+        const filterService = container
+            .get<IFilterService>(SIGNAL_SYMBOL.FilterService)
 
         const eventMutationFn = jest.fn()
-        guardService.onMutation(eventMutationFn)
+        filterService.onMutation(eventMutationFn)
 
-        const guard = {
-            namespace: 'guard1',
-            name: 'guard1'
+        const filter = {
+            namespace: 'filter1',
+            name: 'filter1'
         }
 
         const method = {
@@ -52,13 +52,13 @@ describe('GuardService в SignalModule', () => {
             name: 'method1'
         }
 
-        await expect(guardService.create({
+        await expect(filterService.create({
             creator: {
                 type: CreatorType.System
             },
             method: method,
-            ...guard
-        })).rejects.toBeInstanceOf(GuardMethodNotDefined)
+            ...filter
+        })).rejects.toBeInstanceOf(FilterMethodNotDefined)
 
         expect(eventMutationFn).toBeCalledTimes(0)
 
@@ -66,14 +66,14 @@ describe('GuardService в SignalModule', () => {
     })
 
     it(`
-        Ресурс охранника корректно создаётся вместе с метаданными. Попытка создать ресурс
-        охранника, который уже существует приводит к исключению
+        Ресурс фильтра корректно создаётся вместе с метаданными. Попытка создать ресурс
+        фильтра, который уже существует приводит к исключению
     `, async () => {
         const container = await getContainer()
         container.snapshot()
 
-        const guardService = container
-            .get<IGuardService>(SIGNAL_SYMBOL.GuardService)
+        const filterService = container
+            .get<IFilterService>(SIGNAL_SYMBOL.FilterService)
         const creatorService = container
             .get<ICreatorService>(CREATOR_SYMBOL.CreatorService)
         const connection = await container
@@ -82,11 +82,11 @@ describe('GuardService в SignalModule', () => {
         const metadataRepository = connection.getRepository(Metadata)
 
         const eventMutationFn = jest.fn()
-        guardService.onMutation(eventMutationFn)
+        filterService.onMutation(eventMutationFn)
 
-        const guard = {
-            namespace: 'guard1',
-            name: 'guard1'
+        const filter = {
+            namespace: 'filter1',
+            name: 'filter1'
         }
 
         const method = {
@@ -97,25 +97,25 @@ describe('GuardService в SignalModule', () => {
         await methodRepository.save(method)
 
         await expect(metadataRepository.count()).resolves.toBe(0)
-        await expect(guardService.isExists(guard)).resolves.toBe(false)
-        await expect(guardService.create({
-            ...guard,
+        await expect(filterService.isExists(filter)).resolves.toBe(false)
+        await expect(filterService.create({
+            ...filter,
             creator: {
                 type: CreatorType.System
             },
             method: method
         })).resolves.toBeUndefined()
-        await expect(guardService.create({
-            ...guard,
+        await expect(filterService.create({
+            ...filter,
             creator: {
                 type: CreatorType.System
             },
             method: method
-        })).rejects.toBeInstanceOf(GuardAlreadyExists)
-        await expect(guardService.isExists(guard)).resolves.toBe(true)
+        })).rejects.toBeInstanceOf(FilterAlreadyExists)
+        await expect(filterService.isExists(filter)).resolves.toBe(true)
         await expect(metadataRepository.count()).resolves.toBe(1)
         await expect(creatorService.isResourceCreator({
-            type: ResourceType.Guard,
+            type: ResourceType.Filter,
             id: 1
         }, {
             type: CreatorType.System
@@ -123,36 +123,36 @@ describe('GuardService в SignalModule', () => {
 
         expect(eventMutationFn).toBeCalledTimes(1)
         expect(eventMutationFn).nthCalledWith(1, {
-            type: GuardEventMutation.Create,
-            guardId: 1
+            type: FilterEventMutation.Create,
+            filterId: 1
         })
 
         container.restore()
     })
 
     it(`
-        Попытка привязать метаданные к несуществующему охраннику приводит к исключению
+        Попытка привязать метаданные к несуществующему фильтру приводит к исключению
     `, async () => {
         const container = await getContainer()
         container.snapshot()
 
-        const guardService = container
-            .get<IGuardService>(SIGNAL_SYMBOL.GuardService)
+        const filterService = container
+            .get<IFilterService>(SIGNAL_SYMBOL.FilterService)
 
         const eventMutationFn = jest.fn()
-        guardService.onMutation(eventMutationFn)
+        filterService.onMutation(eventMutationFn)
 
-        const guard = {
-            namespace: 'guard1',
-            name: 'guard1'
+        const filter = {
+            namespace: 'filter1',
+            name: 'filter1'
         }
 
-        await expect(guardService.setMetadata(guard, {
+        await expect(filterService.setMetadata(filter, {
             metadata: {
                 custom: null
             },
             revisionNumber: 0
-        })).rejects.toBeInstanceOf(GuardDoesNotExists)
+        })).rejects.toBeInstanceOf(FilterDoesNotExists)
 
         expect(eventMutationFn).toBeCalledTimes(0)
 
@@ -160,26 +160,26 @@ describe('GuardService в SignalModule', () => {
     })
 
     it(`
-        Метаданные корректно изменяются в охраннике и корректно считываются. Попытка установить
-        метаданные некорректно редакции приводит к исключению
+        Метаданные корректно изменяются в фильтре и корректно считываются. Попытка установить
+        метаданные некорректной редакции приводит к исключению
     `, async () => {
         const container = await getContainer()
         container.snapshot()
 
-        const guardService = container
-            .get<IGuardService>(SIGNAL_SYMBOL.GuardService)
+        const filterService = container
+            .get<IFilterService>(SIGNAL_SYMBOL.FilterService)
         const connection = await container
             .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
         const methodRepository = connection.getRepository(Method)
         const metadataRepository = connection.getRepository(Metadata)
-        const guardRepository = connection.getRepository(Guard)
+        const filterRepository = connection.getRepository(Filter)
 
         const eventMutationFn = jest.fn()
-        guardService.onMutation(eventMutationFn)
+        filterService.onMutation(eventMutationFn)
 
-        const guard = {
-            namespace: 'guard1',
-            name: 'guard1'
+        const filter = {
+            namespace: 'filter1',
+            name: 'filter1'
         }
         const method = {
             namespace: 'method1',
@@ -188,8 +188,8 @@ describe('GuardService в SignalModule', () => {
         }
 
         await methodRepository.save(method)
-        await guardService.create({
-            ...guard,
+        await filterService.create({
+            ...filter,
             creator: {
                 type: CreatorType.System
             },
@@ -197,17 +197,17 @@ describe('GuardService в SignalModule', () => {
         })
 
         await expect(metadataRepository.count()).resolves.toBe(1)
-        await expect(guardRepository.findOne({
-            where: guard
+        await expect(filterRepository.findOne({
+            where: filter
         }).then(entity => {
-            return type<Guard>(entity).metadata
+            return type<Filter>(entity).metadata
         })).resolves.toMatchObject({
             metadata: {
                 custom: null
             },
             revisionNumber: 0
         })
-        await expect(guardService.setMetadata(guard, {
+        await expect(filterService.setMetadata(filter, {
             metadata: {
                 custom: {
                     test: 'test'
@@ -215,10 +215,10 @@ describe('GuardService в SignalModule', () => {
             },
             revisionNumber: 0
         })).resolves.toBeUndefined()
-        await expect(guardRepository.findOne({
-            where: guard
+        await expect(filterRepository.findOne({
+            where: filter
         }).then(entity => {
-            return type<Guard>(entity).metadata
+            return type<Filter>(entity).metadata
         })).resolves.toMatchObject({
             metadata: {
                 custom: {
@@ -227,16 +227,16 @@ describe('GuardService в SignalModule', () => {
             },
             revisionNumber: 1
         })
-        await expect(guardService.setMetadata(guard, {
+        await expect(filterService.setMetadata(filter, {
             metadata: {
                 custom: null
             },
             revisionNumber: 0
         })).rejects.toBeInstanceOf(RevisionNumberError)
-        await expect(guardRepository.findOne({
-            where: guard
+        await expect(filterRepository.findOne({
+            where: filter
         }).then(entity => {
-            return type<Guard>(entity).metadata
+            return type<Filter>(entity).metadata
         })).resolves.toMatchObject({
             metadata: {
                 custom: {
@@ -249,34 +249,34 @@ describe('GuardService в SignalModule', () => {
 
         expect(eventMutationFn).toBeCalledTimes(2)
         expect(eventMutationFn).nthCalledWith(2, expect.objectContaining({
-            type: GuardEventMutation.SetMetadata,
-            guardId: 1
+            type: FilterEventMutation.SetMetadata,
+            filterId: 1
         }))
 
         container.restore()
     })
 
     it(`
-        Ресурс охранника корректно удаляется вместе с метаданными. При удалении будет произведена попытка
-        удалить и метод. Попытка удалить несуществующий охранник ни к чему не приведёт
+        Ресурс фильтра корректно удаляется вместе с метаданными. При удалении будет произведена попытка
+        удалить и метод. Попытка удалить несуществующий фильтр ни к чему не приведёт
     `, async () => {
         const container = await getContainer()
         container.snapshot()
 
-        const guardService = container
-            .get<IGuardService>(SIGNAL_SYMBOL.GuardService)
+        const filterService = container
+            .get<IFilterService>(SIGNAL_SYMBOL.FilterService)
         const connection = await container
             .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
         const methodRepository = connection.getRepository(Method)
         const metadataRepository = connection.getRepository(Metadata)
-        const guardRepository = connection.getRepository(Guard)
+        const filterRepository = connection.getRepository(Filter)
 
         const eventMutationFn = jest.fn()
-        guardService.onMutation(eventMutationFn)
+        filterService.onMutation(eventMutationFn)
 
-        const guard = {
-            namespace: 'guard1',
-            name: 'guard1'
+        const filter = {
+            namespace: 'filter1',
+            name: 'filter1'
         }
         const method = {
             namespace: 'method1',
@@ -285,8 +285,8 @@ describe('GuardService в SignalModule', () => {
         }
 
         await methodRepository.save(method)
-        await guardService.create({
-            ...guard,
+        await filterService.create({
+            ...filter,
             creator: {
                 type: CreatorType.System
             },
@@ -295,21 +295,21 @@ describe('GuardService в SignalModule', () => {
 
         await expect(metadataRepository.count()).resolves.toBe(1)
         await expect(methodRepository.count()).resolves.toBe(1)
-        await expect(guardRepository.count()).resolves.toBe(1)
-        await expect(guardService.isExists(guard)).resolves.toBe(true)
+        await expect(filterRepository.count()).resolves.toBe(1)
+        await expect(filterService.isExists(filter)).resolves.toBe(true)
 
-        await expect(guardService.remove(guard)).resolves.toBeUndefined()
-        await expect(guardService.remove(guard)).resolves.toBeUndefined()
+        await expect(filterService.remove(filter)).resolves.toBeUndefined()
+        await expect(filterService.remove(filter)).resolves.toBeUndefined()
 
         await expect(metadataRepository.count()).resolves.toBe(0)
         await expect(methodRepository.count()).resolves.toBe(0)
-        await expect(guardRepository.count()).resolves.toBe(0)
-        await expect(guardService.isExists(guard)).resolves.toBe(false)
+        await expect(filterRepository.count()).resolves.toBe(0)
+        await expect(filterService.isExists(filter)).resolves.toBe(false)
 
         expect(eventMutationFn).toBeCalledTimes(2)
         expect(eventMutationFn).nthCalledWith(2, expect.objectContaining({
-            type: GuardEventMutation.Remove,
-            guardId: 1
+            type: FilterEventMutation.Remove,
+            filterId: 1
         }))
 
         container.restore()

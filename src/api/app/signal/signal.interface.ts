@@ -4,7 +4,7 @@ import {
     SignalMetadata,
     CreateSignal,
     EventContext
-} from './signal.type'
+} from './signal.types'
 import { SnapshotMetadata } from '../metadata/metadata.types'
 
 export interface ISignalService {

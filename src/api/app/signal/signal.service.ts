@@ -10,7 +10,7 @@ import {
     SignalEventMutation,
     SignalEventMutationName,
     EventContext
-} from './signal.type'
+} from './signal.types'
 import { 
     SignalDoesNotExist,
     SignalMethodNotDefined,

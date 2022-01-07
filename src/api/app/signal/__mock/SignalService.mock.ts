@@ -5,7 +5,7 @@ import {
     Signal, 
     CreateSignal,
     EventContext
-} from '../signal.type'
+} from '../signal.types'
 
 export function getSignalService(mock: ISignalService): new() => ISignalService {
     @injectable()

@@ -1,7 +1,7 @@
 import { injectable, inject } from 'inversify'
 import { InitRunner } from '../../../../core/init/init.types'
 import { IGraphCacheService } from './graph-cache.interface'
-import { SIGNAL_SYMBOL } from '../signal.type'
+import { SIGNAL_SYMBOL } from '../signal.types'
 import { ISignalService } from '../signal.interface'
 import { SignalUpdateAndSyncError } from './graph-cache.error'
 import { getAppLogger } from '../../../../utils/logger'

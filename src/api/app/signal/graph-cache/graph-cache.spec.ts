@@ -1,6 +1,6 @@
 import { getContainer } from '../../../../inversify.config'
 import { IGraphCacheService } from './graph-cache.interface'
-import { SIGNAL_SYMBOL, Signal, SignalEventMutation } from '../signal.type'
+import { SIGNAL_SYMBOL, Signal, SignalEventMutation } from '../signal.types'
 import { ISignalService } from '../signal.interface'
 import { CREATOR_SYMBOL, CreatorType } from '../../creator/creator.types'
 import { getCreatorService } from '../../creator/__mock/getCreatorService.mock'

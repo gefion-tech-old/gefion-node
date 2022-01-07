@@ -1,7 +1,7 @@
 import { injectable, inject } from 'inversify'
 import { IRPCMethod } from '../../../../../core/rpc/rpc.types'
 import { RPCMethodGraphCache } from '../graph-cache.types'
-import { SIGNAL_SYMBOL } from '../../signal.type'
+import { SIGNAL_SYMBOL } from '../../signal.types'
 import { IGraphCacheService } from '../graph-cache.interface'
 
 @injectable()
