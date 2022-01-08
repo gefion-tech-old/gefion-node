@@ -156,11 +156,21 @@ export interface GuardEventContext {
     guardId: number
 }
 
+export interface GraphSignalEventContext {
+    type: (
+        SignalEventMutation.Connect
+        | SignalEventMutation.Unconnect
+    ),
+    signalId: number,
+    intoSignalId: number
+}
+
 export interface SignalEventContext {
     type: Exclude<SignalEventMutation, (
         GuardEventContext['type'] 
         | FilterEventContext['type']
         | ValidatorEventContext['type']
+        | GraphSignalEventContext['type']
     )>
     signalId: number
 }
@@ -170,4 +180,5 @@ export type EventContext = (
     | GuardEventContext 
     | FilterEventContext 
     | ValidatorEventContext
+    | GraphSignalEventContext
 )

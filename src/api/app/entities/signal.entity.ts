@@ -180,10 +180,14 @@ export class SignalValidator {
     @PrimaryGeneratedColumn()
     id: number
 
-    @PrimaryColumn()
+    @Column({
+        nullable: false
+    })
     signalId: number
     
-    @PrimaryColumn()
+    @Column({
+        nullable: false
+    })
     validatorId: number
 
     @ManyToOne(() => Signal, {
@@ -217,10 +221,14 @@ export class SignalGuard {
     @PrimaryGeneratedColumn()
     id: number
 
-    @PrimaryColumn()
+    @Column({
+        nullable: false
+    })
     signalId: number
 
-    @PrimaryColumn()
+    @Column({
+        nullable: false
+    })
     guardId: number
 
     @ManyToOne(() => Signal, {
@@ -254,10 +262,14 @@ export class SignalFilter {
     @PrimaryGeneratedColumn()
     id: number
 
-    @PrimaryColumn()
+    @Column({
+        nullable: false
+    })
     signalId: number
 
-    @PrimaryColumn()
+    @Column({
+        nullable: false
+    })
     filterId: number
 
     @ManyToOne(() => Signal, {

@@ -562,18 +562,20 @@ export class SignalService implements ISignalService {
         try {
             await graphRepository.connect(outSignalEntity, intoSignalEntity, nestedTransaction)
         } catch(error) {
-            block: {
-                if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_PRIMARYKEY)) {
-                    break block
-                }
-
-                throw error
+            /**
+             * Завершить выполнение функции, если связь уже существует
+             */
+            if (isErrorCode(error, SqliteErrorCode.SQLITE_CONSTRAINT_PRIMARYKEY)) {
+                return
             }
+
+            throw error
         }
 
         const eventContext: EventContext = {
             type: SignalEventMutation.Connect,
-            signalId: outSignalEntity.id
+            signalId: outSignalEntity.id,
+            intoSignalId: intoSignalEntity.id
         }
         this.eventEmitter.emit(SignalEventMutationName, eventContext)
     }
@@ -619,13 +621,17 @@ export class SignalService implements ISignalService {
         }
 
         /**
-         * Отвязать выходной сигнал от указанного входного сигнала
+         * Отвязать выходной сигнал от указанного входного сигнала. Если они изначально не были
+         * соединены, то выйти из функции
          */
-        await graphRepository.unconnect(outSignalEntity, intoSignalEntity, nestedTransaction)
+        if (!await graphRepository.unconnect(outSignalEntity, intoSignalEntity, nestedTransaction)) {
+            return
+        }
 
         const eventContext: EventContext = {
             type: SignalEventMutation.Unconnect,
-            signalId: outSignalEntity.id
+            signalId: outSignalEntity.id,
+            intoSignalId: intoSignalEntity.id
         }
         this.eventEmitter.emit(SignalEventMutationName, eventContext)
     }
@@ -704,7 +710,7 @@ export class SignalService implements ISignalService {
         this.eventEmitter.emit(SignalEventMutationName, eventContext)
     }
 
-    public onSignalMutation(handler: (context: EventContext) => void): void {
+    public onMutation(handler: (context: EventContext) => void): void {
         this.eventEmitter.on(SignalEventMutationName, handler)
     }
 

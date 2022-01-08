@@ -63,8 +63,8 @@ export function getSignalService(mock: ISignalService): new() => ISignalService 
             return mock.remove(signal, nestedTransaction)
         }
     
-        onSignalMutation(handler: (context: EventContext) => void): any {
-            return mock.onSignalMutation(handler)
+        onMutation(handler: (context: EventContext) => void): any {
+            return mock.onMutation(handler)
         }
 
     }

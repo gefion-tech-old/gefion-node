@@ -30,15 +30,21 @@ export class GraphRepository extends AbstractRepository<Signal> {
         }
     }
 
-    public async unconnect(outSignal: Signal, inSignal: Signal, nestedTransaction = false): Promise<void> {
+    /**
+     * Отсоединяет друг от друга указанные сигналы и возвращает флаг, указывающий на то, были ли
+     * изначально эти сигналы соединены
+     */
+    public async unconnect(outSignal: Signal, inSignal: Signal, nestedTransaction = false): Promise<boolean> {
         const signalGraphRepository = this.manager.getRepository(SignalGraph)
 
-        await mutationQuery(nestedTransaction, () => {
-            return signalGraphRepository.remove({
-                outSignal: outSignal,
-                inSignal: inSignal
-            } as any)
+        const deleteResult = await mutationQuery(nestedTransaction, () => {
+            return signalGraphRepository.delete({
+                outSignalId: outSignal.id,
+                inSignalId: inSignal.id
+            })
         })
+
+        return deleteResult.affected === 0 ? false : true
     }
 
 }

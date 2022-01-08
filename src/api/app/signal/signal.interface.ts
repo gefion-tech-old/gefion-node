@@ -84,6 +84,6 @@ export interface ISignalService {
     /**
      * Поставить обработчик для прослушивания события мутации сигнала
      */
-    onSignalMutation(handler: (context: EventContext) => void): void
+    onMutation(handler: (context: EventContext) => void): void
 
 }

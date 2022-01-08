@@ -1,11 +1,8 @@
 import { getContainer } from '../../../inversify.config'
-import { SIGNAL_SYMBOL, SignalEventMutation, EventContext } from './signal.types'
+import { SIGNAL_SYMBOL, SignalEventMutation } from './signal.types'
 import { ISignalService } from './signal.interface'
-import { METHOD_SYMBOL } from '../method/method.types'
-import { IMethodService } from '../method/method.interface'
 import {
     SignalDoesNotExist,
-    SignalMethodNotDefined,
     ValidatorAlreadyBound,
     GuardAlreadyBound,
     FilterAlreadyBound,
@@ -16,11 +13,18 @@ import {
     SignalAlreadyExists
 } from './signal.errors'
 import { Connection, Entity, PrimaryGeneratedColumn, OneToOne, JoinColumn } from 'typeorm'
-import { Signal, SignalGraph } from '../entities/signal.entity'
+import { 
+    Signal, 
+    SignalGraph,
+    Guard,
+    Filter,
+    Validator,
+    SignalValidator,
+    SignalFilter,
+    SignalGuard
+} from '../entities/signal.entity'
 import { Method } from '../entities/method.entity'
 import { TYPEORM_SYMBOL } from '../../../core/typeorm/typeorm.types'
-import { VM_SYMBOL } from '../../../core/vm/vm.types'
-import { getVMService } from '../../../core/vm/__mock/VMService.mock'
 import { CreatorType, ResourceType } from '../creator/creator.types'
 import { ICreatorService } from '../creator/creator.interface'
 import { CREATOR_SYMBOL } from '../creator/creator.types'
@@ -28,6 +32,9 @@ import { getCreatorService } from '../creator/__mock/getCreatorService.mock'
 import { addTestEntity } from '../../../core/typeorm/utils/test-entities'
 import { RevisionNumberError } from '../metadata/metadata.errors'
 import { Metadata } from '../entities/metadata.entity'
+import { FilterDoesNotExists } from './filter/filter.errors'
+import { GuardDoesNotExists } from './guard/guard.errors'
+import { ValidatorDoesNotExists } from './validator/validator.errors'
 
 /**
  * Добавление тестовой сущности
@@ -96,7 +103,7 @@ describe('SignalService в SignalModule', () => {
         })()).resolves.toBeUndefined()            
 
         const signalMutationFn = jest.fn()
-        expect(signalService.onSignalMutation(signalMutationFn)).toBeUndefined()
+        expect(signalService.onMutation(signalMutationFn)).toBeUndefined()
 
         await expect(signalService.create({
             signal: signal1,
@@ -112,13 +119,6 @@ describe('SignalService в SignalModule', () => {
                 type: CreatorType.System
             }
         })).rejects.toBeInstanceOf(SignalAlreadyExists)
-        
-        const eventContext: EventContext = {
-            type: SignalEventMutation.Create,
-            signalId: await signalService.getSignalId(signal1) as number
-        }
-        expect(signalMutationFn).toHaveBeenNthCalledWith(1, expect.objectContaining(eventContext))
-        expect(signalMutationFn).toBeCalledTimes(1)
 
         await expect(signalService.isExists(signal1))
             .resolves
@@ -153,6 +153,12 @@ describe('SignalService в SignalModule', () => {
             type: CreatorType.System
         })).resolves.toBe(true)
 
+        expect(signalMutationFn).toBeCalledTimes(1)
+        expect(signalMutationFn).toHaveBeenNthCalledWith(1, expect.objectContaining({
+            type: SignalEventMutation.Create,
+            signalId: 1
+        }))
+
         container.restore()
     })
 
@@ -180,7 +186,7 @@ describe('SignalService в SignalModule', () => {
         }
 
         const signalMutationFn = jest.fn()
-        expect(signalService.onSignalMutation(signalMutationFn)).toBeUndefined()
+        expect(signalService.onMutation(signalMutationFn)).toBeUndefined()
 
         await signalService.create({
             signal: signal1,
@@ -228,13 +234,12 @@ describe('SignalService в SignalModule', () => {
             },
             revisionNumber: 2
         })).rejects.toBeInstanceOf(RevisionNumberError)
-
-        const eventContext: EventContext = {
-            type: SignalEventMutation.SetCustomMetadata,
-            signalId: await signalService.getSignalId(signal1) as number
-        }
-        expect(signalMutationFn).toHaveBeenNthCalledWith(2, expect.objectContaining(eventContext))
+        
         expect(signalMutationFn).toBeCalledTimes(2)
+        expect(signalMutationFn).toHaveBeenNthCalledWith(2, expect.objectContaining({
+            type: SignalEventMutation.SetCustomMetadata,
+            signalId: 1
+        }))
 
         container.restore()
     })
@@ -248,6 +253,9 @@ describe('SignalService в SignalModule', () => {
 
         const signalService = container
             .get<ISignalService>(SIGNAL_SYMBOL.SignalService)
+
+        const signalMutationFn = jest.fn()
+        expect(signalService.onMutation(signalMutationFn)).toBeUndefined()
 
         const customMetadata = {
             value: true
@@ -264,6 +272,8 @@ describe('SignalService в SignalModule', () => {
             revisionNumber: 0
         })).rejects.toBeInstanceOf(SignalDoesNotExist)
 
+        expect(signalMutationFn).toBeCalledTimes(0)
+
         container.restore()
     })
 
@@ -273,26 +283,14 @@ describe('SignalService в SignalModule', () => {
         const container = await getContainer()
         container.snapshot()
 
-        container.rebind(VM_SYMBOL.VMService)
-            .to(getVMService({
-                error: () => {},
-                info: () => ({} as any),
-                on: () => {},
-                remove: () => {},
-                run: async () => Symbol('name'),
-                stats: async () => [],
-                listScripts: () => []
-            }))
-            .inSingletonScope()
-
         const signalService = container
             .get<ISignalService>(SIGNAL_SYMBOL.SignalService)
-        const methodService = container
-            .get<IMethodService>(METHOD_SYMBOL.MethodService)
 
-        const method1 = {
+        const signalMutationFn = jest.fn()
+        expect(signalService.onMutation(signalMutationFn)).toBeUndefined()
+
+        const resource = {
             namespace: 'namespace',
-            type: 'type',
             name: 'name'
         }
         const signal1 = {
@@ -300,30 +298,23 @@ describe('SignalService в SignalModule', () => {
             name: 'name'
         }
 
-        await methodService.method({
-            ...method1,
-            handler: () => {},
-            scriptId: Symbol('name'),
-            creator: {
-                type: CreatorType.System
-            }
-        })
+        await expect(signalService.addValidator(signal1, resource))
+            .rejects
+            .toBeInstanceOf(SignalDoesNotExist)
+        await expect(signalService.addGuard(signal1, resource))
+            .rejects
+            .toBeInstanceOf(SignalDoesNotExist)
+        await expect(signalService.addFilter(signal1, resource))
+            .rejects
+            .toBeInstanceOf(SignalDoesNotExist)
 
-        await expect(signalService.addValidator(signal1, method1))
-            .rejects
-            .toBeInstanceOf(SignalDoesNotExist)
-        await expect(signalService.addGuard(signal1, method1))
-            .rejects
-            .toBeInstanceOf(SignalDoesNotExist)
-        await expect(signalService.addFilter(signal1, method1))
-            .rejects
-            .toBeInstanceOf(SignalDoesNotExist)
+        expect(signalMutationFn).toBeCalledTimes(0)
 
         container.restore()
     })
 
     it(`
-        Попытка добавить несуществующий метод валидатора/охранника/фильтра в сигнал завершается
+        Попытка добавить несуществующий ресурс валидатора/охранника/фильтра в сигнал завершается
         ошибкой
     `, async () => {
         const container = await getContainer()
@@ -332,9 +323,11 @@ describe('SignalService в SignalModule', () => {
         const signalService = container
             .get<ISignalService>(SIGNAL_SYMBOL.SignalService)
 
-        const method1 = {
+        const signalMutationFn = jest.fn()
+        expect(signalService.onMutation(signalMutationFn)).toBeUndefined()
+
+        const resource = {
             namespace: 'namespace',
-            type: 'type',
             name: 'name'
         }
         const signal1 = {
@@ -351,62 +344,68 @@ describe('SignalService в SignalModule', () => {
             }
         })
 
-        await expect(signalService.addValidator(signal1, method1))
+        await expect(signalService.addValidator(signal1, resource))
             .rejects
-            .toBeInstanceOf(SignalMethodNotDefined)
-        await expect(signalService.addGuard(signal1, method1))
+            .toBeInstanceOf(ValidatorDoesNotExists)
+        await expect(signalService.addGuard(signal1, resource))
             .rejects
-            .toBeInstanceOf(SignalMethodNotDefined)
-        await expect(signalService.addFilter(signal1, method1))
+            .toBeInstanceOf(GuardDoesNotExists)
+        await expect(signalService.addFilter(signal1, resource))
             .rejects
-            .toBeInstanceOf(SignalMethodNotDefined)
+            .toBeInstanceOf(FilterDoesNotExists)
+
+        expect(signalMutationFn).toBeCalledTimes(1)
 
         container.restore()
     })
 
     it(`
-        Попытка повторной привязки валидатора/охранника/фильтра к методу приводит к исключению
+        Попытка повторной привязки валидатора/охранника/фильтра к сигналу приводит к исключению
     `, async () => {
         const container = await getContainer()
         container.snapshot()
 
-        container.rebind(VM_SYMBOL.VMService)
-            .to(getVMService({
-                error: () => {},
-                info: () => ({} as any),
-                on: () => {},
-                remove: () => {},
-                run: async () => Symbol('name'),
-                stats: async () => [],
-                listScripts: () => []
-            }))
-            .inSingletonScope()
-
-        const methodService = container
-            .get<IMethodService>(METHOD_SYMBOL.MethodService)
         const signalService = container
             .get<ISignalService>(SIGNAL_SYMBOL.SignalService)
+        const connection = await container
+            .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+        const methodRepository = connection.getRepository(Method)
+        const guardRepository = connection.getRepository(Guard)
+        const filterRepository = connection.getRepository(Filter)
+        const validatorRepository = connection.getRepository(Validator)
 
-        const method1 = {
+        const signalMutationFn = jest.fn()
+        expect(signalService.onMutation(signalMutationFn)).toBeUndefined()
+
+        const method = {
             namespace: 'namespace',
             type: 'type',
             name: 'name'
         }
-
-        await methodService.method({
-            ...method1,
-            handler: () => {},
-            scriptId: Symbol('name'),
-            creator: {
-                type: CreatorType.System
+        /**
+         * Если не указывать метаданные и остальное отдельно, typeorm будет ориентируясь на один объект херачить
+         * везде одинаковый идентификатор метаданных
+         */
+        const getResource = (name: string) => {
+            return {
+                namespace: 'namespace',
+                metadata: {
+                    metadata: {
+                        custom: name
+                    }
+                },
+                method: method,
+                name: name
             }
-        })
-
+        }
         const signal1 = {
             namespace: 'namespace',
             name: 'name'
         }
         const defaultMetadata = true
+
+
+        await methodRepository.save(method)
         
         await signalService.create({
             signal: signal1,
@@ -415,25 +414,45 @@ describe('SignalService в SignalModule', () => {
                 type: CreatorType.System
             }
         })
+        await guardRepository.save(getResource('resource'))
+        await filterRepository.save(getResource('resource'))
+        await validatorRepository.save(getResource('resource'))
 
-        await expect(signalService.addValidator(signal1, method1))
+        await expect(signalService.addValidator(signal1, getResource('resource')))
             .resolves
             .toBeUndefined()
-        await expect(signalService.addValidator(signal1, method1))
+        await expect(signalService.addValidator(signal1, getResource('resource')))
             .rejects
             .toBeInstanceOf(ValidatorAlreadyBound)
-        await expect(signalService.addGuard(signal1, method1))
+        await expect(signalService.addGuard(signal1, getResource('resource')))
             .resolves
             .toBeUndefined()
-        await expect(signalService.addGuard(signal1, method1))
+        await expect(signalService.addGuard(signal1, getResource('resource')))
             .rejects
             .toBeInstanceOf(GuardAlreadyBound)
-        await expect(signalService.addFilter(signal1, method1))
+        await expect(signalService.addFilter(signal1, getResource('resource')))
             .resolves
             .toBeUndefined()
-        await expect(signalService.addFilter(signal1, method1))
+        await expect(signalService.addFilter(signal1, getResource('resource')))
             .rejects
             .toBeInstanceOf(FilterAlreadyBound)
+
+        expect(signalMutationFn).toBeCalledTimes(4)
+        expect(signalMutationFn).toHaveBeenNthCalledWith(2, expect.objectContaining({
+            type: SignalEventMutation.AddValidator,
+            signalId: 1,
+            validatorId: 1
+        }))
+        expect(signalMutationFn).toHaveBeenNthCalledWith(3, expect.objectContaining({
+            type: SignalEventMutation.AddGuard,
+            signalId: 1,
+            guardId: 1
+        }))
+        expect(signalMutationFn).toHaveBeenNthCalledWith(4, expect.objectContaining({
+            type: SignalEventMutation.AddFilter,
+            signalId: 1,
+            filterId: 1
+        }))
 
         container.restore()
     })
@@ -444,68 +463,42 @@ describe('SignalService в SignalModule', () => {
         const container = await getContainer()
         container.snapshot()
 
-        container.rebind(VM_SYMBOL.VMService)
-            .to(getVMService({
-                error: () => {},
-                info: () => ({} as any),
-                on: () => {},
-                remove: () => {},
-                run: async () => Symbol('name'),
-                stats: async () => [],
-                listScripts: () => []
-            }))
-            .inSingletonScope()
-
         const signalService = container
             .get<ISignalService>(SIGNAL_SYMBOL.SignalService)
-        const methodService = container
-            .get<IMethodService>(METHOD_SYMBOL.MethodService)
-        const signalRepository = await container
+        const connection = await container
             .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
-            .then(connection => {
-                return connection.getRepository(Signal)
-            })
+        const signalRepository = connection.getRepository(Signal)
+        const methodRepository = connection.getRepository(Method)
+        const guardRepository = connection.getRepository(Guard)
+        const filterRepository = connection.getRepository(Filter)
+        const validatorRepository = connection.getRepository(Validator)
+        const signalValidatorRepository = connection.getRepository(SignalValidator)
+        const signalFilterRepository = connection.getRepository(SignalFilter)
+        const signalGuardRepository = connection.getRepository(SignalGuard)
+        const metadataRepository = connection.getRepository(Metadata)
 
-        const method1 = {
+        const method = {
             namespace: 'namespace',
             type: 'type',
             name: 'name'
         }
-        const method2 = {
-            namespace: 'namespace',
-            type: 'type',
-            name: 'name2'
-        }
-        const method3 = {
-            namespace: 'namespace2',
-            type: 'type',
-            name: 'name2'
-        }
 
-        await methodService.method({
-            ...method1,
-            handler: () => {},
-            scriptId: Symbol('name'),
-            creator: {
-                type: CreatorType.System
+        /**
+         * Если не указывать метаданные и остальное отдельно, typeorm будет ориентируясь на один объект херачить
+         * везде одинаковый идентификатор метаданных
+         */
+        const getResource = (name: string) => {
+            return {
+                namespace: 'namespace',
+                metadata: {
+                    metadata: {
+                        custom: name
+                    }
+                },
+                method: method,
+                name: name
             }
-        })
-        await methodService.method({
-            ...method2,
-            handler: () => {},
-            scriptId: Symbol('name'),
-            creator: {
-                type: CreatorType.System
-            }
-        })
-        await methodService.method({
-            ...method3,
-            handler: () => {},
-            scriptId: Symbol('name'),
-            creator: {
-                type: CreatorType.System
-            }
-        })
+        }
 
         const signal1 = {
             namespace: 'namespace',
@@ -514,7 +507,22 @@ describe('SignalService в SignalModule', () => {
         const defaultMetadata = true
         
         const signalMutationFn = jest.fn()
-        expect(signalService.onSignalMutation(signalMutationFn)).toBeUndefined()
+        expect(signalService.onMutation(signalMutationFn)).toBeUndefined()
+        await expect(methodRepository.count()).resolves.toBe(0)
+        await expect(signalRepository.count()).resolves.toBe(0)
+        await expect(guardRepository.count()).resolves.toBe(0)
+        await expect(filterRepository.count()).resolves.toBe(0)
+        await expect(validatorRepository.count()).resolves.toBe(0)
+        await expect(signalGuardRepository.count()).resolves.toBe(0)
+        await expect(signalFilterRepository.count()).resolves.toBe(0)
+        await expect(signalValidatorRepository.count()).resolves.toBe(0)
+        await expect(metadataRepository.count()).resolves.toBe(0)
+
+        await methodRepository.save(method)
+
+        await guardRepository.save([getResource('resource1'), getResource('resource2'), getResource('resource3')])
+        await filterRepository.save([getResource('resource1'), getResource('resource2'), getResource('resource3')])
+        await validatorRepository.save([getResource('resource1'), getResource('resource2'), getResource('resource3')])
 
         await signalService.create({
             signal: signal1,
@@ -524,47 +532,85 @@ describe('SignalService в SignalModule', () => {
             }
         })
 
-        await Promise.all([
-            signalService.addValidator(signal1, method1),
-            signalService.addValidator(signal1, method2),
-            signalService.addValidator(signal1, method3),
-            signalService.addGuard(signal1, method1),
-            signalService.addGuard(signal1, method2),
-            signalService.addGuard(signal1, method3),
-            signalService.addFilter(signal1, method1),
-            signalService.addFilter(signal1, method2),
-            signalService.addFilter(signal1, method3)
-        ])
+        await signalService.addValidator(signal1, getResource('resource1')),
+        await signalService.addValidator(signal1, getResource('resource2')),
+        await signalService.addValidator(signal1, getResource('resource3')),
+        await signalService.addGuard(signal1, getResource('resource1')),
+        await signalService.addGuard(signal1, getResource('resource2')),
+        await signalService.addGuard(signal1, getResource('resource3')),
+        await signalService.addFilter(signal1, getResource('resource1')),
+        await signalService.addFilter(signal1, getResource('resource2')),
+        await signalService.addFilter(signal1, getResource('resource3'))
 
         const signalEntity = await signalRepository.findOne({
             where: signal1,
-            relations: ['validators', 'guards', 'filters']
+            relations: ['signalValidators', 'signalGuards', 'signalFilters']
         })
 
         if (!signalEntity) {
             throw new Error('Непредвиденная ошибка')
         }
 
-        expect(signalEntity.validators).toHaveLength(3)
-        expect(signalEntity.guards).toHaveLength(3)
-        expect(signalEntity.filters).toHaveLength(3)
+        expect(signalEntity.signalValidators).toHaveLength(3)
+        expect(signalEntity.signalGuards).toHaveLength(3)
+        expect(signalEntity.signalFilters).toHaveLength(3)
 
-        const eventContext1: EventContext = {
-            type: SignalEventMutation.AddValidator,
-            signalId: await signalService.getSignalId(signal1) as number
-        }
-        const eventContext2: EventContext = {
-            type: SignalEventMutation.AddGuard,
-            signalId: await signalService.getSignalId(signal1) as number
-        }
-        const eventContext3: EventContext = {
-            type: SignalEventMutation.AddFilter,
-            signalId: await signalService.getSignalId(signal1) as number
-        }
-        expect(signalMutationFn).toHaveBeenNthCalledWith(2, expect.objectContaining(eventContext1))
-        expect(signalMutationFn).toHaveBeenNthCalledWith(5, expect.objectContaining(eventContext2))
-        expect(signalMutationFn).toHaveBeenNthCalledWith(8, expect.objectContaining(eventContext3))
+        await expect(methodRepository.count()).resolves.toBe(1)
+        await expect(signalRepository.count()).resolves.toBe(1)
+        await expect(guardRepository.count()).resolves.toBe(3)
+        await expect(filterRepository.count()).resolves.toBe(3)
+        await expect(validatorRepository.count()).resolves.toBe(3)
+        await expect(signalGuardRepository.count()).resolves.toBe(3)
+        await expect(signalFilterRepository.count()).resolves.toBe(3)
+        await expect(signalValidatorRepository.count()).resolves.toBe(3)
+        await expect(metadataRepository.count()).resolves.toBe(19)
+
         expect(signalMutationFn).toBeCalledTimes(10)
+        expect(signalMutationFn).toHaveBeenNthCalledWith(2, expect.objectContaining({
+            type: SignalEventMutation.AddValidator,
+            signalId: 1,
+            validatorId: 1
+        }))
+        expect(signalMutationFn).toHaveBeenNthCalledWith(3, expect.objectContaining({
+            type: SignalEventMutation.AddValidator,
+            signalId: 1,
+            validatorId: 2
+        }))
+        expect(signalMutationFn).toHaveBeenNthCalledWith(4, expect.objectContaining({
+            type: SignalEventMutation.AddValidator,
+            signalId: 1,
+            validatorId: 3
+        }))
+        expect(signalMutationFn).toHaveBeenNthCalledWith(5, expect.objectContaining({
+            type: SignalEventMutation.AddGuard,
+            signalId: 1,
+            guardId: 1
+        }))
+        expect(signalMutationFn).toHaveBeenNthCalledWith(6, expect.objectContaining({
+            type: SignalEventMutation.AddGuard,
+            signalId: 1,
+            guardId: 2
+        }))
+        expect(signalMutationFn).toHaveBeenNthCalledWith(7, expect.objectContaining({
+            type: SignalEventMutation.AddGuard,
+            signalId: 1,
+            guardId: 3
+        }))
+        expect(signalMutationFn).toHaveBeenNthCalledWith(8, expect.objectContaining({
+            type: SignalEventMutation.AddFilter,
+            signalId: 1,
+            filterId: 1
+        }))
+        expect(signalMutationFn).toHaveBeenNthCalledWith(9, expect.objectContaining({
+            type: SignalEventMutation.AddFilter,
+            signalId: 1,
+            filterId: 2
+        }))
+        expect(signalMutationFn).toHaveBeenNthCalledWith(10, expect.objectContaining({
+            type: SignalEventMutation.AddFilter,
+            signalId: 1,
+            filterId: 3
+        }))
 
         container.restore()
     })
@@ -575,26 +621,14 @@ describe('SignalService в SignalModule', () => {
         const container = await getContainer()
         container.snapshot()
 
-        container.rebind(VM_SYMBOL.VMService)
-            .to(getVMService({
-                error: () => {},
-                info: () => ({} as any),
-                on: () => {},
-                remove: () => {},
-                run: async () => Symbol('name'),
-                stats: async () => [],
-                listScripts: () => []
-            }))
-            .inSingletonScope()
-
         const signalService = container
             .get<ISignalService>(SIGNAL_SYMBOL.SignalService)
-        const methodService = container
-            .get<IMethodService>(METHOD_SYMBOL.MethodService)
 
-        const method1 = {
+        const signalMutationFn = jest.fn()
+        expect(signalService.onMutation(signalMutationFn)).toBeUndefined()
+
+        const resource = {
             namespace: 'namespace',
-            type: 'type',
             name: 'name'
         }
         const signal1 = {
@@ -602,30 +636,23 @@ describe('SignalService в SignalModule', () => {
             name: 'name'
         }
 
-        await methodService.method({
-            ...method1,
-            handler: () => {},
-            scriptId: Symbol('name'),
-            creator: {
-                type: CreatorType.System
-            }
-        })
+        await expect(signalService.removeValidator(signal1, resource))
+            .rejects
+            .toBeInstanceOf(SignalDoesNotExist)
+        await expect(signalService.removeGuard(signal1, resource))
+            .rejects
+            .toBeInstanceOf(SignalDoesNotExist)
+        await expect(signalService.removeFilter(signal1, resource))
+            .rejects
+            .toBeInstanceOf(SignalDoesNotExist)
 
-        await expect(signalService.removeValidator(signal1, method1))
-            .rejects
-            .toBeInstanceOf(SignalDoesNotExist)
-        await expect(signalService.removeGuard(signal1, method1))
-            .rejects
-            .toBeInstanceOf(SignalDoesNotExist)
-        await expect(signalService.removeFilter(signal1, method1))
-            .rejects
-            .toBeInstanceOf(SignalDoesNotExist)
+        expect(signalMutationFn).toBeCalledTimes(0)
 
         container.restore()
     })
 
     it(`
-        Попытка удалить несуществующий валидатор/охранник/фильтр приводит к исключению
+        Попытка удалить несуществующий валидатор/охранник/фильтр из сигнала приводит к исключению
     `, async () => {
         const container = await getContainer()
         container.snapshot()
@@ -633,9 +660,11 @@ describe('SignalService в SignalModule', () => {
         const signalService = container
             .get<ISignalService>(SIGNAL_SYMBOL.SignalService)
 
-        const method1 = {
+        const signalMutationFn = jest.fn()
+        expect(signalService.onMutation(signalMutationFn)).toBeUndefined()
+
+        const resource = {
             namespace: 'namespace',
-            type: 'type',
             name: 'name'
         }
         const signal1 = {
@@ -652,15 +681,17 @@ describe('SignalService в SignalModule', () => {
             }
         })
 
-        await expect(signalService.removeValidator(signal1, method1))
+        await expect(signalService.removeValidator(signal1, resource))
             .rejects
-            .toBeInstanceOf(SignalMethodNotDefined)
-        await expect(signalService.removeGuard(signal1, method1))
+            .toBeInstanceOf(ValidatorDoesNotExists)
+        await expect(signalService.removeGuard(signal1, resource))
             .rejects
-            .toBeInstanceOf(SignalMethodNotDefined)
-        await expect(signalService.removeFilter(signal1, method1))
+            .toBeInstanceOf(GuardDoesNotExists)
+        await expect(signalService.removeFilter(signal1, resource))
             .rejects
-            .toBeInstanceOf(SignalMethodNotDefined)
+            .toBeInstanceOf(FilterDoesNotExists)
+
+        expect(signalMutationFn).toBeCalledTimes(1)
 
         container.restore()
     })
@@ -672,37 +703,40 @@ describe('SignalService в SignalModule', () => {
         const container = await getContainer()
         container.snapshot()
 
-        container.rebind(VM_SYMBOL.VMService)
-            .to(getVMService({
-                error: () => {},
-                info: () => ({} as any),
-                on: () => {},
-                remove: () => {},
-                run: async () => Symbol('name'),
-                stats: async () => [],
-                listScripts: () => []
-            }))
-            .inSingletonScope()
-
-        const methodService = container
-            .get<IMethodService>(METHOD_SYMBOL.MethodService)
         const signalService = container
             .get<ISignalService>(SIGNAL_SYMBOL.SignalService)
-        const signalRepository = await container
+        const connection = await container
             .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
-            .then(connection => {
-                return connection.getRepository(Signal)
-            })
+        const signalRepository = connection.getRepository(Signal)
+        const methodRepository = connection.getRepository(Method)
+        const guardRepository = connection.getRepository(Guard)
+        const filterRepository = connection.getRepository(Filter)
+        const validatorRepository = connection.getRepository(Validator)
+        const signalValidatorRepository = connection.getRepository(SignalValidator)
+        const signalFilterRepository = connection.getRepository(SignalFilter)
+        const signalGuardRepository = connection.getRepository(SignalGuard)
+        const metadataRepository = connection.getRepository(Metadata)
 
-        const method1 = {
+        const method = {
             namespace: 'namespace',
             type: 'type',
             name: 'name'
         }
-        const method2 = {
-            namespace: 'namespace',
-            type: 'type',
-            name: 'name2'
+        /**
+         * Если не указывать метаданные и остальное отдельно, typeorm будет ориентируясь на один объект херачить
+         * везде одинаковый идентификатор метаданных
+         */
+        const getResource = (name: string) => {
+            return {
+                namespace: 'namespace',
+                metadata: {
+                    metadata: {
+                        custom: name
+                    }
+                },
+                method: method,
+                name: name
+            }
         }
         const signal1 = {
             namespace: 'namespace',
@@ -715,7 +749,22 @@ describe('SignalService в SignalModule', () => {
         const defaultMetadata = null
 
         const signalMutationFn = jest.fn()
-        expect(signalService.onSignalMutation(signalMutationFn)).toBeUndefined()
+        expect(signalService.onMutation(signalMutationFn)).toBeUndefined()
+        await expect(methodRepository.count()).resolves.toBe(0)
+        await expect(signalRepository.count()).resolves.toBe(0)
+        await expect(guardRepository.count()).resolves.toBe(0)
+        await expect(filterRepository.count()).resolves.toBe(0)
+        await expect(validatorRepository.count()).resolves.toBe(0)
+        await expect(signalGuardRepository.count()).resolves.toBe(0)
+        await expect(signalFilterRepository.count()).resolves.toBe(0)
+        await expect(signalValidatorRepository.count()).resolves.toBe(0)
+        await expect(metadataRepository.count()).resolves.toBe(0)
+
+        await methodRepository.save(method)
+
+        await guardRepository.save([getResource('resource1'), getResource('resource2')])
+        await filterRepository.save([getResource('resource1'), getResource('resource2')])
+        await validatorRepository.save([getResource('resource1'), getResource('resource2')])
 
         await signalService.create({
             signal: signal1,
@@ -731,120 +780,140 @@ describe('SignalService в SignalModule', () => {
                 type: CreatorType.System
             }
         })
-        await methodService.method({
-            ...method1,
-            handler: () => {},
-            scriptId: Symbol('name'),
-            creator: {
-                type: CreatorType.System
-            }
-        })
-        await methodService.method({
-            ...method2,
-            handler: () => {},
-            scriptId: Symbol('name'),
-            creator: {
-                type: CreatorType.System
-            }
-        })
-        await signalService.addValidator(signal1, method1)
-        await signalService.addValidator(signal1, method2)
-        await signalService.addValidator(signal2, method1)
-        await signalService.addGuard(signal1, method1)
-        await signalService.addGuard(signal1, method2)
-        await signalService.addGuard(signal2, method1)
-        await signalService.addFilter(signal1, method1)
-        await signalService.addFilter(signal1, method2)
-        await signalService.addFilter(signal2, method1)
 
-        await expect(signalService.removeValidator(signal1, method1))
+        await signalService.addValidator(signal1, getResource('resource1'))
+        await signalService.addValidator(signal1, getResource('resource2'))
+        await signalService.addValidator(signal2, getResource('resource1'))
+        await signalService.addGuard(signal1, getResource('resource1'))
+        await signalService.addGuard(signal1, getResource('resource2'))
+        await signalService.addGuard(signal2, getResource('resource1'))
+        await signalService.addFilter(signal1, getResource('resource1'))
+        await signalService.addFilter(signal1, getResource('resource2'))
+        await signalService.addFilter(signal2, getResource('resource1'))
+
+        await expect(signalService.removeValidator(signal1, getResource('resource1')))
             .resolves
             .toBeUndefined()
-        await expect(signalService.removeValidator(signal1, method2))
+        await expect(signalService.removeValidator(signal1, getResource('resource2')))
             .resolves
             .toBeUndefined()
-        await expect(signalService.removeGuard(signal1, method1))
+        await expect(signalService.removeGuard(signal1, getResource('resource1')))
             .resolves
             .toBeUndefined()
-        await expect(signalService.removeGuard(signal1, method2))
+        await expect(signalService.removeGuard(signal1, getResource('resource2')))
             .resolves
             .toBeUndefined()
-        await expect(signalService.removeFilter(signal1, method1))
+        await expect(signalService.removeFilter(signal1, getResource('resource1')))
             .resolves
             .toBeUndefined()
-        await expect(signalService.removeFilter(signal1, method2))
+        await expect(signalService.removeFilter(signal1, getResource('resource2')))
             .resolves
             .toBeUndefined()
 
         expect((await signalRepository.findOne({
             where: signal1,
-            relations: ['validators']
-        }))?.validators).toHaveLength(0)
+            relations: ['signalValidators']
+        }))?.signalValidators).toHaveLength(0)
         expect((await signalRepository.findOne({
             where: signal2,
-            relations: ['validators']
-        }))?.validators).toHaveLength(1)
+            relations: ['signalValidators']
+        }))?.signalValidators).toHaveLength(1)
         expect((await signalRepository.findOne({
             where: signal1,
-            relations: ['guards']
-        }))?.guards).toHaveLength(0)
+            relations: ['signalGuards']
+        }))?.signalGuards).toHaveLength(0)
         expect((await signalRepository.findOne({
             where: signal2,
-            relations: ['guards']
-        }))?.guards).toHaveLength(1)
+            relations: ['signalGuards']
+        }))?.signalGuards).toHaveLength(1)
         expect((await signalRepository.findOne({
             where: signal1,
-            relations: ['filters']
-        }))?.filters).toHaveLength(0)
+            relations: ['signalFilters']
+        }))?.signalFilters).toHaveLength(0)
         expect((await signalRepository.findOne({
             where: signal2,
-            relations: ['filters']
-        }))?.filters).toHaveLength(1)
+            relations: ['signalFilters']
+        }))?.signalFilters).toHaveLength(1)
 
-        expect(methodService.isAvailable(method1)).toBe(true)
-        expect(methodService.isAvailable(method2)).toBe(false)
-
-        await expect(signalService.removeValidator(signal2, method1))
+        await expect(signalService.removeValidator(signal2, getResource('resource1')))
             .resolves
             .toBeUndefined()
-        await expect(signalService.removeGuard(signal2, method1))
+        await expect(signalService.removeGuard(signal2, getResource('resource1')))
             .resolves
             .toBeUndefined()
-        await expect(signalService.removeFilter(signal2, method1))
+        await expect(signalService.removeFilter(signal2, getResource('resource1')))
             .resolves
             .toBeUndefined()
         
         expect((await signalRepository.findOne({
             where: signal2,
-            relations: ['validators']
-        }))?.validators).toHaveLength(0)
+            relations: ['signalValidators']
+        }))?.signalValidators).toHaveLength(0)
         expect((await signalRepository.findOne({
             where: signal2,
-            relations: ['guards']
-        }))?.guards).toHaveLength(0)
+            relations: ['signalGuards']
+        }))?.signalGuards).toHaveLength(0)
         expect((await signalRepository.findOne({
             where: signal2,
-            relations: ['filters']
-        }))?.filters).toHaveLength(0)
+            relations: ['signalFilters']
+        }))?.signalFilters).toHaveLength(0)
 
-        expect(methodService.isAvailable(method1)).toBe(false)
+        await expect(methodRepository.count()).resolves.toBe(1)
+        await expect(signalRepository.count()).resolves.toBe(2)
+        await expect(guardRepository.count()).resolves.toBe(2)
+        await expect(filterRepository.count()).resolves.toBe(2)
+        await expect(validatorRepository.count()).resolves.toBe(2)
+        await expect(signalGuardRepository.count()).resolves.toBe(0)
+        await expect(signalFilterRepository.count()).resolves.toBe(0)
+        await expect(signalValidatorRepository.count()).resolves.toBe(0)
+        await expect(metadataRepository.count()).resolves.toBe(8)
 
-        const eventContext1: EventContext = {
-            type: SignalEventMutation.RemoveValidator,
-            signalId: await signalService.getSignalId(signal1) as number
-        }
-        const eventContext2: EventContext = {
-            type: SignalEventMutation.RemoveGuard,
-            signalId: await signalService.getSignalId(signal1) as number
-        }
-        const eventContext3: EventContext = {
-            type: SignalEventMutation.RemoveFilter,
-            signalId: await signalService.getSignalId(signal1) as number
-        }
-        expect(signalMutationFn).toHaveBeenNthCalledWith(12, expect.objectContaining(eventContext1))
-        expect(signalMutationFn).toHaveBeenNthCalledWith(14, expect.objectContaining(eventContext2))
-        expect(signalMutationFn).toHaveBeenNthCalledWith(16, expect.objectContaining(eventContext3))
         expect(signalMutationFn).toBeCalledTimes(20)
+        expect(signalMutationFn).nthCalledWith(12, expect.objectContaining({
+            type: SignalEventMutation.RemoveValidator,
+            signalId: 1,
+            validatorId: 1
+        }))
+        expect(signalMutationFn).nthCalledWith(13, expect.objectContaining({
+            type: SignalEventMutation.RemoveValidator,
+            signalId: 1,
+            validatorId: 2
+        }))
+        expect(signalMutationFn).nthCalledWith(14, expect.objectContaining({
+            type: SignalEventMutation.RemoveGuard,
+            signalId: 1,
+            guardId: 1
+        }))
+        expect(signalMutationFn).nthCalledWith(15, expect.objectContaining({
+            type: SignalEventMutation.RemoveGuard,
+            signalId: 1,
+            guardId: 2
+        }))
+        expect(signalMutationFn).nthCalledWith(16, expect.objectContaining({
+            type: SignalEventMutation.RemoveFilter,
+            signalId: 1,
+            filterId: 1
+        }))
+        expect(signalMutationFn).nthCalledWith(17, expect.objectContaining({
+            type: SignalEventMutation.RemoveFilter,
+            signalId: 1,
+            filterId: 2
+        }))
+        expect(signalMutationFn).nthCalledWith(18, expect.objectContaining({
+            type: SignalEventMutation.RemoveValidator,
+            signalId: 2,
+            validatorId: 1
+        }))
+        expect(signalMutationFn).nthCalledWith(19, expect.objectContaining({
+            type: SignalEventMutation.RemoveGuard,
+            signalId: 2,
+            guardId: 1
+        }))
+        expect(signalMutationFn).nthCalledWith(20, expect.objectContaining({
+            type: SignalEventMutation.RemoveFilter,
+            signalId: 2,
+            filterId: 1
+        }))
 
         container.restore()
     })
@@ -876,6 +945,9 @@ describe('SignalService в SignalModule', () => {
         }
         const defaultMetadata = null
 
+        const signalMutationFn = jest.fn()
+        expect(signalService.onMutation(signalMutationFn)).toBeUndefined()
+
         await signalService.create({
             signal: signal1,
             defaultMetadata: defaultMetadata,
@@ -896,6 +968,8 @@ describe('SignalService в SignalModule', () => {
         await expect(signalService.unconnect(signal1, signal2))
             .rejects
             .toBeInstanceOf(InputSignalDoesNotExist)
+
+        expect(signalMutationFn).toBeCalledTimes(1)
 
         container.restore()
     })
@@ -926,6 +1000,9 @@ describe('SignalService в SignalModule', () => {
             name: 'name2'
         }
         const defaultMetadata = null
+
+        const signalMutationFn = jest.fn()
+        expect(signalService.onMutation(signalMutationFn)).toBeUndefined()
         
         await Promise.all([
             signalService.create({
@@ -951,12 +1028,20 @@ describe('SignalService в SignalModule', () => {
             .resolves
             .toBeUndefined()
 
+        expect(signalMutationFn).toBeCalledTimes(3)
+        expect(signalMutationFn).nthCalledWith(3, {
+            type: SignalEventMutation.Connect,
+            signalId: 1,
+            intoSignalId: 2
+        })
+
         container.restore()
     })
 
     it(`
         Сигналы корректно соединяются и отсоединяются. Попытка породить циклические
-        сигналы приводит к исключению
+        сигналы приводит к исключению. Повторная попытка присоединить или отсоединить сигналы ни
+        к чему не приводит
     `, async () => {
         const container = await getContainer()
         container.snapshot()
@@ -998,7 +1083,7 @@ describe('SignalService в SignalModule', () => {
         const defaultMetadata = null
 
         const signalMutationFn = jest.fn()
-        expect(signalService.onSignalMutation(signalMutationFn)).toBeUndefined()
+        expect(signalService.onMutation(signalMutationFn)).toBeUndefined()
 
         await Promise.all([
             signalService.create({
@@ -1063,6 +1148,17 @@ describe('SignalService в SignalModule', () => {
             .resolves
             .toBeUndefined()
 
+        /**
+         * Холостая попытка соединить уже соединённые сигналы. Нужно для проверки того,
+         * что событие не срабатывает для таких случаев
+         */
+        await expect(signalService.connect(signal1, signal4))
+            .resolves
+            .toBeUndefined()
+        await expect(signalService.connect(signal1, signal4))
+            .resolves
+            .toBeUndefined()
+
         const [signal1Id, signal2Id, signal3Id, signal4Id, signal5Id] = await Promise.all([
             signalService.getSignalId(signal1),
             signalService.getSignalId(signal2),
@@ -1103,19 +1199,50 @@ describe('SignalService в SignalModule', () => {
             .resolves
             .toBeUndefined()
 
+        /**
+         * Холостая попытка отвязать несоединённые сигналы. Нужно для проверки того,
+         * что событие не срабатывает для таких случаев
+         */
+        await expect(signalService.unconnect(signal1, signal4))
+            .resolves
+            .toBeUndefined()
+        await expect(signalService.unconnect(signal1, signal4))
+            .resolves
+            .toBeUndefined()
+
         await expect(signalGraphRepository.find()).resolves.toHaveLength(0)
 
-        const eventContext1: EventContext = {
-            type: SignalEventMutation.Connect,
-            signalId: await signalService.getSignalId(signal1) as number
-        }
-        const eventContext2: EventContext = {
-            type: SignalEventMutation.Unconnect,
-            signalId: await signalService.getSignalId(signal1) as number
-        }
-        expect(signalMutationFn).toHaveBeenNthCalledWith(6, expect.objectContaining(eventContext1))
-        expect(signalMutationFn).toHaveBeenNthCalledWith(12, expect.objectContaining(eventContext2))
         expect(signalMutationFn).toBeCalledTimes(17)
+        expect(signalMutationFn).nthCalledWith(6, expect.objectContaining({
+            type: SignalEventMutation.Connect,
+            signalId: 1,
+            intoSignalId: 2
+        }))
+        expect(signalMutationFn).nthCalledWith(7, expect.objectContaining({
+            type: SignalEventMutation.Connect,
+            signalId: 2,
+            intoSignalId: 3
+        }))
+        expect(signalMutationFn).nthCalledWith(8, expect.objectContaining({
+            type: SignalEventMutation.Connect,
+            signalId: 3,
+            intoSignalId: 4
+        }))
+        expect(signalMutationFn).nthCalledWith(12, expect.objectContaining({
+            type: SignalEventMutation.Unconnect,
+            signalId: 1,
+            intoSignalId: 2
+        }))
+        expect(signalMutationFn).nthCalledWith(13, expect.objectContaining({
+            type: SignalEventMutation.Unconnect,
+            signalId: 2,
+            intoSignalId: 3
+        }))
+        expect(signalMutationFn).nthCalledWith(14, expect.objectContaining({
+            type: SignalEventMutation.Unconnect,
+            signalId: 3,
+            intoSignalId: 4
+        }))
 
         container.restore()
     })
@@ -1138,6 +1265,9 @@ describe('SignalService в SignalModule', () => {
         }
         const defaultMetadata = null
 
+        const signalMutationFn = jest.fn()
+        expect(signalService.onMutation(signalMutationFn)).toBeUndefined()
+
         await signalService.create({
             signal: signal1,
             defaultMetadata: defaultMetadata,
@@ -1154,48 +1284,53 @@ describe('SignalService в SignalModule', () => {
 
         await expect(signalService.remove(signal1)).rejects.toBeInstanceOf(SignalUsedError)
 
+        expect(signalMutationFn).toBeCalledTimes(1)
+
         container.restore()
     })
 
     it(`
-        Сигнал корректно и полностью удаляется. При удалении сигнал пытается полностью удалить привязанные
-        к нему методы. В противном случае, методы только отвязываются
+        Сигнал корректно и полностью удаляется вместе со всеми метаданными, связями и метаданными связей. Попытка
+        удалить несуществующий сигнал ни к чему не приводит
     `, async () => {
         const container = await getContainer()
         container.snapshot()
 
-        container.rebind(VM_SYMBOL.VMService)
-            .to(getVMService({
-                error: () => {},
-                info: () => ({} as any),
-                on: () => {},
-                remove: () => {},
-                run: async () => Symbol('name'),
-                stats: async () => [],
-                listScripts: () => []
-            }))
-            .inSingletonScope()
-
-        const connection = await container
-            .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
         const signalService = container
             .get<ISignalService>(SIGNAL_SYMBOL.SignalService)
-        const methodService = container
-            .get<IMethodService>(METHOD_SYMBOL.MethodService)
-        const methodRepository = connection.getRepository(Method)
-        const signalGraphRepository = connection.getRepository(SignalGraph)
+        const connection = await container
+            .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
         const signalRepository = connection.getRepository(Signal)
+        const methodRepository = connection.getRepository(Method)
+        const guardRepository = connection.getRepository(Guard)
+        const filterRepository = connection.getRepository(Filter)
+        const validatorRepository = connection.getRepository(Validator)
+        const signalValidatorRepository = connection.getRepository(SignalValidator)
+        const signalFilterRepository = connection.getRepository(SignalFilter)
+        const signalGuardRepository = connection.getRepository(SignalGuard)
         const metadataRepository = connection.getRepository(Metadata)
+        const signalGraphRepository = connection.getRepository(SignalGraph)
 
-        const method1 = {
+        const method = {
             namespace: 'namespace',
             type: 'type',
             name: 'name'
         }
-        const method2 = {
-            namespace: 'namespace',
-            type: 'type',
-            name: 'name2'
+        /**
+         * Если не указывать метаданные и остальное отдельно, typeorm будет ориентируясь на один объект херачить
+         * везде одинаковый идентификатор метаданных
+         */
+        const getResource = (name: string) => {
+            return {
+                namespace: 'namespace',
+                metadata: {
+                    metadata: {
+                        custom: name
+                    }
+                },
+                method: method,
+                name: name
+            }
         }
         const signal1 = {
             namespace: 'namespace',
@@ -1208,7 +1343,22 @@ describe('SignalService в SignalModule', () => {
         const defaultMetadata = null
 
         const signalMutationFn = jest.fn()
-        expect(signalService.onSignalMutation(signalMutationFn)).toBeUndefined()
+        expect(signalService.onMutation(signalMutationFn)).toBeUndefined()
+        await expect(methodRepository.count()).resolves.toBe(0)
+        await expect(signalRepository.count()).resolves.toBe(0)
+        await expect(guardRepository.count()).resolves.toBe(0)
+        await expect(filterRepository.count()).resolves.toBe(0)
+        await expect(validatorRepository.count()).resolves.toBe(0)
+        await expect(signalGuardRepository.count()).resolves.toBe(0)
+        await expect(signalFilterRepository.count()).resolves.toBe(0)
+        await expect(signalValidatorRepository.count()).resolves.toBe(0)
+        await expect(metadataRepository.count()).resolves.toBe(0)
+        await expect(signalGraphRepository.count()).resolves.toBe(0)
+
+        await methodRepository.save(method)
+        await guardRepository.save([getResource('resource1'), getResource('resource2')])
+        await filterRepository.save([getResource('resource1'), getResource('resource2')])
+        await validatorRepository.save([getResource('resource1'), getResource('resource2')])
 
         await signalService.create({
             signal: signal1,
@@ -1224,48 +1374,58 @@ describe('SignalService в SignalModule', () => {
                 type: CreatorType.System
             }
         })
-        await methodService.method({
-            ...method1,
-            handler: () => {},
-            scriptId: Symbol('name'),
-            creator: {
-                type: CreatorType.System
-            }
-        })
-        await methodService.method({
-            ...method2,
-            handler: () => {},
-            scriptId: Symbol('name'),
-            creator: {
-                type: CreatorType.System
-            }
-        })
-        await signalService.addValidator(signal1, method1)
-        await signalService.addValidator(signal1, method2)
-        await signalService.addValidator(signal2, method1)
-        await signalService.addGuard(signal1, method1)
-        await signalService.addGuard(signal1, method2)
-        await signalService.addGuard(signal2, method1)
-        await signalService.addFilter(signal1, method1)
-        await signalService.addFilter(signal1, method2)
-        await signalService.addFilter(signal2, method1)
+
+        await signalService.addValidator(signal1, getResource('resource1'))
+        await signalService.addValidator(signal1, getResource('resource2'))
+        await signalService.addValidator(signal2, getResource('resource1'))
+        await signalService.addGuard(signal1, getResource('resource1'))
+        await signalService.addGuard(signal1, getResource('resource2'))
+        await signalService.addGuard(signal2, getResource('resource1'))
+        await signalService.addFilter(signal1, getResource('resource1'))
+        await signalService.addFilter(signal1, getResource('resource2'))
+        await signalService.addFilter(signal2, getResource('resource1'))
         await signalService.connect(signal1, signal2)
 
-        await expect(metadataRepository.count()).resolves.toBe(2)
-        await expect(signalService.remove(signal1)).resolves.toBeUndefined()
-        await expect(signalGraphRepository.find()).resolves.toHaveLength(0)
-        await expect(metadataRepository.find()).resolves.toHaveLength(1)
-        await expect(signalService.remove(signal2)).resolves.toBeUndefined()
-        await expect(metadataRepository.find()).resolves.toHaveLength(0)
-        await expect(methodRepository.find()).resolves.toHaveLength(0)
-        await expect(signalRepository.find()).resolves.toHaveLength(0)
+        await expect(methodRepository.count()).resolves.toBe(1)
+        await expect(signalRepository.count()).resolves.toBe(2)
+        await expect(guardRepository.count()).resolves.toBe(2)
+        await expect(filterRepository.count()).resolves.toBe(2)
+        await expect(validatorRepository.count()).resolves.toBe(2)
+        await expect(signalGuardRepository.count()).resolves.toBe(3)
+        await expect(signalFilterRepository.count()).resolves.toBe(3)
+        await expect(signalValidatorRepository.count()).resolves.toBe(3)
+        await expect(metadataRepository.count()).resolves.toBe(17)
+        await expect(signalGraphRepository.count()).resolves.toBe(1)
 
-        const eventContext: EventContext = {
+        await expect(signalService.remove(signal1)).resolves.toBeUndefined()
+        await expect(signalService.remove(signal1)).resolves.toBeUndefined()
+
+        await expect(signalRepository.count()).resolves.toBe(1)
+        await expect(signalGuardRepository.count()).resolves.toBe(1)
+        await expect(signalFilterRepository.count()).resolves.toBe(1)
+        await expect(signalValidatorRepository.count()).resolves.toBe(1)
+        await expect(metadataRepository.count()).resolves.toBe(10)
+        await expect(signalGraphRepository.count()).resolves.toBe(0)
+
+        await expect(signalService.remove(signal2)).resolves.toBeUndefined()
+        await expect(signalService.remove(signal2)).resolves.toBeUndefined()
+
+        await expect(signalRepository.count()).resolves.toBe(0)
+        await expect(signalGuardRepository.count()).resolves.toBe(0)
+        await expect(signalFilterRepository.count()).resolves.toBe(0)
+        await expect(signalValidatorRepository.count()).resolves.toBe(0)
+        await expect(metadataRepository.count()).resolves.toBe(6)
+        await expect(signalGraphRepository.count()).resolves.toBe(0)
+
+        expect(signalMutationFn).toBeCalledTimes(14)
+        expect(signalMutationFn).toHaveBeenNthCalledWith(13, expect.objectContaining({
             type: SignalEventMutation.Remove,
             signalId: 1
-        }
-        expect(signalMutationFn).toHaveBeenNthCalledWith(13, expect.objectContaining(eventContext))
-        expect(signalMutationFn).toBeCalledTimes(14)
+        }))
+        expect(signalMutationFn).toHaveBeenNthCalledWith(14, expect.objectContaining({
+            type: SignalEventMutation.Remove,
+            signalId: 2
+        }))
 
         container.restore()
     })
