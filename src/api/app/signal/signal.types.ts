@@ -96,6 +96,10 @@ export enum SignalEventMutation {
      */
     AddValidator = 'AddValidator',
     /**
+     * Событие изменения метаданных связи сигнала с валидатором
+     */
+    SetSignalValidatorMetadata = 'SetSignalValidatorMetadata',
+    /**
      * Событие удаления валидатора
      */
     RemoveValidator = 'RemoveValidator',
@@ -104,6 +108,10 @@ export enum SignalEventMutation {
      */
     AddGuard = 'AddGuard',
     /**
+     * Событие изменения метаданных связи сигнала с охранником
+     */
+    SetSignalGuardMetadata = 'SetSignalGuardMetadata',
+    /**
      * Событие удаления охранника
      */
     RemoveGuard = 'RemoveGuard',
@@ -111,6 +119,10 @@ export enum SignalEventMutation {
      * Событие добавления фильтра
      */
     AddFilter = 'AddFilter',
+    /**
+     * Событие изменения метаданных связи сигнала с фильтром
+     */
+    SetSignalFilterMetadata = 'SetSignalFilterMetadata',
     /**
      * Событие удаления фильтра
      */
@@ -133,6 +145,7 @@ export interface ValidatorEventContext {
     type: (
         SignalEventMutation.AddValidator
         | SignalEventMutation.RemoveValidator
+        | SignalEventMutation.SetSignalValidatorMetadata
     ),
     signalId: number
     validatorId: number
@@ -142,6 +155,7 @@ export interface FilterEventContext {
     type: (
         SignalEventMutation.AddFilter
         | SignalEventMutation.RemoveFilter
+        | SignalEventMutation.SetSignalFilterMetadata
     )
     signalId: number
     filterId: number
@@ -151,6 +165,7 @@ export interface GuardEventContext {
     type: (
         SignalEventMutation.AddGuard
         | SignalEventMutation.RemoveGuard
+        | SignalEventMutation.SetSignalGuardMetadata
     ),
     signalId: number
     guardId: number

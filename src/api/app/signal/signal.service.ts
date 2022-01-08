@@ -17,7 +17,10 @@ import {
     CreateSignal,
     SignalEventMutation,
     SignalEventMutationName,
-    EventContext
+    EventContext,
+    SignalGuardMetadata,
+    SignalValidatorMetadata,
+    SignalFilterMetadata
 } from './signal.types'
 import { 
     SignalDoesNotExist,
@@ -27,7 +30,10 @@ import {
     InputSignalDoesNotExist,
     OutputSignalDoesNotExist,
     SignalUsedError,
-    SignalAlreadyExists
+    SignalAlreadyExists,
+    SignalDoesNotHaveFilter,
+    SignalDoesNotHaveGuard,
+    SignalDoesNotHaveValidator
 } from './signal.errors'
 import { isErrorCode, SqliteErrorCode } from '../../../core/typeorm/utils/error-code'
 import { CREATOR_SYMBOL, ResourceType } from '../creator/creator.types'
@@ -211,6 +217,65 @@ export class SignalService implements ISignalService {
         this.eventEmitter.emit(SignalEventMutationName, eventContext)
     }
 
+    public async setSignalValidatorMetadata(
+        signal: Signal,
+        validator: Validator,
+        snapshotMetadata: SnapshotMetadata<SignalValidatorMetadata>,
+        nestedTransaction = false
+    ): Promise<void> {
+        const connection = await this.connection
+        const signalRepository = connection.getRepository(SignalEntity)
+        const validatorRepository = connection.getRepository(ValidatorEntity)
+        const signalValidatorRepository = connection.getRepository(SignalValidator)
+        const metadataCustomRepository = getCustomRepository(connection, MetadataRepository)
+
+        const signalEntity = await signalRepository.findOne({
+            where: {
+                namespace: signal.namespace,
+                name: signal.name
+            }
+        })
+
+        if (!signalEntity) {
+            throw new SignalDoesNotExist
+        }
+
+        const validatorEntity = await validatorRepository.findOne({
+            where: {
+                namespace: validator.namespace,
+                name: validator.name
+            }
+        })
+
+        if (!validatorEntity) {
+            throw new ValidatorDoesNotExists
+        }
+
+        const signalValidatorEntity = await signalValidatorRepository.findOne({
+            where: {
+                signalId: signalEntity.id,
+                validatorId: validatorEntity.id
+            }
+        })
+
+        if (!signalValidatorEntity) {
+            throw new SignalDoesNotHaveValidator
+        }
+
+        signalValidatorEntity.metadata.metadata.custom = snapshotMetadata.metadata.custom
+        await metadataCustomRepository.update(signalValidatorEntity.metadata.id, {
+            metadata: signalValidatorEntity.metadata.metadata,
+            revisionNumber: snapshotMetadata.revisionNumber
+        }, nestedTransaction)
+
+        const eventContext: EventContext = {
+            type: SignalEventMutation.SetSignalValidatorMetadata,
+            signalId: signalEntity.id,
+            validatorId: validatorEntity.id
+        }
+        this.eventEmitter.emit(SignalEventMutationName, eventContext)
+    }
+
     public async removeValidator(signal: Signal, validator: Validator, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const signalRepository = connection.getRepository(SignalEntity)
@@ -333,6 +398,65 @@ export class SignalService implements ISignalService {
         this.eventEmitter.emit(SignalEventMutationName, eventContext)
     }
 
+    public async setSignalGuardMetadata(
+        signal: Signal,
+        guard: Guard,
+        snapshotMetadata: SnapshotMetadata<SignalGuardMetadata>,
+        nestedTransaction = false
+    ): Promise<void> {
+        const connection = await this.connection
+        const signalRepository = connection.getRepository(SignalEntity)
+        const guardRepository = connection.getRepository(GuardEntity)
+        const signalGuardRepository = connection.getRepository(SignalGuard)
+        const metadataCustomRepository = getCustomRepository(connection, MetadataRepository)
+
+        const signalEntity = await signalRepository.findOne({
+            where: {
+                namespace: signal.namespace,
+                name: signal.name
+            }
+        })
+
+        if (!signalEntity) {
+            throw new SignalDoesNotExist
+        }
+
+        const guardEntity = await guardRepository.findOne({
+            where: {
+                namespace: guard.namespace,
+                name: guard.name
+            }
+        })
+
+        if (!guardEntity) {
+            throw new GuardDoesNotExists
+        }
+
+        const signalGuardEntity = await signalGuardRepository.findOne({
+            where: {
+                signalId: signalEntity.id,
+                guardId: guardEntity.id
+            }
+        })
+
+        if (!signalGuardEntity) {
+            throw new SignalDoesNotHaveGuard
+        }
+
+        signalGuardEntity.metadata.metadata.custom = snapshotMetadata.metadata.custom
+        await metadataCustomRepository.update(signalGuardEntity.metadata.id, {
+            metadata: signalGuardEntity.metadata.metadata,
+            revisionNumber: snapshotMetadata.revisionNumber
+        }, nestedTransaction)
+
+        const eventContext: EventContext = {
+            type: SignalEventMutation.SetSignalGuardMetadata,
+            signalId: signalEntity.id,
+            guardId: guardEntity.id
+        }
+        this.eventEmitter.emit(SignalEventMutationName, eventContext)
+    }
+
     public async removeGuard(signal: Signal, guard: Guard, nestedTransaction = false): Promise<void> {
         const connection = await this.connection
         const signalRepository = connection.getRepository(SignalEntity)
@@ -449,6 +573,65 @@ export class SignalService implements ISignalService {
 
         const eventContext: EventContext = {
             type: SignalEventMutation.AddFilter,
+            signalId: signalEntity.id,
+            filterId: filterEntity.id
+        }
+        this.eventEmitter.emit(SignalEventMutationName, eventContext)
+    }
+
+    public async setSignalFilterMetadata(
+        signal: Signal,
+        filter: Filter,
+        snapshotMetadata: SnapshotMetadata<SignalFilterMetadata>,
+        nestedTransaction = false
+    ): Promise<void> {
+        const connection = await this.connection
+        const signalRepository = connection.getRepository(SignalEntity)
+        const filterRepository = connection.getRepository(FilterEntity)
+        const signalFilterRepository = connection.getRepository(SignalFilter)
+        const metadataCustomRepository = getCustomRepository(connection, MetadataRepository)
+
+        const signalEntity = await signalRepository.findOne({
+            where: {
+                namespace: signal.namespace,
+                name: signal.name
+            }
+        })
+
+        if (!signalEntity) {
+            throw new SignalDoesNotExist
+        }
+
+        const filterEntity = await filterRepository.findOne({
+            where: {
+                namespace: filter.namespace,
+                name: filter.name
+            }
+        })
+
+        if (!filterEntity) {
+            throw new FilterDoesNotExists
+        }
+
+        const signalFilterEntity = await signalFilterRepository.findOne({
+            where: {
+                signalId: signalEntity.id,
+                filterId: filterEntity.id
+            }
+        })
+
+        if (!signalFilterEntity) {
+            throw new SignalDoesNotHaveFilter
+        }
+
+        signalFilterEntity.metadata.metadata.custom = snapshotMetadata.metadata.custom
+        await metadataCustomRepository.update(signalFilterEntity.metadata.id, {
+            metadata: signalFilterEntity.metadata.metadata,
+            revisionNumber: snapshotMetadata.revisionNumber
+        }, nestedTransaction)
+
+        const eventContext: EventContext = {
+            type: SignalEventMutation.SetSignalFilterMetadata,
             signalId: signalEntity.id,
             filterId: filterEntity.id
         }

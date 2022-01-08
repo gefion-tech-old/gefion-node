@@ -62,3 +62,24 @@ export class SignalUsedError extends SignalError {
     public message = 'Попытка удалить сигнал, к которому привязаны важные ресурсы'
 
 }
+
+export class SignalDoesNotHaveValidator extends SignalError {
+
+    public name = 'SignalDoesNotHaveValidator'
+    public message = 'Указанный сигнал не имеет связи с указанным валидатором'
+
+}
+
+export class SignalDoesNotHaveFilter extends SignalError {
+
+    public name = 'SignalDoesNotHaveFilter'
+    public message = 'Указанный сигнал не имеет связи с указанным фильтром'
+
+}
+
+export class SignalDoesNotHaveGuard extends SignalError {
+
+    public name = 'SignalDoesNotHaveGuard'
+    public message = 'Указанный сигнал не имеет связи с указанным охранником'
+
+}

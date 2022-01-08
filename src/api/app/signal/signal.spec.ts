@@ -1,5 +1,8 @@
 import { getContainer } from '../../../inversify.config'
-import { SIGNAL_SYMBOL, SignalEventMutation } from './signal.types'
+import { 
+    SIGNAL_SYMBOL, 
+    SignalEventMutation
+} from './signal.types'
 import { ISignalService } from './signal.interface'
 import {
     SignalDoesNotExist,
@@ -10,9 +13,18 @@ import {
     InputSignalDoesNotExist,
     CyclicSignalsNotAllowed,
     SignalUsedError,
-    SignalAlreadyExists
+    SignalAlreadyExists,
+    SignalDoesNotHaveFilter,
+    SignalDoesNotHaveGuard,
+    SignalDoesNotHaveValidator
 } from './signal.errors'
-import { Connection, Entity, PrimaryGeneratedColumn, OneToOne, JoinColumn } from 'typeorm'
+import { 
+    Connection, 
+    Entity, 
+    PrimaryGeneratedColumn, 
+    OneToOne, 
+    JoinColumn
+} from 'typeorm'
 import { 
     Signal, 
     SignalGraph,
@@ -915,6 +927,503 @@ describe('SignalService в SignalModule', () => {
             filterId: 1
         }))
 
+        container.restore()
+    })
+
+    describe(`
+        Попытка изменить метаданные связи сигнала с валидатором/охранником/фильтром приводит к исключению,
+        если:
+    `, () => {
+
+        beforeAll(async () => {
+            const container = await getContainer()
+            container.snapshot()
+
+            const connection = await container
+                .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+            const signalRepository = connection.getRepository(Signal)
+            const validatorRepository = connection.getRepository(Validator)
+            const guardRepository = connection.getRepository(Guard)
+            const filterRepository = connection.getRepository(Filter)
+            const methodRepository = connection.getRepository(Method)
+
+            const method = await methodRepository.save({
+                type: 'type',
+                namespace: 'namespace',
+                name: 'name'
+            })
+            await validatorRepository.save({
+                namespace: 'validator',
+                name: 'validator',
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                method: method
+            })
+            await guardRepository.save({
+                namespace: 'guard',
+                name: 'guard',
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                method: method
+            })
+            await filterRepository.save({
+                namespace: 'filter',
+                name: 'filter',
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                method: method
+            })
+            await signalRepository.save({
+                metadata: {
+                    metadata: {
+                        custom: null
+                    }
+                },
+                name: 'signal',
+                namespace: 'signal'
+            })
+        })
+
+        afterAll(async () => {
+            const container = await getContainer()
+            container.restore()
+        })
+
+        it(`
+            1. Указать несуществующий сигнал
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+
+            const signalService = container
+                .get<ISignalService>(SIGNAL_SYMBOL.SignalService)
+
+            const signalMutationFn = jest.fn()
+            expect(signalService.onMutation(signalMutationFn)).toBeUndefined()
+
+            await expect(signalService.setSignalFilterMetadata({
+                namespace: 'empty',
+                name: 'empty'
+            }, {
+                namespace: 'filter',
+                name: 'filter'
+            }, {
+                metadata: {
+                    custom: null
+                },
+                revisionNumber: 0
+            })).rejects.toBeInstanceOf(SignalDoesNotExist)
+            await expect(signalService.setSignalValidatorMetadata({
+                namespace: 'empty',
+                name: 'empty'
+            }, {
+                namespace: 'validator',
+                name: 'validator'
+            }, {
+                metadata: {
+                    custom: null
+                },
+                revisionNumber: 0
+            })).rejects.toBeInstanceOf(SignalDoesNotExist)
+            await expect(signalService.setSignalGuardMetadata({
+                namespace: 'empty',
+                name: 'empty'
+            }, {
+                namespace: 'guard',
+                name: 'guard'
+            }, {
+                metadata: {
+                    custom: null
+                },
+                revisionNumber: 0
+            })).rejects.toBeInstanceOf(SignalDoesNotExist)
+
+            expect(signalMutationFn).toBeCalledTimes(0)
+
+            container.restore()
+        })
+
+        it(`
+            2. Указать несуществующий валидатор/охранник/фильтр
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+
+            const signalService = container
+                .get<ISignalService>(SIGNAL_SYMBOL.SignalService)
+
+            const signalMutationFn = jest.fn()
+            expect(signalService.onMutation(signalMutationFn)).toBeUndefined()
+
+            await expect(signalService.setSignalFilterMetadata({
+                namespace: 'signal',
+                name: 'signal'
+            }, {
+                namespace: 'empty',
+                name: 'empty'
+            }, {
+                metadata: {
+                    custom: null
+                },
+                revisionNumber: 0
+            })).rejects.toBeInstanceOf(FilterDoesNotExists)
+            await expect(signalService.setSignalValidatorMetadata({
+                namespace: 'signal',
+                name: 'signal'
+            }, {
+                namespace: 'empty',
+                name: 'empty'
+            }, {
+                metadata: {
+                    custom: null
+                },
+                revisionNumber: 0
+            })).rejects.toBeInstanceOf(ValidatorDoesNotExists)
+            await expect(signalService.setSignalGuardMetadata({
+                namespace: 'signal',
+                name: 'signal'
+            }, {
+                namespace: 'empty',
+                name: 'empty'
+            }, {
+                metadata: {
+                    custom: null
+                },
+                revisionNumber: 0
+            })).rejects.toBeInstanceOf(GuardDoesNotExists)
+
+            expect(signalMutationFn).toBeCalledTimes(0)
+
+            container.restore()
+        })
+
+        it(`
+            3. Указанный сигнал и указанный валидатор/охранник/фильтр не имеют друг с другом связи
+        `, async () => {
+            const container = await getContainer()
+            container.snapshot()
+
+            const signalService = container
+                .get<ISignalService>(SIGNAL_SYMBOL.SignalService)
+
+            const signalMutationFn = jest.fn()
+            expect(signalService.onMutation(signalMutationFn)).toBeUndefined()
+
+            await expect(signalService.setSignalFilterMetadata({
+                namespace: 'signal',
+                name: 'signal'
+            }, {
+                namespace: 'filter',
+                name: 'filter'
+            }, {
+                metadata: {
+                    custom: null
+                },
+                revisionNumber: 0
+            })).rejects.toBeInstanceOf(SignalDoesNotHaveFilter)
+            await expect(signalService.setSignalValidatorMetadata({
+                namespace: 'signal',
+                name: 'signal'
+            }, {
+                namespace: 'validator',
+                name: 'validator'
+            }, {
+                metadata: {
+                    custom: null
+                },
+                revisionNumber: 0
+            })).rejects.toBeInstanceOf(SignalDoesNotHaveValidator)
+            await expect(signalService.setSignalGuardMetadata({
+                namespace: 'signal',
+                name: 'signal'
+            }, {
+                namespace: 'guard',
+                name: 'guard'
+            }, {
+                metadata: {
+                    custom: null
+                },
+                revisionNumber: 0
+            })).rejects.toBeInstanceOf(SignalDoesNotHaveGuard)
+
+            expect(signalMutationFn).toBeCalledTimes(0)
+
+            container.restore()
+        })
+
+    })
+
+    it(`
+        Метаданные корректно устанавливаются в связь сигнала с валидатором/охранником/фильтром и читаются из неё. 
+        Попытка установить метаданные несоответствующей редакции приводит к исключению
+    `, async () => {
+        const container = await getContainer()
+        container.snapshot()
+       
+        const signalService = container
+            .get<ISignalService>(SIGNAL_SYMBOL.SignalService)
+        const connection = await container
+            .get<Promise<Connection>>(TYPEORM_SYMBOL.TypeOrmConnectionApp)
+        const validatorRepository = connection.getRepository(Validator)
+        const guardRepository = connection.getRepository(Guard)
+        const filterRepository = connection.getRepository(Filter)
+        const methodRepository = connection.getRepository(Method)
+        const signalValidatorRepository = connection.getRepository(SignalValidator)
+        const signalFilterRepository = connection.getRepository(SignalFilter)
+        const signalGuardRepository = connection.getRepository(SignalGuard)
+        const metadataRepository = connection.getRepository(Metadata)
+
+        const method = {
+            type: 'method',
+            namespace: 'method',
+            name: 'method'
+        }
+        /**
+         * Если не указывать метаданные и остальное отдельно, typeorm будет ориентируясь на один объект херачить
+         * везде одинаковый идентификатор метаданных
+         */
+        const getResource = (name: string) => {
+            return {
+                namespace: 'namespace',
+                metadata: {
+                    metadata: {
+                        custom: name
+                    }
+                },
+                method: method,
+                name: name
+            }
+        }
+        const signal = {
+            namespace: 'signal',
+            name: 'signal'
+        }
+        const defaultMetadata = null 
+
+        const signalMutationFn = jest.fn()
+        expect(signalService.onMutation(signalMutationFn)).toBeUndefined()
+
+        await methodRepository.save(method)
+        await validatorRepository.save(getResource('validator'))
+        await guardRepository.save(getResource('guard'))
+        await filterRepository.save(getResource('filter'))
+
+        await signalService.create({
+            signal: signal,
+            defaultMetadata: defaultMetadata,
+            creator: {
+                type: CreatorType.System
+            }
+        })
+
+        await signalService.addFilter(signal, getResource('filter'))
+        await signalService.addGuard(signal, getResource('guard'))
+        await signalService.addValidator(signal, getResource('validator'))
+
+        await expect(metadataRepository.count()).resolves.toBe(7)
+
+        await expect(signalValidatorRepository.findOne({
+            where: {
+                signalId: 1,
+                validatorId: 1
+            }
+        }).then(entity => {
+            return entity?.metadata
+        })).resolves.toMatchObject({
+            metadata: {
+                custom: null
+            },
+            revisionNumber: 0
+        })
+        await expect(signalFilterRepository.findOne({
+            where: {
+                signalId: 1,
+                filterId: 1
+            }
+        }).then(entity => {
+            return entity?.metadata
+        })).resolves.toMatchObject({
+            metadata: {
+                custom: null
+            },
+            revisionNumber: 0
+        })
+        await expect(signalGuardRepository.findOne({
+            where: {
+                signalId: 1,
+                guardId: 1
+            }
+        }).then(entity => {
+            return entity?.metadata
+        })).resolves.toMatchObject({
+            metadata: {
+                custom: null
+            },
+            revisionNumber: 0
+        })
+
+        await expect(signalService.setSignalFilterMetadata(signal, getResource('filter'), {
+            metadata: {
+                custom: {
+                    test: 'test'
+                }
+            },
+            revisionNumber: 0
+        })).resolves.toBeUndefined()
+        await expect(signalService.setSignalValidatorMetadata(signal, getResource('validator'), {
+            metadata: {
+                custom: {
+                    test: 'test'
+                }
+            },
+            revisionNumber: 0
+        })).resolves.toBeUndefined()
+        await expect(signalService.setSignalGuardMetadata(signal, getResource('guard'), {
+            metadata: {
+                custom: {
+                    test: 'test'
+                }
+            },
+            revisionNumber: 0
+        })).resolves.toBeUndefined()
+
+        await expect(signalValidatorRepository.findOne({
+            where: {
+                signalId: 1,
+                validatorId: 1
+            }
+        }).then(entity => {
+            return entity?.metadata
+        })).resolves.toMatchObject({
+            metadata: {
+                custom: {
+                    test: 'test'
+                }
+            },
+            revisionNumber: 1
+        })
+        await expect(signalFilterRepository.findOne({
+            where: {
+                signalId: 1,
+                filterId: 1
+            }
+        }).then(entity => {
+            return entity?.metadata
+        })).resolves.toMatchObject({
+            metadata: {
+                custom: {
+                    test: 'test'
+                }
+            },
+            revisionNumber: 1
+        })
+        await expect(signalGuardRepository.findOne({
+            where: {
+                signalId: 1,
+                guardId: 1
+            }
+        }).then(entity => {
+            return entity?.metadata
+        })).resolves.toMatchObject({
+            metadata: {
+                custom: {
+                    test: 'test'
+                }
+            },
+            revisionNumber: 1
+        })
+
+        await expect(signalService.setSignalFilterMetadata(signal, getResource('filter'), {
+            metadata: {
+                custom: null
+            },
+            revisionNumber: 0
+        })).rejects.toBeInstanceOf(RevisionNumberError)
+        await expect(signalService.setSignalValidatorMetadata(signal, getResource('validator'), {
+            metadata: {
+                custom: null
+            },
+            revisionNumber: 0
+        })).rejects.toBeInstanceOf(RevisionNumberError)
+        await expect(signalService.setSignalGuardMetadata(signal, getResource('guard'), {
+            metadata: {
+                custom: null
+            },
+            revisionNumber: 0
+        })).rejects.toBeInstanceOf(RevisionNumberError)
+
+        await expect(signalValidatorRepository.findOne({
+            where: {
+                signalId: 1,
+                validatorId: 1
+            }
+        }).then(entity => {
+            return entity?.metadata
+        })).resolves.toMatchObject({
+            metadata: {
+                custom: {
+                    test: 'test'
+                }
+            },
+            revisionNumber: 1
+        })
+        await expect(signalFilterRepository.findOne({
+            where: {
+                signalId: 1,
+                filterId: 1
+            }
+        }).then(entity => {
+            return entity?.metadata
+        })).resolves.toMatchObject({
+            metadata: {
+                custom: {
+                    test: 'test'
+                }
+            },
+            revisionNumber: 1
+        })
+        await expect(signalGuardRepository.findOne({
+            where: {
+                signalId: 1,
+                guardId: 1
+            }
+        }).then(entity => {
+            return entity?.metadata
+        })).resolves.toMatchObject({
+            metadata: {
+                custom: {
+                    test: 'test'
+                }
+            },
+            revisionNumber: 1
+        })
+
+        expect(signalMutationFn).toBeCalledTimes(7)
+        expect(signalMutationFn).nthCalledWith(5, {
+            type: SignalEventMutation.SetSignalFilterMetadata,
+            signalId: 1,
+            filterId: 1
+        })
+        expect(signalMutationFn).nthCalledWith(6, {
+            type: SignalEventMutation.SetSignalValidatorMetadata,
+            signalId: 1,
+            validatorId: 1
+        })
+        expect(signalMutationFn).nthCalledWith(7, {
+            type: SignalEventMutation.SetSignalGuardMetadata,
+            signalId: 1,
+            guardId: 1
+        })
+        
         container.restore()
     })
 

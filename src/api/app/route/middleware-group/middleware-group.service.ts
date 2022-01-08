@@ -253,7 +253,7 @@ export class MiddlewareGroupService implements IMiddlewareGroupService {
         group: MiddlewareGroup,
         middleware: Middleware,
         snapshotMetadata: SnapshotMetadata<MiddlewareGroupMiddlewareMetadata>,
-        nestedTransaction?: boolean
+        nestedTransaction = false
     ): Promise<void> {
         const connection = await this.connection
         const middlewareGroupRepository = connection.getRepository(MiddlewareGroup)

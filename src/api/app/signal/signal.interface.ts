@@ -2,7 +2,10 @@ import {
     Signal, 
     SignalMetadata,
     CreateSignal,
-    EventContext
+    EventContext,
+    SignalFilterMetadata,
+    SignalGuardMetadata,
+    SignalValidatorMetadata
 } from './signal.types'
 import { SnapshotMetadata } from '../metadata/metadata.types'
 import { Filter } from './filter/filter.types'
@@ -38,6 +41,16 @@ export interface ISignalService {
     addValidator(signal: Signal, validator: Validator, nestedTransaction?: boolean): Promise<void>
 
     /**
+     * Изменить метаданные связи указанного сигнала с указанным валидатором 
+     */
+    setSignalValidatorMetadata(
+        signal: Signal,
+        validator: Validator,
+        snapshotMetadata: SnapshotMetadata<SignalValidatorMetadata>,
+        nestedTransaction?: boolean
+    ): Promise<void>
+
+    /**
      * Удалить из пула валидаторов сигнала связь с указанным валидатором
      */
     removeValidator(signal: Signal, validator: Validator, nestedTransaction?: boolean): Promise<void>
@@ -49,6 +62,16 @@ export interface ISignalService {
     addGuard(signal: Signal, guard: Guard, nestedTransaction?: boolean): Promise<void>
 
     /**
+     * Изменить метаданные связи указанного сигнала с указанным охранником
+     */
+    setSignalGuardMetadata(
+        signal: Signal,
+        guard: Guard,
+        snapshotMetadata: SnapshotMetadata<SignalGuardMetadata>,
+        nestedTransaction?: boolean
+    ): Promise<void>
+
+    /**
      * Удалить из пула защитников сигнала связь с указанным защитником
      */
     removeGuard(signal: Signal, guard: Guard, nestedTransaction?: boolean): Promise<void>
@@ -58,6 +81,16 @@ export interface ISignalService {
      * не была добавлена 
      */
     addFilter(signal: Signal, filter: Filter, nestedTransaction?: boolean): Promise<void>
+
+    /**
+     * Изменить метаданные связи указанного сигнала с указанным фильтром
+     */
+    setSignalFilterMetadata(
+        signal: Signal,
+        filter: Filter,
+        snapshotMetadata: SnapshotMetadata<SignalFilterMetadata>,
+        nestedTransaction?: boolean
+    ): Promise<void>
 
     /**
      * Удалить из пула фильтров сигнала связь с указанным фильтром

@@ -19,10 +19,8 @@ export class MetadataRepository extends AbstractRepository<Metadata<object>> {
                     metadata: snapshotMetadata.metadata,
                     revisionNumber: snapshotMetadata.revisionNumber + 1
                 })
-                .where('id = :id', {
-                    id: id
-                })
-                .where('revisionNumber = :revisionNumber', {
+                .where('id = :id AND revisionNumber = :revisionNumber', {
+                    id: id,
                     revisionNumber: snapshotMetadata.revisionNumber
                 })
                 .execute()

@@ -30,6 +30,10 @@ export function getSignalService(mock: ISignalService): new() => ISignalService 
         addValidator(signal: Signal, method: Method, nestedTransaction?: boolean): any {
             return mock.addValidator(signal, method, nestedTransaction)
         }
+
+        setSignalValidatorMetadata(signal: any, validator: any, snapshotMetadata: any, nestedTransaction: any): any {
+            return mock.setSignalValidatorMetadata(signal, validator, snapshotMetadata, nestedTransaction)
+        }
     
         removeValidator(signal: Signal, method: Method, nestedTransaction?: boolean): any {
             return mock.removeValidator(signal, method, nestedTransaction)
@@ -38,6 +42,10 @@ export function getSignalService(mock: ISignalService): new() => ISignalService 
         addGuard(signal: Signal, method: Method, nestedTransaction?: boolean): any {
             return mock.addGuard(signal, method, nestedTransaction)
         }
+
+        setSignalGuardMetadata(signal: any, guard: any, snapshotMetadata: any, nestedTransaction: any): any {
+            return mock.setSignalGuardMetadata(signal, guard, snapshotMetadata, nestedTransaction)
+        }
     
         removeGuard(signal: Signal, method: Method, nestedTransaction?: boolean): any {
             return mock.removeGuard(signal, method, nestedTransaction)
@@ -45,6 +53,10 @@ export function getSignalService(mock: ISignalService): new() => ISignalService 
     
         addFilter(signal: Signal, method: Method, nestedTransaction?: boolean): any {
             return mock.addFilter(signal, method, nestedTransaction)
+        }
+
+        setSignalFilterMetadata(signal: any, filter: any, snapshotMetadata: any, nestedTransaction: any): any {
+            return mock.setSignalFilterMetadata(signal, filter, snapshotMetadata, nestedTransaction)
         }
     
         removeFilter(signal: Signal, method: Method, nestedTransaction?: boolean): any {
