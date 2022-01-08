@@ -94,7 +94,9 @@ export class MethodService implements IMethodService {
             } else {
                 return await transaction<MethodEntity>(nestedTransaction, connection, async () => {
                     const methodEntity = await mutationQuery(true, () => {
-                        return methodRepository.save(options)
+                        return methodRepository.save({
+                            ...options
+                        })
                     })
 
                     await this.creatorService.bind({
